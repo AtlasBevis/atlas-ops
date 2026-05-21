@@ -1,0 +1,7 @@
+gitlab-runner*.tgz
+charts/*
+public/
+.tmp/
+.idea/
+tests/__snapshot__
+

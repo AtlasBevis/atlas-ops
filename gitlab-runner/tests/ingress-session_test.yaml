@@ -1,0 +1,60 @@
+suite: test ingress session
+templates:
+  - ingress-session-server.yaml
+tests:
+  - it: renders renders the ingress for the session server
+    set:
+      sessionServer.enabled: true
+      sessionServer.ingress.enabled: true
+    asserts:
+      - isKind:
+          of: Ingress
+      - notExists:
+          path: metadata.annotations
+  - it: should set the ingressClassName
+    set:
+      sessionServer.enabled: true
+      sessionServer.ingress.enabled: true
+      sessionServer.ingress.className: nginx
+    asserts:
+      - isKind:
+          of: Ingress
+      - equal:
+          path: spec.ingressClassName
+          value: nginx
+      # We should not set the deprecated annotation
+      - notExists:
+          path: metadata.annotations["kubernetes.io/ingress.class"]
+  - it: should set the annotations correctly
+    set:
+      sessionServer.enabled: true
+      sessionServer.ingress.enabled: true
+      sessionServer.ingress.annotations:
+        cert-manager.io/cluster-issuer: production
+    asserts:
+      - isKind:
+          of: Ingress
+      - equal:
+          path: metadata.annotations
+          value:
+            cert-manager.io/cluster-issuer: production
+  - it: should set the tls configuration correctlly
+    set:
+      sessionServer.enabled: true
+      sessionServer.ingress.enabled: true
+      sessionServer.publicIP: example.com
+    asserts:
+      - isKind:
+          of: Ingress
+      - lengthEqual:
+          path: spec.tls
+          count: 1
+      - lengthEqual:
+          path: spec.tls[0].hosts
+          count: 1
+      - equal:
+          path: spec.tls[0].hosts[0]
+          value: example.com
+      - equal:
+          path: spec.tls[0].secretName
+          value: gitlab-runner-session-server

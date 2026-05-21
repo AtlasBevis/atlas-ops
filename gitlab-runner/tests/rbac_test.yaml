@@ -1,0 +1,63 @@
+suite: test role and role-binding
+templates:
+  - service-account.yaml
+  - deployment.yaml
+  - role.yaml
+  - role-binding.yaml
+  - configmap.yaml
+release:
+  name: custom-runner
+  namespace: gitlab
+tests:
+  - it: does not create Role or RoleBinding by default
+    asserts:
+      - template: role.yaml
+        hasDocuments:
+          count: 0
+      - template: role-binding.yaml
+        hasDocuments:
+          count: 0
+  - it: creates Role and RoleBinding if `rbac.create` is `true`
+    set:
+      rbac.create: true
+    asserts:
+      - template: role.yaml
+        containsDocument:
+          kind: Role
+          apiVersion: rbac.authorization.k8s.io/v1
+          name: custom-runner-gitlab-runner
+          namespace: gitlab
+      - template: role-binding.yaml
+        containsDocument:
+          kind: RoleBinding
+          apiVersion: rbac.authorization.k8s.io/v1
+          name: custom-runner-gitlab-runner
+          namespace: gitlab
+  - it: creates Role and RoleBinding without ServiceAccount
+    set:
+      rbac.create: true
+      serviceAccount.create: false
+      serviceAccount.name: existing-custom-service-account
+    asserts:
+      - template: role.yaml
+        containsDocument:
+          kind: Role
+          apiVersion: rbac.authorization.k8s.io/v1
+          name: custom-runner-gitlab-runner
+          namespace: gitlab
+      - template: role-binding.yaml
+        containsDocument:
+          kind: RoleBinding
+          apiVersion: rbac.authorization.k8s.io/v1
+          name: custom-runner-gitlab-runner
+          namespace: gitlab
+      - template: role-binding.yaml
+        equal:
+          path: subjects
+          value:
+            - kind: ServiceAccount
+              name: existing-custom-service-account
+              namespace: gitlab
+      - template: service-account.yaml
+        hasDocuments:
+          count: 0

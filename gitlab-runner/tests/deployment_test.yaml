@@ -1,0 +1,430 @@
+suite: test deployment
+templates:
+  - deployment.yaml
+  - configmap.yaml
+  - secrets.yaml
+tests:
+  - it: renders runner registration token secret
+    set:
+      image.tag: latest
+      runnerRegistrationToken: "MY_REGISTRATION_TOKEN"
+    template: deployment.yaml
+    asserts:
+      - isKind:
+          of: Deployment
+      - equal:
+          path: spec.template.spec.volumes[2].name
+          value: projected-secrets
+      - equal:
+          path: spec.template.spec.volumes[2].projected.sources[0]
+          value:
+            secret:
+              name: RELEASE-NAME-gitlab-runner
+              items:
+                - key: runner-registration-token
+                  path: runner-registration-token
+                - key: runner-token
+                  path: runner-token
+
+  - it: renders a deployment strategy
+    set:
+      strategy.rollingUpdate.maxSurge: 1
+      strategy.rollingUpdate.maxUnavailable: 0
+      strategy.type: RollingUpdate
+    template: deployment.yaml
+    asserts:
+      - isKind:
+          of: Deployment
+      - equal:
+          path: spec.strategy
+          value:
+            rollingUpdate:
+              maxSurge: 1
+              maxUnavailable: 0
+            type: RollingUpdate
+
+  - it: sets replicas to 0 when explicitly set to 0
+    set:
+      replicas: 0
+    template: deployment.yaml
+    asserts:
+      - isKind:
+          of: Deployment
+      - equal:
+          path: spec.replicas
+          value: 0
+
+  # For apps/v1, a null value for replicas defaults to 1
+  - it: replicas omit from deployment if not set in values
+    set:
+      replicas: null
+    template: deployment.yaml
+    asserts:
+      - isAPIVersion:
+          of: apps/v1
+      - isKind:
+          of: Deployment
+      - notExists:
+          path: spec.replicas
+
+  - it: replicas is set to the configured value
+    set:
+      replicas: 1
+    template: deployment.yaml
+    asserts:
+      - isAPIVersion:
+          of: apps/v1
+      - isKind:
+          of: Deployment
+      - equal:
+          path: spec.replicas
+          value: 1
+  - it: doesn't mount the secret by default
+    template: deployment.yaml
+    asserts:
+      - isKind:
+          of: Deployment
+      - notContains:
+          path: spec.template.spec.volumes
+          content:
+            name: projected-secrets
+          any: true
+
+  - it: mounts the correct secret when secret name is explicitly set
+    set:
+      runners.secret: "{{ .Release.Name }}-secret"
+    template: deployment.yaml
+    asserts:
+      - isKind:
+          of: Deployment
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: projected-secrets
+            projected:
+              sources:
+                - secret:
+                    name: RELEASE-NAME-secret
+                    items:
+                      - key: runner-registration-token
+                        path: runner-registration-token
+                      - key: runner-token
+                        path: runner-token
+  - it: render lifecycle options preStop command in the deployment with unregisterRunners disabled
+    set:
+      unregisterRunners: false
+      deploymentLifecycle:
+        preStop:
+          exec:
+            command: ['/bin/sh','-c','echo "got SIGINT signal, waiting for 10 seconds..."; sleep 10; echo "shutting down..."']
+    template: deployment.yaml
+    asserts:
+      - isKind:
+          of: Deployment
+      - equal:
+          path: spec.template.spec.containers[0].lifecycle.preStop.exec.command[0]
+          value: '/bin/sh'
+      - equal:
+          path: spec.template.spec.containers[0].lifecycle.preStop.exec.command[1]
+          value: '-c'
+      - equal:
+          path: spec.template.spec.containers[0].lifecycle.preStop.exec.command[2]
+          value: 'echo "got SIGINT signal, waiting for 10 seconds..."; sleep 10; echo "shutting down..."'
+  - it: render lifecycle options preStop command in the deployment with unregisterRunners enabled
+    set:
+      deploymentLifecycle:
+        preStop:
+          exec:
+            command: ['/bin/sh','-c','echo "got SIGINT signal, waiting for 10 seconds..."; sleep 10; echo "shutting down..."']
+    template: deployment.yaml
+    asserts:
+      - isKind:
+          of: Deployment
+      - equal:
+          path: spec.template.spec.containers[0].lifecycle.preStop.exec.command[0]
+          value: '/bin/sh'
+      - equal:
+          path: spec.template.spec.containers[0].lifecycle.preStop.exec.command[1]
+          value: '-c'
+      - equal:
+          path: spec.template.spec.containers[0].lifecycle.preStop.exec.command[2]
+          value: 'echo "got SIGINT signal, waiting for 10 seconds..."; sleep 10; echo "shutting down..."'
+
+
+  - it: uses custom serviceAccountName
+    set:
+      serviceAccount.name: existing-custom-service-account
+    template: deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.serviceAccountName
+          value: existing-custom-service-account
+
+  - it: uses probe-level termination grace period if defined
+    set:
+      livenessProbe.terminationGracePeriodSeconds: 30
+    template: deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].livenessProbe.terminationGracePeriodSeconds
+          value: 30
+
+  - it: does not render probe-level termination grace period if not defined
+    template: deployment.yaml
+    asserts:
+      - notExists:
+          path: spec.template.spec.containers[0].livenessProbe.terminationGracePeriodSeconds
+
+  - it: uses custom runtimeClassName
+    set:
+      runtimeClassName: existing-runtime-class
+    template: deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.runtimeClassName
+          value: existing-runtime-class
+
+  - it: should not set podLabels
+    release:
+      name: hello-gitlab
+    chart:
+      version: 1.0.1
+    template: deployment.yaml
+    asserts:
+      - matchSnapshot:
+          path: spec.template
+      - equal:
+          path: spec.template.metadata.labels
+          value:
+            app: hello-gitlab-gitlab-runner
+            chart: gitlab-runner-1.0.1
+            heritage: Helm
+            release: hello-gitlab
+
+  - it: should set podLabels without template variables
+    set:
+      podLabels:
+        owner.team: my-team
+        gitlab.com: reserved
+    template: deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.metadata.labels["owner.team"]
+          value: my-team
+      - equal:
+          path: spec.template.metadata.labels["gitlab.com"]
+          value: reserved
+
+  - it: should set podLabels with template variables
+    set:
+      team: gitlab-team
+      tag: finops.io
+      podLabels:
+        owner.team: "{{ .Values.team }}"
+        tags.{{ .Values.tag }}/env: "sandbox"
+        tags.k8s.io/service: gitlab-runner
+    template: deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.metadata.labels["owner.team"]
+          value: gitlab-team
+      - equal:
+          path: spec.template.metadata.labels["tags.finops.io/env"]
+          value: sandbox
+      - equal:
+          path: spec.template.metadata.labels["tags.k8s.io/service"]
+          value: gitlab-runner
+
+  - it: should not set deploymentLabels
+    release:
+      name: hello-gitlab
+    chart:
+      version: 1.0.1
+    template: deployment.yaml
+    asserts:
+      - matchSnapshot:
+          path: metadata
+      - equal:
+          path: metadata.labels
+          value:
+            app: hello-gitlab-gitlab-runner
+            chart: gitlab-runner-1.0.1
+            heritage: Helm
+            release: hello-gitlab
+
+  - it: should set deploymentLabels without template variables
+    set:
+      deploymentLabels:
+        owner.team: my-team
+        gitlab.com: reserved
+    template: deployment.yaml
+    asserts:
+      - equal:
+          path: metadata.labels["owner.team"]
+          value: my-team
+      - equal:
+          path: metadata.labels["gitlab.com"]
+          value: reserved
+
+  - it: should set deploymentLabels with template variables
+    set:
+      team: gitlab-team
+      tag: finops.io
+      deploymentLabels:
+        owner.team: "{{ .Values.team }}"
+        tags.{{ .Values.tag }}/env: "sandbox"
+        tags.k8s.io/service: gitlab-runner
+    template: deployment.yaml
+    asserts:
+      - equal:
+          path: metadata.labels["owner.team"]
+          value: gitlab-team
+      - equal:
+          path: metadata.labels["tags.finops.io/env"]
+          value: sandbox
+      - equal:
+          path: metadata.labels["tags.k8s.io/service"]
+          value: gitlab-runner
+
+  - it: should not render envFrom when extraEnvFromRefs is not set
+    template: deployment.yaml
+    asserts:
+      - isKind:
+          of: Deployment
+      - notExists:
+          path: spec.template.spec.containers[0].envFrom
+
+  - it: should not render envFrom when extraEnvFromRefs is empty array
+    set:
+      extraEnvFromRefs: []
+    template: deployment.yaml
+    asserts:
+      - isKind:
+          of: Deployment
+      - notExists:
+          path: spec.template.spec.containers[0].envFrom
+
+  - it: should render envFrom with secretRef
+    set:
+      extraEnvFromRefs:
+        - secretRef:
+            name: gitlab-runner-cache-config
+    template: deployment.yaml
+    asserts:
+      - isKind:
+          of: Deployment
+      - equal:
+          path: spec.template.spec.containers[0].envFrom
+          value:
+            - secretRef:
+                name: gitlab-runner-cache-config
+
+  - it: should render envFrom with configMapRef
+    set:
+      extraEnvFromRefs:
+        - configMapRef:
+            name: gitlab-runner-config
+    template: deployment.yaml
+    asserts:
+      - isKind:
+          of: Deployment
+      - equal:
+          path: spec.template.spec.containers[0].envFrom
+          value:
+            - configMapRef:
+                name: gitlab-runner-config
+
+  - it: should render envFrom with multiple refs
+    set:
+      extraEnvFromRefs:
+        - secretRef:
+            name: gitlab-runner-cache-config
+        - configMapRef:
+            name: gitlab-runner-config
+        - secretRef:
+            name: additional-secret
+            optional: true
+    template: deployment.yaml
+    asserts:
+      - isKind:
+          of: Deployment
+      - equal:
+          path: spec.template.spec.containers[0].envFrom
+          value:
+            - secretRef:
+                name: gitlab-runner-cache-config
+            - configMapRef:
+                name: gitlab-runner-config
+            - secretRef:
+                name: additional-secret
+                optional: true
+
+  - it: configOverride writes config.toml verbatim and skips registration
+    set:
+      gitlabUrl: https://gitlab.example.com
+      runners.configOverride: |
+        concurrent = 50
+        [[runners]]
+          name = "override"
+          url = "{{ .Values.gitlabUrl }}"
+          token = "glrt-OVERRIDE"
+          executor = "kubernetes"
+    template: configmap.yaml
+    asserts:
+      - isKind:
+          of: ConfigMap
+      # The supplied content is rendered as-is (with tpl interpolation)
+      - matchRegex:
+          path: data["config.toml"]
+          pattern: 'token = "glrt-OVERRIDE"'
+      - matchRegex:
+          path: data["config.toml"]
+          pattern: 'url = "https://gitlab.example.com"'
+      # registration / templating helpers are NOT rendered
+      - notExists:
+          path: data["register-the-runner"]
+      - notExists:
+          path: data["config.template.toml"]
+      # the entrypoint runs verify preflight instead of register
+      - matchRegex:
+          path: data.entrypoint
+          pattern: '/entrypoint verify --url='
+      - notMatchRegex:
+          path: data.entrypoint
+          pattern: 'sh /configmaps/register-the-runner'
+
+  - it: configOverride skips session-server placeholder substitution
+    set:
+      sessionServer.enabled: true
+      runners.configOverride: |
+        concurrent = 1
+        [[runners]]
+          name = "override"
+          url = "https://example.com"
+          token = "glrt-x"
+    template: configmap.yaml
+    asserts:
+      - notExists:
+          path: data["set-session-server-address"]
+      - notExists:
+          path: data["set-session-server-port"]
+      - notMatchRegex:
+          path: data.entrypoint
+          pattern: 'set-session-server-'
+
+  - it: configOverride does not require registration tokens or secret
+    set:
+      runners.configOverride: |
+        [[runners]]
+          name = "override"
+          url = "https://example.com"
+          token = "glrt-x"
+    template: deployment.yaml
+    asserts:
+      - isKind:
+          of: Deployment
+      - notContains:
+          path: spec.template.spec.volumes
+          content:
+            name: projected-secrets
+          any: true

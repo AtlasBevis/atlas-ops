@@ -1,0 +1,304 @@
+suite: test namespace separation
+templates:
+  - deployment.yaml
+  - configmap.yaml
+  - secrets.yaml
+  - service-account.yaml
+  - role.yaml
+  - role-binding.yaml
+  - hpa.yaml
+  - service.yaml
+  - service-session-server.yaml
+  - podmonitor.yaml
+  - servicemonitor.yaml
+release:
+  name: test-runner
+  namespace: default
+tests:
+  # Test 1: Default behavior (backward compatibility)
+  - it: uses Release namespace by default for all resources
+    asserts:
+      - template: deployment.yaml
+        equal:
+          path: metadata.namespace
+          value: "default"
+      - template: configmap.yaml
+        equal:
+          path: metadata.namespace
+          value: "default"
+
+  # Test 2: Runner namespace override only
+  - it: uses custom namespace for runner resources when namespace is set
+    set:
+      namespace: "ops"
+    asserts:
+      - template: deployment.yaml
+        equal:
+          path: metadata.namespace
+          value: "ops"
+      - template: configmap.yaml
+        equal:
+          path: metadata.namespace
+          value: "ops"
+      # Check that job namespace still uses default in config template
+      - template: configmap.yaml
+        matchRegex:
+          path: data["config.template.toml"]
+          pattern: 'namespace = "default"'
+
+  # Test 3: Job namespace override only
+  - it: uses custom namespace for jobs when runners.jobNamespace is set
+    set:
+      runners.jobNamespace: "gitlab"
+    asserts:
+      - template: deployment.yaml
+        equal:
+          path: metadata.namespace
+          value: "default"
+      - template: configmap.yaml
+        equal:
+          path: metadata.namespace
+          value: "default"
+      # Check that job namespace uses custom value
+      - template: configmap.yaml
+        matchRegex:
+          path: data["config.template.toml"]
+          pattern: 'namespace = "gitlab"'
+
+  # Test 4: Full namespace separation
+  - it: separates runner and job namespaces completely
+    set:
+      namespace: "ops"
+      runners.jobNamespace: "gitlab"
+    asserts:
+      - template: deployment.yaml
+        equal:
+          path: metadata.namespace
+          value: "ops"
+      - template: configmap.yaml
+        equal:
+          path: metadata.namespace
+          value: "ops"
+      # Check that job namespace uses different value
+      - template: configmap.yaml
+        matchRegex:
+          path: data["config.template.toml"]
+          pattern: 'namespace = "gitlab"'
+
+  # Test 5: RBAC namespace consistency
+  - it: puts RBAC resources in runner namespace when using namespace separation
+    set:
+      namespace: "ops"
+      runners.jobNamespace: "gitlab"
+      rbac.create: true
+      serviceAccount.create: true
+    asserts:
+      - template: service-account.yaml
+        equal:
+          path: metadata.namespace
+          value: "ops"
+      - template: role.yaml
+        equal:
+          path: metadata.namespace
+          value: "gitlab"
+      - template: role-binding.yaml
+        equal:
+          path: metadata.namespace
+          value: "gitlab"
+      - template: role-binding.yaml
+        equal:
+          path: subjects[0].namespace
+          value: "ops"
+
+  # Test 6: Service resources follow namespace override
+  - it: puts service resources in runner namespace
+    set:
+      namespace: "ops"
+      service.enabled: true
+      metrics.enabled: true
+      sessionServer.enabled: true
+    asserts:
+      - template: service.yaml
+        equal:
+          path: metadata.namespace
+          value: "ops"
+      - template: service-session-server.yaml
+        equal:
+          path: metadata.namespace
+          value: "ops"
+
+  # Test 7: HPA follows namespace override
+  - it: puts HPA in runner namespace
+    set:
+      namespace: "ops"
+      hpa:
+        minReplicas: 1
+        maxReplicas: 10
+        metrics:
+          - type: Pods
+            pods:
+              metricName: gitlab_runner_jobs
+              targetAverageValue: 400m
+    asserts:
+      - template: hpa.yaml
+        equal:
+          path: metadata.namespace
+          value: "ops"
+
+  # Test 8: Secrets follow namespace override
+  - it: puts secrets in runner namespace
+    set:
+      namespace: "ops"
+      runnerToken: "test-token"
+    asserts:
+      - template: secrets.yaml
+        equal:
+          path: metadata.namespace
+          value: "ops"
+
+  # Test 9: Empty string values default to Release namespace
+  - it: defaults to Release namespace when namespace is empty string
+    set:
+      namespace: ""
+      runners.jobNamespace: ""
+    asserts:
+      - template: deployment.yaml
+        equal:
+          path: metadata.namespace
+          value: "default"
+      - template: configmap.yaml
+        matchRegex:
+          path: data["config.template.toml"]
+          pattern: 'namespace = "default"'
+
+  # Test 10: ClusterRole doesn't have namespace when using cluster-wide access
+  - it: creates ClusterRole without namespace for cluster-wide access
+    set:
+      namespace: "ops"
+      rbac.create: true
+      rbac.clusterWideAccess: true
+    asserts:
+      - template: role.yaml
+        equal:
+          path: kind
+          value: "ClusterRole"
+      - template: role.yaml
+        notExists:
+          path: metadata.namespace
+
+  # Test 11: PodMonitor respects its own namespace override
+  - it: uses PodMonitor namespace override when set
+    set:
+      namespace: "ops"
+      metrics.enabled: true
+      metrics.podMonitor.enabled: true
+      metrics.podMonitor.namespace: "monitoring"
+    capabilities:
+      apiVersions:
+        - monitoring.coreos.com/v1
+    templates:
+      - podmonitor.yaml
+    asserts:
+      - equal:
+          path: metadata.namespace
+          value: "monitoring"
+
+  # Test 12: ServiceMonitor respects its own namespace override (deprecated)
+  - it: uses ServiceMonitor namespace override when set
+    set:
+      namespace: "ops"
+      service.enabled: true
+      metrics.enabled: true
+      metrics.serviceMonitor.enabled: true
+      metrics.serviceMonitor.namespace: "monitoring"
+    capabilities:
+      apiVersions:
+        - monitoring.coreos.com/v1
+    templates:
+      - servicemonitor.yaml
+    asserts:
+      - equal:
+          path: metadata.namespace
+          value: "monitoring"
+
+  # Test 13: Complex scenario with all options
+  - it: handles complex namespace configuration correctly
+    set:
+      namespace: "runner-ops"
+      runners.jobNamespace: "gitlab-jobs"
+      rbac.create: true
+      serviceAccount.create: true
+      service.enabled: true
+      metrics.enabled: true
+      runnerToken: "test-token"
+    asserts:
+      # All runner management resources in ops namespace
+      - template: deployment.yaml
+        equal:
+          path: metadata.namespace
+          value: "runner-ops"
+      - template: configmap.yaml
+        equal:
+          path: metadata.namespace
+          value: "runner-ops"
+      - template: secrets.yaml
+        equal:
+          path: metadata.namespace
+          value: "runner-ops"
+      - template: service-account.yaml
+        equal:
+          path: metadata.namespace
+          value: "runner-ops"
+      - template: role.yaml
+        equal:
+          path: metadata.namespace
+          value: "gitlab-jobs"
+      - template: role-binding.yaml
+        equal:
+          path: metadata.namespace
+          value: "gitlab-jobs"
+      - template: service.yaml
+        equal:
+          path: metadata.namespace
+          value: "runner-ops"
+      # Jobs run in different namespace
+      - template: configmap.yaml
+        matchRegex:
+          path: data["config.template.toml"]
+          pattern: 'namespace = "gitlab-jobs"'
+
+  # Test 14: Issue #400 regression test - ServiceAccount dependency resolution
+  - it: resolves ServiceAccount dependencies for namespace separation
+    set:
+      namespace: "ops"
+      runners.jobNamespace: "gitlab"
+      rbac.create: true
+      serviceAccount.create: true
+      serviceAccount.name: "custom-sa"
+    asserts:
+      # ServiceAccount in runner namespace
+      - template: service-account.yaml
+        containsDocument:
+          kind: ServiceAccount
+          apiVersion: v1
+          name: custom-sa
+          namespace: "ops"
+      # Role references ServiceAccount in same namespace
+      - template: role-binding.yaml
+        equal:
+          path: subjects[0].name
+          value: "custom-sa"
+      - template: role-binding.yaml
+        equal:
+          path: subjects[0].namespace
+          value: "ops"
+      # Deployment uses ServiceAccount from same namespace
+      - template: deployment.yaml
+        equal:
+          path: spec.template.spec.serviceAccountName
+          value: "custom-sa"
+      - template: deployment.yaml
+        equal:
+          path: metadata.namespace
+          value: "ops"
+
