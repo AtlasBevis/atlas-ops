@@ -2,7 +2,7 @@ FROM moby/buildkit:v0.30.0-rootless
 
 USER root
 
-LABEL maintainer="truongthanh.binh@vietcredit.com.vn"
+LABEL maintainer="dev.binhtt@gmail.com"
 
 RUN apk add --no-cache \
     git \
