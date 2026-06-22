@@ -1,33 +1,61 @@
 apiVersion: kafka.strimzi.io/v1
 kind: Kafka
 metadata:
-  name: {{ .Values.cluster.name }}
-  namespace: {{ .Values.namespace }}
+  name: {{ include "kafka.clusterName" . }}
   labels:
-    {{- include "kafka-cluster.labels" . | nindent 4 }}
+    {{- include "kafka.labels" . | nindent 4 }}
   annotations:
-    strimzi.io/node-pools: enabled
-    strimzi.io/kraft: enabled
+    {{- with .Values.kafka.metadata.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
 spec:
   kafka:
-    version: {{ .Values.cluster.version | quote }}
-    metadataVersion: {{ .Values.cluster.metadataVersion | quote }}
+    version: {{ .Values.kafka.version | quote }}
+    metadataVersion: {{ .Values.kafka.version | quote }}
     listeners:
-      {{- toYaml .Values.cluster.listeners | nindent 6 }}
+      {{- toYaml .Values.kafka.listeners | nindent 6 }}
     config:
-      offsets.topic.replication.factor: {{ .Values.cluster.replicationFactor }}
-      transaction.state.log.replication.factor: {{ .Values.cluster.replicationFactor }}
-      transaction.state.log.min.isr: {{ .Values.cluster.minInsyncReplicas }}
-      default.replication.factor: {{ .Values.cluster.replicationFactor }}
-      min.insync.replicas: {{ .Values.cluster.minInsyncReplicas }}
-    {{- if .Values.cluster.rack.enabled }}
-    rack:
-      topologyKey: {{ .Values.cluster.rack.topologyKey | quote }}
+      {{- toYaml .Values.kafka.config | nindent 6 }}
+    {{- with .Values.kafka.jvmOptions }}
+    jvmOptions:
+      {{- toYaml . | nindent 6 }}
     {{- end }}
-    {{- if .Values.ha.podDisruptionBudget.enabled }}
+    {{- with .Values.kafka.logging }}
+    logging:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- if .Values.kafka.template }}
     template:
-      podDisruptionBudget:
-        maxUnavailable: {{ .Values.ha.podDisruptionBudget.maxUnavailable }}
+      {{- toYaml .Values.kafka.template | nindent 6 }}
     {{- end }}
+  {{- if .Values.entityOperator.enabled }}
   entityOperator:
-    {{- toYaml .Values.cluster.entityOperator | nindent 4 }}
+    {{- if .Values.entityOperator.topicOperator }}
+    topicOperator:
+      {{- toYaml .Values.entityOperator.topicOperator | nindent 6 }}
+    {{- else }}
+    topicOperator: {}
+    {{- end }}
+    {{- if .Values.entityOperator.userOperator }}
+    userOperator:
+      {{- toYaml .Values.entityOperator.userOperator | nindent 6 }}
+    {{- else }}
+    userOperator: {}
+    {{- end }}
+  {{- end }}
+  {{- if .Values.kafkaExporter.enabled }}
+  kafkaExporter:
+    {{- if .Values.kafkaExporter.spec }}
+    {{- toYaml .Values.kafkaExporter.spec | nindent 4 }}
+    {{- else }}
+    {}
+    {{- end }}
+  {{- end }}
+  {{- if .Values.cruiseControl.enabled }}
+  cruiseControl:
+    {{- if .Values.cruiseControl.spec }}
+    {{- toYaml .Values.cruiseControl.spec | nindent 4 }}
+    {{- else }}
+    {}
+    {{- end }}
+  {{- end }}

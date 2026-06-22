@@ -1,15 +1,19 @@
-# Namespace deploy cluster (Strimzi operator phải watch namespace này)
-namespace: kafka
+# Strimzi Kafka cluster (production). Bootstrap: <clusterName>-kafka-bootstrap.<namespace>.svc:9092
+clusterName: dp-kafka
 
-cluster:
-  name: my-cluster
-  version: "4.0.0"
-  metadataVersion: "4.0-IV0"
+imagePullSecrets:
+  - name: dockerhub-regcred
 
-  # Cấu hình HA cho topic nội bộ
-  replicationFactor: 3
-  minInsyncReplicas: 2
+# Kafka configuration 
+# doc: https://strimzi.io/docs/operators/latest/configuring.html#type-Kafka-reference
+kafka:
+  version: "4.2.0"
+  metadata:
+    labels: {}
+    annotations: {}
 
+  # 6.2 Specifying listener types
+  # https://strimzi.io/docs/operators/latest/configuring.html#specifying_listener_types
   listeners:
     - name: plain
       port: 9092
@@ -20,63 +24,85 @@ cluster:
       type: internal
       tls: true
 
-  # Rack awareness khi node có label topology (vd: topology.kubernetes.io/zone)
-  rack:
-    enabled: false
-    topologyKey: topology.kubernetes.io/zone
+  # 5. KafkaClusterSpec schema reference
+  # https://strimzi.io/docs/operators/latest/configuring.html#type-KafkaClusterSpec-reference
+  # https://kafka.apache.org/43/configuration/broker-configs/
+  config:
+    auto.create.topics.enable: false
+    # num replicas per partition
+    default.replication.factor: 3
+    # topic: __consumer_offsets: num replicas offsets topics
+    offsets.topic.replication.factor: 3
+    # min partitions created
+    num.partitions: 3
+    # min followers in-sync with leader
+    min.insync.replicas: 2
+    # __transaction_state: store state transaction kafka
+    transaction.state.log.replication.factor: 3
+    # min in-sync with leader
+    transaction.state.log.min.isr: 2
+    # time keeps messages
+    log.retention.hours: 168
 
-  entityOperator:
-    topicOperator: {}
-    userOperator: {}
+  # 19. JvmOptions schema reference
+  # https://strimzi.io/docs/operators/latest/configuring.html#property-kafka-logging-reference
+  jvmOptions:
+    -Xms: 2g
+    -Xmx: 2g
 
-nodePools:
-  controller:
-    replicas: 3
-    roles:
-      - controller
-    storage:
-      type: jbod
-      volumes:
-        - id: 0
-          type: persistent-claim
-          size: 10Gi
-          deleteClaim: false
-          # class: fast-ssd   # uncomment nếu cần StorageClass cụ thể
-    resources:
-      requests:
-        memory: 1Gi
-        cpu: 500m
-      limits:
-        memory: 2Gi
-        cpu: "1"
+  # 5.2. Logging
+  # https://strimzi.io/docs/operators/latest/configuring.html#property-kafka-logging-reference
+  logging:
+    type: inline
+    loggers:
+      rootLogger.level: INFO
+      logger.requestlogger.level: WARN
+      logger.requestchannel.level: WARN
+      logger.authorizer.level: INFO
 
-  broker:
-    replicas: 3
-    roles:
-      - broker
-    storage:
-      type: jbod
-      volumes:
-        - id: 0
-          type: persistent-claim
-          size: 100Gi
-          deleteClaim: false
-    resources:
-      requests:
-        memory: 2Gi
-        cpu: "1"
-      limits:
-        memory: 4Gi
-        cpu: "2"
+entityOperator:
+  enabled: true
 
-ha:
-  podAntiAffinity: true
-  topologySpread:
-    enabled: true
-    topologyKey: kubernetes.io/hostname
-    maxSkew: 1
-    whenUnsatisfiable: DoNotSchedule
+kafkaExporter:
+  enabled: false
 
-  podDisruptionBudget:
-    enabled: true
-    maxUnavailable: 1
+cruiseControl:
+  enabled: false
+
+# kafka controller definitions
+controllers:
+  replicas: 3
+  storage:
+    type: persistent-claim
+    size: 20Gi
+    class: longhorn
+    deleteClaim: false
+  resources:
+    requests:
+      cpu: 500m
+      memory: 2Gi
+    limits:
+      cpu: "2"
+      memory: 4Gi
+  jvmOptions:
+    -Xms: 1g
+    -Xmx: 1g
+
+# kafka brokers definitions
+brokers:
+  replicas: 3
+  storage:
+    type: persistent-claim
+    size: 100Gi
+    class: longhorn
+    deleteClaim: false
+  resources:
+    requests:
+      cpu: "1"
+      memory: 4Gi
+    limits:
+      cpu: "4"
+      memory: 8Gi
+  jvmOptions:
+    -Xms: 2g
+    -Xmx: 2g

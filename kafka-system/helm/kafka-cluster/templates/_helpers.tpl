@@ -1,35 +1,34 @@
-{{- define "kafka-cluster.name" -}}
-{{- default .Chart.Name .Values.cluster.name | trunc 63 | trimSuffix "-" }}
-{{- end }}
+{{/*
+Expand the name of the chart.
+*/}}
+{{- define "kafka.name" -}}
+{{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" -}}
+{{- end -}}
 
-{{- define "kafka-cluster.labels" -}}
-app.kubernetes.io/name: {{ include "kafka-cluster.name" . }}
+{{/*
+Kafka cluster name used by Strimzi CRs and bootstrap service.
+*/}}
+{{- define "kafka.clusterName" -}}
+{{- .Values.clusterName | required "clusterName is required" -}}
+{{- end -}}
+
+{{/*
+Bootstrap servers DNS name inside the release namespace.
+*/}}
+{{- define "kafka.bootstrapServers" -}}
+{{- printf "%s-kafka-bootstrap.%s.svc:9092" (include "kafka.clusterName" .) .Release.Namespace -}}
+{{- end -}}
+
+{{/*
+ labels for resources
+*/}}
+{{- define "kafka.labels" -}}
+strimzi.io/cluster: {{ include "kafka.clusterName" . }}
+helm.sh/chart: {{ printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" }}
+app.kubernetes.io/name: {{ include "kafka.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
+{{- if .Chart.AppVersion }}
+app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
+{{- end }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
-strimzi.io/cluster: {{ .Values.cluster.name }}
-{{- end }}
-
-{{- define "kafka-cluster.antiAffinity" -}}
-{{- if .Values.ha.podAntiAffinity }}
-podAntiAffinity:
-  requiredDuringSchedulingIgnoredDuringExecution:
-    - labelSelector:
-        matchLabels:
-          strimzi.io/cluster: {{ .Values.cluster.name }}
-          strimzi.io/name: {{ .poolName }}
-      topologyKey: kubernetes.io/hostname
-{{- end }}
-{{- end }}
-
-{{- define "kafka-cluster.topologySpread" -}}
-{{- if .Values.ha.topologySpread.enabled }}
-topologySpreadConstraints:
-  - maxSkew: {{ .Values.ha.topologySpread.maxSkew }}
-    topologyKey: {{ .Values.ha.topologySpread.topologyKey }}
-    whenUnsatisfiable: {{ .Values.ha.topologySpread.whenUnsatisfiable }}
-    labelSelector:
-      matchLabels:
-        strimzi.io/cluster: {{ .Values.cluster.name }}
-        strimzi.io/name: {{ .poolName }}
-{{- end }}
 {{- end }}
