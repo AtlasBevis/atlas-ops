@@ -19,6 +19,16 @@ spec:
     metadataVersion: {{ .version | quote }}
     listeners:
       {{- toYaml .listeners | nindent 6 }}
+    {{- if .authorization.enabled }}
+    {{- with .authorization }}
+    authorization:
+      type: {{ .type }}
+      {{- with .superUsers }}
+      superUsers:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    {{- end }}
+    {{- end }}
     config:
       {{- toYaml .config | nindent 6 }}
     {{- with .jvmOptions }}

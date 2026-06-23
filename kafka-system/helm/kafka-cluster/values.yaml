@@ -19,14 +19,25 @@ kafka:
   # 6.2 Specifying listener types
   # https://strimzi.io/docs/operators/latest/configuring.html#specifying_listener_types
   listeners:
-    - name: plain
+    # - name: plain
+    #   port: 9092
+    #   type: internal
+    #   tls: false
+    - name: tls
       port: 9092
       type: internal
-      tls: false
-    - name: tls
-      port: 9093
-      type: internal
       tls: true
+      # supported: tls | scram-sha-512 | custom
+      authentication:
+        type: scram-sha-512
+    
+  # 14. KafkaAuthorizationSimple schema reference
+  # https://strimzi.io/docs/operators/latest/configuring.html#type-KafkaAuthorizationSimple-reference
+  authorization:
+    enabled: true
+    type: simple
+    superUsers:
+      - User:admin
 
   # 5. KafkaClusterSpec schema reference
   # https://strimzi.io/docs/operators/latest/configuring.html#type-KafkaClusterSpec-reference
@@ -66,6 +77,7 @@ kafka:
 
 entityOperator:
   enabled: true
+  
   # 45.2. EntityTopicOperatorSpec schema properties
   # https://strimzi.io/docs/operators/latest/configuring.html#type-EntityTopicOperatorSpec-schema-reference
   topicOperator:
@@ -78,6 +90,7 @@ entityOperator:
       limits:
         cpu: 200m
         memory: 256Mi
+
   # 46.2. EntityUserOperatorSpec schema properties
   # https://strimzi.io/docs/operators/latest/configuring.html#type-EntityUserOperatorSpec-schema-reference
   userOperator:
@@ -161,3 +174,46 @@ brokers:
                   strimzi.io/pool-name: brokers
               topologyKey: kubernetes.io/hostname
 
+# 97. KafkaUser schema reference
+# doc: https://strimzi.io/docs/operators/latest/configuring.html#type-KafkaUser-reference
+# 98. KafkaUserSpec schema reference
+# doc: https://strimzi.io/docs/operators/latest/configuring.html#type-KafkaUserSpec-reference
+# 103. KafkaUserAuthorizationSimple schema reference
+# doc: https://strimzi.io/docs/operators/latest/configuring.html#type-KafkaUserAuthorizationSimple-reference
+users:
+  - name: admin
+    authentication:
+      # supported: tls | scram-sha-512 | tls-external                        - 
+      type: scram-sha-512
+
+  - name: user
+    authentication:
+      type: scram-sha-512
+    authorization:
+      # Must be simple.
+      type: simple
+
+      # 104. AclRule schema reference
+      # doc: https://strimzi.io/docs/operators/latest/configuring.html#type-AclRule-reference
+      # resource.type: topic | group | cluster | transactionalId
+      # resource.patternType: literal | prefix
+      # literal: names are taken exactly as they are specified in the name field. if set * to indicate that the rule applies to all resources.
+      # type: [allow, deny] default: allow
+      # operations: Read, Write, Create, Delete, Alter, Describe, ClusterAction, AlterConfigs, DescribeConfigs, IdempotentWrite and All.
+      acls:
+        - resource:
+            type: topic
+            name: airflow-
+            patternType: prefix
+          type: allow
+          operations: 
+            - Read
+            - Write
+            - Describe
+        - resource:
+            type: group
+            name: airflow-
+            patternType: prefix
+          type: allow
+          operations: 
+            - Read

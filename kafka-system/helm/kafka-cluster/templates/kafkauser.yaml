@@ -1,0 +1,21 @@
+{{- $root := . }}
+{{- range .Values.users }}
+---
+apiVersion: kafka.strimzi.io/v1
+kind: KafkaUser
+metadata:
+  name: {{ .name }}
+  labels:
+    {{- include "kafka.labels" $root | nindent 4 }}
+spec:
+  authentication:
+    {{- toYaml .authentication | nindent 4 }}
+  {{- with .authorization }}
+  authorization:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with .quotas }}
+  quotas:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+{{- end }}
