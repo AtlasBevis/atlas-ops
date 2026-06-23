@@ -104,9 +104,13 @@ entityOperator:
         cpu: 200m
         memory: 256Mi
 
+# 58. KafkaExporterSpec schema reference
+# doc: https://strimzi.io/docs/operators/latest/configuring.html#type-KafkaExporterSpec-reference
 kafkaExporter:
   enabled: false
 
+# 50. CruiseControlSpec schema reference
+# doc: https://strimzi.io/docs/operators/latest/configuring.html#type-CruiseControlSpec-reference
 cruiseControl:
   enabled: false
 
