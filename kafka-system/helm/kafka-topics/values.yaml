@@ -1,0 +1,17 @@
+# Strimzi Kafka cluster (production). Bootstrap: <clusterName>-kafka-bootstrap.<namespace>.svc:9092
+clusterName: dp-kafka
+
+nameOverride:
+
+
+# CONVENTION: 
+# name: metadata resources
+# name of topics
+# domain.entity.variant
+# domain: cdc
+# entity: orders, customers
+# variant (optional): env, version: v1, raw, prod
+topics:
+  - name: cdc-order-topics
+    topicName: cdc.orders
+    partitions: 6

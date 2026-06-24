@@ -1,0 +1,28 @@
+{{- $root := . }}
+{{- range .Values.topics }}
+---
+apiVersion: kafka.strimzi.io/v1
+kind: KafkaTopic
+metadata:
+  name: {{ required "topic.name is required" .name }}
+  labels:
+    {{- include "kafka.labels" $root }}
+  {{- with .annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- with .topicName }}
+  topicName: {{ . | quote }}
+  {{- end }}
+  {{- with .partitions }}
+  partitions: {{ . }}
+  {{- end }}
+  {{- with .replicas }}
+  replicas: {{ . }}
+  {{- end }}
+  {{- with .config }}
+  config:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+{{- end }}

@@ -82,7 +82,7 @@ entityOperator:
   # https://strimzi.io/docs/operators/latest/configuring.html#type-EntityTopicOperatorSpec-schema-reference
   topicOperator:
     # Interval between periodic reconciliations in milliseconds.
-    reconciliationIntervalSeconds: 300
+    reconciliationIntervalMs: 300
     resources:
       requests:
         cpu: 50m
@@ -95,14 +95,14 @@ entityOperator:
   # https://strimzi.io/docs/operators/latest/configuring.html#type-EntityUserOperatorSpec-schema-reference
   userOperator:
     # Interval between periodic reconciliations in milliseconds.
-    reconciliationIntervalSeconds: 300
+    reconciliationIntervalMs: 300
     resources:
       requests:
-        cpu: 50m
-        memory: 128Mi
+        cpu: 100m
+        memory: 512Mi
       limits:
-        cpu: 200m
-        memory: 256Mi
+        cpu: 500m
+        memory: 1Gi
 
 # 58. KafkaExporterSpec schema reference
 # doc: https://strimzi.io/docs/operators/latest/configuring.html#type-KafkaExporterSpec-reference
