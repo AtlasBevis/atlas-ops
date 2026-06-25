@@ -36,20 +36,92 @@ serviceAccount:
 existingConfigMap: ""
 ## @param yamlApplicationConfig Kafbat-UI config in Yaml format
 yamlApplicationConfig:
-  {}
-  # kafka:
-  #   clusters:
-  #     - name: yaml
-  #       bootstrapServers: kafka-service:9092
-  # spring:
-  #   security:
-  #     oauth2:
-  # auth:
-  #   type: disabled
-  # management:
-  #   health:
-  #     ldap:
-  #       enabled: false
+  kafka:
+    clusters:
+      - name: kafka-cluster
+        bootstrapServers: "kafka-cluster-kafka-bootstrap:9092"
+        properties:
+          security.protocol: SASL_SSL
+          sasl.mechanism: SCRAM-SHA-512
+        # schemaRegistry: http://axons-schema-registry.axons-schema-registry:8081
+        # schemaRegistryShowNullValues: false
+        # schemaRegistryUseFullyQualifiedNames: false
+        # schemaRegistryAuth:
+          # oauth:
+            # tokenCacheEnabled: true
+            # tokenRefreshBuffer: 60s
+  auth:
+    type: OAUTH2
+    oauth2:
+      client:
+        azure:
+          scope: openid,profile,email
+          client-name: "Sign in with Microsoft"
+          provider: azure
+          redirect-uri: "https://kafka-ui.com.vn/login/oauth2/code/azure"
+          authorization-grant-type: authorization_code
+          user-name-attribute: preferred_username
+          custom-params:
+            type: oauth
+            roles-field: roles
+  rbac:
+    roles:
+      - name: "admin"
+        clusters:
+          - '.*'
+        subjects:
+          - provider: oauth
+            type: role
+            value: "kafka_admin" 
+        permissions:
+          - resource: applicationconfig
+            actions: all
+          - resource: clusterconfig
+            actions: all
+          - resource: topic
+            value: ".*"
+            actions: all
+          - resource: consumer
+            value: ".*"
+            actions: all
+          - resource: schema
+            value: ".*"
+            actions: all
+          - resource: connect
+            value: ".*"
+            actions: all
+          - resource: ksql
+            actions: all
+          - resource: acl
+            actions: all
+
+      # Viewer: user có Azure App Role "kafbat-viewer"
+      - name: "viewers"
+        clusters:
+          - ".*"
+        subjects:
+          - provider: oauth
+            type: role
+            value: "kafka_viewer"
+        permissions:
+          - resource: clusterconfig
+            actions: [view]
+          - resource: topic
+            value: ".*"
+            actions: [view, messages_read, analysis_view]
+          - resource: consumer
+            value: ".*"
+            actions: [view]
+          - resource: schema
+            value: ".*"
+            actions: [view]
+    
+    # default roles: can login
+    # default-role:
+    #   permissions:
+    #     - resource: clusterconfig
+    #       actions: [view]
+
 ## @param yamlApplicationConfigConfigMap Map with name and keyName keys, name refers to the existing ConfigMap, keyName refers to the ConfigMap key with Kafbat-UI config in Yaml format
 yamlApplicationConfigConfigMap:
   {}
@@ -69,10 +141,22 @@ envs:
   ## @param envs.config Set of the environment variables to pass to Kafbat-UI
   config: {}
   ## @param envs.secretMappings The mapping of existing secret to env variable.
-  secretMappings: {}
-    #ENV_NAME:
-    #  name: kubernetes-secret-name
-    #  keyName: kubernetes-secret-key
+  secretMappings:
+    AUTH_OAUTH2_CLIENT_AZURE_CLIENTID:
+      name: oidc-azure
+      keyName: client-id
+    AUTH_OAUTH2_CLIENT_AZURE_CLIENTSECRET:
+      name: oidc-azure
+      keyName: client-secret
+    AUTH_OAUTH2_CLIENT_AZURE_ISSUERURI:
+      name: oidc-azure
+      keyName: issuer
+    KAFKA_CLUSTERS_0_PROPERTIES_SASL_JAAS_CONFIG:
+      name: ui
+      keyName: sasl.jaas.config
+    KAFKA_CLUSTERS_0_PROPERTIES_SSL_TRUSTSTORE_PASSWORD:
+      name: kafka-cluster-ca-cert
+      keyName: ca.password
   ## @param envs.configMappings  The mapping of configmap and keyName to get env variable.
   configMappings: {}
     #ENV_NAME:
@@ -80,14 +164,33 @@ envs:
     #  keyName: kubernetes-configmap-key
 ## @param env [object] Envs to be added to the Kafka-UI container
 env: {}
-
+  # - name: DYNAMIC_CONFIG_ENABLED
+  #   value: "true"
+  # - name: KAFKA_CLUSTERS_0_NAME
+  #   value: kafka-core
+  # - name: KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS
+  #   value: "{{ .Release.Name }}-kafka-core.{{ .Release.Namespace }}.svc.cluster.local:9092"
+  # - name: KAFKA_CLUSTERS_0_READONLY
+  #   value: "true"
+  # - name: KAFKA_CLUSTERS_0_SCHEMAREGISTRY
+    # value: http://axons-schema-registry.axons-schema-registry:8081
+  # - name: KAFKA_CLUSTERS_0_SCHEMAREGISTRYSHOWNULLVALUES
+  #   value: "false"
+  # - name: KAFKA_CLUSTERS_0_SCHEMAREGISTRYUSEFULLYQUALIFIEDNAMES
+  #   value: "false"
+  # - name: KAFKA_CLUSTERS_0_SCHEMAREGISTRYAUTH_OAUTH_TOKENCACHEENABLED
+  #   value: "true"
+  # - name: KAFKA_CLUSTERS_0_SCHEMAREGISTRYAUTH_OAUTH_TOKENREFRESHBUFFER
+  #   value: "60s"
+  # - name: KAFKA_CLUSTERS_0_SCHEMAREGISTRYAUTH_OAUTH_TOKENREFRESHBUFFER
+  #   value: "1"
 ## @param resources Set Kafka-UI container requests and limits for different resources like CPU or memory (essential for production workloads)
 resources:
   limits:
     cpu: 500m
     memory: 512Mi
   requests:
-    cpu: 100m
+    cpu: 200m
     memory: 256Mi
 
 ## @param initContainers Add additional init containers to the Kafka-UI pods
@@ -180,7 +283,7 @@ probes:
     timeoutSeconds: 10
   startup:
     ## @param probes.startup.failureThreshold Failure threshold for startup probe
-    failureThreshold: 5
+    failureThreshold: 10
     ## @param probes.startup.periodSeconds Period seconds for startup probe
     periodSeconds: 40
     ## @param probes.startup.timeoutSeconds Timeout seconds for startup probe
@@ -190,13 +293,13 @@ probes:
 ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-pod
 ## @param podSecurityContext [object] The security settings that you specify for a Pod apply to all Containers in the Pod
 podSecurityContext:
-   fsGroup: 2000
+  fsGroup: 2000
 ## @param securityContext [object] The security settings that you specify for a Kafka-UI container
 securityContext:
   allowPrivilegeEscalation: false
   capabilities:
     drop:
-    - ALL
+      - ALL
   readOnlyRootFilesystem: false # https://github.com/kafbat/kafka-ui/issues/78
   runAsGroup: 2000
   runAsNonRoot: true
@@ -226,7 +329,12 @@ ingress:
   ## @param ingress.enabled [string] Enable ingress record generation for Kafka-UI
   enabled: true
   ## @param ingress.annotations [object] Additional annotations for the Ingress resource. To enable certificate autogeneration, place here your cert-manager annotations.
-  annotations: {}
+  annotations:
+    nginx.ingress.kubernetes.io/affinity: cookie
+    nginx.ingress.kubernetes.io/affinity-mode: balanced
+    nginx.ingress.kubernetes.io/session-cookie-expires: "172800"
+    nginx.ingress.kubernetes.io/session-cookie-max-age: "172800"
+    nginx.ingress.kubernetes.io/session-cookie-name: kafbat-ui
 
   ##  @param ingress.labels [object] Labels for the Ingress
   labels: {}
