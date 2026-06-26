@@ -142,7 +142,7 @@ def _build_new_dagid(team: str, raw: str) -> str:
 def _ensure_team_tag(dag: DAG, team: str) -> None:
     tags = list(dag.tags or [])
     if team not in tags:
-        tags.append(team)
+        tags.append("team_" + team)
     dag.tags = tags
   
 def _ensure_team_owner(dag: DAG, team: str) -> None:
