@@ -5,7 +5,7 @@ FROM quay.io/strimzi/kafka:${STRIMZI_VERSION}-kafka-${KAFKA_VERSION}
 
 LABEL maintainer="dev.binhtt@gmail.com"
 
-USER root
+USER root:root
 
 RUN mkdir -p /opt/kafka/plugins/{debezium-postgres,debezium-mysql,debezium-sqlserver,debezium-oracle,minio}
 
