@@ -22,9 +22,9 @@ spec:
   replicas: {{ .replicas }}
   bootstrapServers: {{ include "connect.bootstrapServers" $root | quote }}
   groupId: {{ .groupId | default (printf "connect-%s" .name) | quote }}
-  configStorageTopic: {{ .configStorageTopic | default (printf "connect-%s-configs" .name) | quote }}
-  offsetStorageTopic: {{ .offsetStorageTopic | default (printf "connect-%s-offsets" .name) | quote }}
-  statusStorageTopic: {{ .statusStorageTopic | default (printf "connect-%s-status" .name) | quote }}
+  configStorageTopic: {{ .configStorageTopic | default (printf "__connect-%s-configs" .name) | quote }}
+  offsetStorageTopic: {{ .offsetStorageTopic | default (printf "__connect-%s-offsets" .name) | quote }}
+  statusStorageTopic: {{ .statusStorageTopic | default (printf "__connect-%s-status" .name) | quote }}
   {{- with $root.Values.imagePullSecrets }}
   imagePullSecrets:
     {{- toYaml . | nindent 4 }}

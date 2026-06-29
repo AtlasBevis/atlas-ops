@@ -63,11 +63,9 @@ connect:
     status.storage.replication.factor: 3
 
     # default: org.apache.kafka.connect.json.JsonConverter
-    # avro (optional): io.confluent.connect.avro.AvroConverter
-    key.converter: org.apache.kafka.connect.json.JsonConverter
-    # default: org.apache.kafka.connect.json.JsonConverter
-    # avro (optional): io.confluent.connect.avro.AvroConverter
-    value.converter: org.apache.kafka.connect.json.JsonConverter
+    # apicurio: io.apicurio.registry.utils.converter.AvroConverter
+    key.converter: io.apicurio.registry.utils.converter.AvroConverter
+    value.converter: io.apicurio.registry.utils.converter.AvroConverter
     key.converter.schemas.enable: false
     value.converter.schemas.enable: false
 
@@ -158,9 +156,9 @@ connectors:
     # the Class for the Kafka Connector. read README.md
     class: io.confluent.connect.s3.S3SinkConnector
     # The maximum number of tasks for the Kafka Connector.
-    tasksMax: 6
+    tasksMax: 10
     config:
-      topics.regex: "cdc\\..*"
+      topics.regex: ^cdc\..*
       s3.bucket.name: dp-prod-raw
       s3.part.size: '5242880'
       flush.size: '1000'
@@ -170,5 +168,5 @@ connectors:
       format.class: io.confluent.connect.s3.format.json.JsonFormat
       partitioner.class: io.confluent.connect.storage.partitioner.TimeBasedPartitioner
       path.format: 'year=YYYY/month=MM/day=dd/hour=HH'
-      timestamp.extractor: RecordField
+      timestamp.extractor: Record
       timestamp.field: timestamp
