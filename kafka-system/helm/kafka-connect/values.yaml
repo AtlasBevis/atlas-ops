@@ -20,7 +20,7 @@ connect:
   enabled: true
   version: "4.2.0"
   replicas: 3
-  image: dockerhub.vietcredit.com.vn/dwh/kafka:4.2.0
+  image: dockerhub.company.com.vn/bevisdev/kafka:4.2.0
   # to init connectors below
   useConnectorResources: true
   
