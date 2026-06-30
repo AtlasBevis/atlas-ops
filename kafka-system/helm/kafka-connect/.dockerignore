@@ -1,0 +1,15 @@
+# Git / metadata
+.git
+.gitignore
+.helmignore
+
+# Helm chart
+Chart.yaml
+values.yaml
+templates/
+README.md
+
+# Archive
+*.zip
+*.tgz
+*.tar.gz
