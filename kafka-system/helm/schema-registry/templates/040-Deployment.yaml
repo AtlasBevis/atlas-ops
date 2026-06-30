@@ -11,7 +11,7 @@ metadata:
     app.kubernetes.io/part-of: apicurio-registry
     app.kubernetes.io/version: 3.3.0
 spec:
-  replicas: {{ .Values.replicas }}
+  replicas: {{ .Values.operator.replicas }}
   selector:
     matchLabels:
       app: apicurio-registry-operator
@@ -57,7 +57,9 @@ spec:
         - name: REGISTRY_GITOPS_SYNC_IMAGE
           value: {{ include "sr.image" (dict "registry" .Values.imageRegistry "repository" .Values.imageRepository "name" .Values.gitops.name "tag" .Values.gitops.tag) }}
         image: {{ include "sr.image" (dict "registry" .Values.imageRegistry "repository" .Values.imageRepository "name" .Values.operator.image.name "tag" .Values.operator.image.tag) }}
-        imagePullPolicy: {{ .Values.imagePullPolicy }}
+        {{- with .Values.imagePullPolicy }}
+        imagePullPolicy: {{ . }}
+        {{- end }}
         livenessProbe:
           failureThreshold: 3
           httpGet:

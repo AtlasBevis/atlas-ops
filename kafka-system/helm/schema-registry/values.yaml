@@ -1,7 +1,10 @@
+nameOverride: 
+
 imageRegistry: quay.io
 imageRepository: apicurio
 imagePullSecrets:
   - name: dockerhub-regcred
+imagePullPolicy: IfNotPresent
 
 operator:
   replicas: 1
