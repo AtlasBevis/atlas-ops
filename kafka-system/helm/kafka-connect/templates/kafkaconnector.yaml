@@ -1,6 +1,7 @@
 {{- if and .Values.connect.enabled .Values.connect.useConnectorResources }}
 {{- $root := . }}
 {{- range .Values.connectors }}
+{{- if .enabled }}
 ---
 apiVersion: kafka.strimzi.io/v1
 kind: KafkaConnector
@@ -27,5 +28,6 @@ spec:
   {{- end }}
   config:
     {{- required "connector.config is required" .config | toYaml | nindent 4 }}
+{{- end }}
 {{- end }}
 {{- end }}
