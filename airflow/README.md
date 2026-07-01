@@ -152,3 +152,8 @@ def task_policy(task: BaseOperator) -> None:
 Custom Authen team login Azure (files/auth)
 
 ### 4.4 email_templates (smtp default)
+
+
+## Document
+
+[K8sExecutor](https://airflow.apache.org/docs/apache-airflow-providers-cncf-kubernetes/stable/kubernetes_executor.html)

@@ -150,3 +150,18 @@ transformations:
           {{- $email := get .Secrets "email" -}}
           {{- $auth := printf "%s:%s" $username $password | b64enc -}}
           {{- dict "auths" (dict $registry (dict "username" $username "password" $password "email" $email "auth" $auth)) | mustToJson -}}
+  
+  saslConfig:
+    excludeRaw: true
+    excludes:
+      - .*
+    templates:
+      "password":
+        text: '{{ get .Secrets "password" }}'
+      "sasl.jaas.config":
+        text: |
+          {{- printf "%s required username=\"%s\" password=\"%s\";" 
+            (get .Secrets "sasl")
+            (get .Secrets "username")
+            (get .Secrets "password") -}}
+
