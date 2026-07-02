@@ -4,7 +4,7 @@
 apiVersion: kafka.strimzi.io/v1
 kind: KafkaTopic
 metadata:
-  name: {{ required "topic.name is required" .name }}
+  name: {{ required "topic.name is required" .name }}-topic
   labels:
     {{- include "kafka.labels" $root }}
   {{- with .annotations }}

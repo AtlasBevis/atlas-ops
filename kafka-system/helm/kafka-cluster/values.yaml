@@ -293,10 +293,12 @@ users:
 # config (optional): docs: https://kafka.apache.org/41/configuration/topic-configs/
 # ---
 # CONVENTION: 
-# domain.entity.variant
-# domain: business
-# entity: orders, customers
-# variant (optional): env, version: v1, raw, prod
+# domain.env.source.schema.table
+# domain: cdc
+# env: uat, prod
+# source: oracle, postgres
+# schema: main
+# table: orders, customers
 topics:
   - name: cdc-order-topics
     topicName: cdc.orders
