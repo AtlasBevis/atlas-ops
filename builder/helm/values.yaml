@@ -1,0 +1,90 @@
+namespace: ""
+
+nameOverride: ""
+
+fullnameOverride: ""
+
+image:
+  repository: moby/buildkit
+  tag: v0.26.2
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+
+replicaCount: 2
+
+revisionHistoryLimit: 3
+
+# Service Account
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+
+# rbac
+rbac:
+  create: true
+
+# Service
+service:
+  type: ClusterIP
+  port: 1234
+  annotations: {}
+
+buildkit:
+  debug: false
+  rootless: false
+  grpcAddr: tcp://0.0.0.0:1234
+  configFile: /etc/buildkit/buildkitd.toml
+
+resources:
+  requests:
+    cpu: 500m
+    memory: 1Gi
+  limits:
+    cpu: 4
+    memory: 8Gi
+
+securityContext:
+  privileged: true
+  allowPrivilegeEscalation: true
+  readOnlyRootFilesystem: false
+
+persistence:
+  enabled: false
+  storageClass: ""
+  accessModes:
+    - ReadWriteOnce
+  size: 100Gi
+
+registry:
+  insecure: false
+
+livenessProbe:
+  initialDelaySeconds: 20
+  periodSeconds: 30
+  timeoutSeconds: 5
+  successThreshold: 1
+  failureThreshold: 3
+
+readinessProbe:
+  initialDelaySeconds: 5
+  periodSeconds: 10
+  timeoutSeconds: 3
+  successThreshold: 1
+  failureThreshold: 3
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+
+extraEnv: []
+
+extraVolumes: []
+
+extraVolumeMounts: []
+
+podLabels: {}

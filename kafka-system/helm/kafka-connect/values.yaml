@@ -199,6 +199,7 @@ connectors:
 # ===== CDC ORACLE =========
 # ==========================
   - name: s3-sink
+    enabled: true
     # The state the connector should be in.
     # paused | stopped | running
     state: running
@@ -245,24 +246,64 @@ connectors:
       timestamp.field: ts_ms
       behavior.on.null.values: ignore
       errors.tolerance: none
+      
 # ==========================
 # ===== CDC ORACLE =========
 # ==========================
   - name: cdc-oracle
-    enabled: false
-    class: io.debezium.connector.postgresql.PostgresConnector
+    enabled: true
+    state: running
+    class: io.debezium.connector.oracle.OracleConnector
     autoRestart:
       enabled: true
       maxRestarts: 10
-    database.hostname: ${secrets:oracle/host}
-    database.port: 1521
-    database.user: ${secrets:oracle/username}
-    database.password: ${secrets:oracle/password}
-    database.dbname: ${secrets:oracle/dbname}
-    database.pdb.name: ORCLPDB1
-    topic.prefix: oracle-server1
-    schema.include.list: MYSCHEMA
-    table.include.list: MYSCHEMA.CUSTOMERS,MYSCHEMA.ORDERS
-    log.mining.strategy: online_catalog
-    tombstones.on.delete: false
-    include.schema.changes: true
+    config:
+      database.hostname: ${secrets:oracle/host}
+      database.port: 1521
+      database.user: ${secrets:oracle/username}
+      database.password: ${secrets:oracle/password}
+      database.dbname: ${secrets:oracle/dbname}
+      # database.pdb.name: ORCLPDB1
+      # default: logminer
+      # logminer | logminer_unbuffered | OpenLogReplicator (need install OpenLogReplicator) | xstream (GoldenGate)
+      database.connection.adapter: logminer
+
+      # prefix append for tables
+      topic.prefix: cdc.oracle
+      schema.include.list: CORE,AUTH
+      table.include.list: CORE.CUSTOMERS,CORE.ORDERS,AUTH.USERS
+
+      log.mining.strategy: online_catalog
+      
+      # snapshot
+      snapshot.mode: initial
+      snapshot.database.errors.max.retries: "3"
+      
+      # schema history internal
+      schema.history.internal.kafka.topic: __history.oracle
+      schema.history.internal.kafka.bootstrap.servers: dp-kafka-kafka-bootstrap.kafka.svc:9092
+      schema.history.internal.store.only.captured.tables.ddl: "true"
+
+      # schema history internal producer and consumer using SASL
+      schema.history.internal.producer.security.protocol: SASL_PLAINTEXT
+      schema.history.internal.producer.sasl.mechanism: SCRAM-SHA-512
+      schema.history.internal.producer.sasl.jaas.config: >-
+        org.apache.kafka.common.security.scram.ScramLoginModule required
+        username="cdc" password="${secrets:kafka-connect/cdc:password}";
+
+      schema.history.internal.consumer.security.protocol: SASL_PLAINTEXT
+      schema.history.internal.consumer.sasl.mechanism: SCRAM-SHA-512
+      schema.history.internal.consumer.sasl.jaas.config: >-
+        org.apache.kafka.common.security.scram.ScramLoginModule required
+        username="cdc" password="${secrets:kafka-connect/cdc:password}";
+
+      # event format
+      # decimal handling mode
+      # default: false
+      # if run ALTER TABLE CUSTOMERS ADD EMAIL VARCHAR2(100); no send event to kafka
+      include.schema.changes: "false"
+      tombstones.on.delete: "false"
+      
+      # format
+      decimal.handling.mode: precise
+      time.precision.mode: adaptive
