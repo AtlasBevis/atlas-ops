@@ -82,7 +82,7 @@ entityOperator:
   # https://strimzi.io/docs/operators/latest/configuring.html#type-EntityTopicOperatorSpec-schema-reference
   topicOperator:
     # Interval between periodic reconciliations in milliseconds.
-    reconciliationIntervalMs: 300
+    reconciliationIntervalMs: 300000
     resources:
       requests:
         cpu: 50m
@@ -249,7 +249,7 @@ users:
 # ==========================
 # ======= CONNECT ==========
 # ==========================
-  - name: connect
+  - name: cdc
     authentication:
       type: scram-sha-512
     authorization:
@@ -260,26 +260,47 @@ users:
           operations:
             - Create
             - Describe
-            - IdempotentWrite # pub message
           host: "*"
           
         # Internal topics Connect
         - resource:
             type: topic
-            name: "*"
-            patternType: literal
+            name: __connect-cdc
+            patternType: prefix
+          operations:
+            - Create
+            - Read
+            - Write
+            - Describe
+          host: "*"
+
+        - resource:
+            type: topic
+            name: __history
+            patternType: prefix
+          operations:
+            - Create
+            - Read
+            - Write
+            - Describe
+            - DescribeConfigs
+          host: "*"
+
+        - resource:
+            type: topic
+            name: cdc
+            patternType: prefix
           operations:
             - Read
             - Write
-            - Create
             - Describe
           host: "*"
           
         # --- Consumer groups ---
         - resource:
             type: group
-            name: "*"
-            patternType: literal
+            name: connect
+            patternType: prefix
           operations:
             - Read
             - Describe
@@ -293,6 +314,9 @@ users:
 # config (optional): docs: https://kafka.apache.org/41/configuration/topic-configs/
 # ---
 # CONVENTION: 
+# name: metadata resources using (-)
+# topicName: name topic using (.)
+# ---
 # domain.env.source.schema.table
 # domain: cdc
 # env: uat, prod
@@ -303,3 +327,11 @@ topics:
   - name: cdc-order-topics
     topicName: cdc.orders
     partitions: 4
+
+#========================
+# HISTORY ORACLE
+# ======================
+  - name: history-oracle
+    topicName: __history.oracle
+    partitions: 1
+  

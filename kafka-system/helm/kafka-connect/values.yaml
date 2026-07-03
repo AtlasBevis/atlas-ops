@@ -4,11 +4,11 @@ nameOverride: connect-cdc
 
 # Upstream Kafka cluster that Connect attaches to.
 kafka:
-  name: dp-kafka
+  name: kafka-cluster
   namespace: kafka
   bootstrapPort: 9092
   # Cluster CA secret must exist in the Connect namespace when TLS is enabled.
-  caSecretName: dp-kafka-cluster-ca-cert
+  caSecretName: kafka-cluster-ca-cert
 
 # 67. KafkaConnect schema reference
 # docs: https://strimzi.io/docs/operators/latest/configuring.html#type-KafkaConnect-reference
@@ -226,14 +226,14 @@ connectors:
     config:
       topics.dir: cdc
       topics.regex: ^cdc\..*
-      s3.bucket.name: dp-prod-raw
-      s3.part.size: '5242880'
+      s3.bucket.name: prod-raw
+      s3.part.size: 20971520 # 20MB
       s3.path.style.access: true
       aws.access.key.id: ${secrets:access-key}
       aws.secret.access.key: ${secrets:secret-key}
       store.url: ${secrets:endpoint}
       flush.size: "5"
-      rotate.interval.ms: "300000" # 5min
+      rotate.interval.ms: 300000 # 5min
       storage.class: io.confluent.connect.s3.storage.S3Storage
       # io.confluent.connect.s3.format.parquet.ParquetFormat
       format.class: io.confluent.connect.s3.format.json.JsonFormat
@@ -282,27 +282,32 @@ connectors:
       # schema history internal
       schema.history.internal.kafka.topic: __history.oracle
       schema.history.internal.kafka.bootstrap.servers: dp-kafka-kafka-bootstrap.kafka.svc:9092
-      schema.history.internal.store.only.captured.tables.ddl: "true"
+      schema.history.internal.store.only.captured.tables.ddl: false
 
-      # schema history internal producer and consumer using SASL
-      schema.history.internal.producer.security.protocol: SASL_PLAINTEXT
+      # schema history internal producer using SASL
+      schema.history.internal.producer.security.protocol: SASL_SSL
       schema.history.internal.producer.sasl.mechanism: SCRAM-SHA-512
       schema.history.internal.producer.sasl.jaas.config: >-
         org.apache.kafka.common.security.scram.ScramLoginModule required
-        username="cdc" password="${secrets:kafka-connect/cdc:password}";
-
+        username="cdc" password="${secrets:cdc:password}";
+      schema.history.internal.producer.ssl.truststore.type: PEM
+      schema.history.internal.producer.ssl.truststore.certificates: ${secrets:kafka-cluster-ca-cert:ca_cert}
+     
+      # schema history internal consumer using SASL
       schema.history.internal.consumer.security.protocol: SASL_PLAINTEXT
       schema.history.internal.consumer.sasl.mechanism: SCRAM-SHA-512
       schema.history.internal.consumer.sasl.jaas.config: >-
         org.apache.kafka.common.security.scram.ScramLoginModule required
         username="cdc" password="${secrets:kafka-connect/cdc:password}";
+      schema.history.internal.consumer.ssl.truststore.type: PEM
+      schema.history.internal.consumer.ssl.truststore.certificates: ${secrets:kafka-cluster-ca-cert:ca_cert}
 
       # event format
       # decimal handling mode
       # default: false
       # if run ALTER TABLE CUSTOMERS ADD EMAIL VARCHAR2(100); no send event to kafka
-      include.schema.changes: "false"
-      tombstones.on.delete: "false"
+      include.schema.changes: false
+      tombstones.on.delete: false
       
       # format
       decimal.handling.mode: precise
