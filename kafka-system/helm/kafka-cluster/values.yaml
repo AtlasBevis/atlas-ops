@@ -327,7 +327,7 @@ users:
   - name: app
     enabled: false
     authentication:
-    type: scram-sha-512
+      type: scram-sha-512
     authorization:
       type: simple
       acls:
