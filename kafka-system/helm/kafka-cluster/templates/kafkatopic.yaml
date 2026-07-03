@@ -1,5 +1,6 @@
 {{- $root := . }}
 {{- range .Values.topics }}
+{{- if .enabled }}
 ---
 apiVersion: kafka.strimzi.io/v1
 kind: KafkaTopic
@@ -23,4 +24,5 @@ spec:
   config:
     {{- toYaml . | nindent 4 }}
   {{- end }}
+{{- end }}
 {{- end }}

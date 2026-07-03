@@ -1,5 +1,6 @@
 {{- $root := . }}
 {{- range .Values.users }}
+{{- if .enabled }}
 ---
 apiVersion: kafka.strimzi.io/v1
 kind: KafkaUser
@@ -18,4 +19,5 @@ spec:
   quotas:
     {{- toYaml . | nindent 4 }}
   {{- end }}
+{{- end }}
 {{- end }}

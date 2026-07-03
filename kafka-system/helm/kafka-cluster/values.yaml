@@ -202,6 +202,7 @@ users:
 # ======= ADMIN ============
 # ==========================
   - name: admin
+    enabled: true
     authentication:
       type: scram-sha-512
 
@@ -209,6 +210,7 @@ users:
 # ======= UI ===============
 # ==========================
   - name: ui
+    enabled: false
     authentication:
       type: scram-sha-512
     authorization:
@@ -220,7 +222,6 @@ users:
           operations:
             - Describe
             - DescribeConfigs
-            - IdempotentWrite # pub message
           host: "*"
         
         # --- Topics  ---
@@ -250,6 +251,7 @@ users:
 # ======= CONNECT ==========
 # ==========================
   - name: cdc
+    enabled: false
     authentication:
       type: scram-sha-512
     authorization:
@@ -262,7 +264,7 @@ users:
             - Describe
           host: "*"
           
-        # Internal topics Connect
+        # Internal Kafka Connect Cluster Topic
         - resource:
             type: topic
             name: __connect-cdc
@@ -273,6 +275,8 @@ users:
             - Write
             - Describe
           host: "*"
+        
+        # Internal Debezium schema-history
         - resource:
             type: topic
             name: __history
@@ -282,8 +286,10 @@ users:
             - Read
             - Write
             - Describe
-            - DescribeConfigs
+            - DescribeConfigs # required for validate
           host: "*"
+        
+        # Internal Debezium Topic to produce
         - resource:
             type: topic
             name: cdc
@@ -295,14 +301,7 @@ users:
           host: "*"
           
         # --- Consumer groups ---
-        - resource:
-            type: group
-            name: connect
-            patternType: prefix
-          operations:
-            - Read
-            - Describe
-          host: "*"
+        # connect s3 sink
         - resource:
             type: group
             name: connect
@@ -312,6 +311,49 @@ users:
             - Describe
           host: "*"
 
+        # Debezium schema history 
+        - resource:
+            type: group
+            name: cdc
+            patternType: prefix
+          operations:
+            - Read
+            - Describe
+          host: "*"
+
+# ==========================
+# ======= APP =============
+# ==========================
+  - name: app
+    enabled: false
+    authentication:
+    type: scram-sha-512
+    authorization:
+      type: simple
+      acls:
+        - resource:
+            type: cluster
+          operations:
+            - Describe
+          host: "*"
+        - resource:
+            type: topic
+            name: app
+            patternType: prefix
+          operations:
+            - Read
+            - Write
+            - Describe
+          host: "*"
+        - resource:
+            type: group
+            name: myapp
+            patternType: prefix
+          operations:
+            - Read
+            - Describe
+          host: "*"
+          
 # KafkTopic
 # Docs: https://strimzi.io/docs/operators/latest/configuring.html#type-KafkaTopic-reference
 # name: metadata resources
@@ -330,14 +372,7 @@ users:
 # schema: main
 # table: orders, customers
 topics:
-  - name: cdc-order-topics
+  - name: cdc-order
+    enabled: false
     topicName: cdc.orders
     partitions: 4
-
-#========================
-# HISTORY ORACLE
-# ======================
-  - name: history-oracle
-    topicName: __history.oracle
-    partitions: 1
-  
