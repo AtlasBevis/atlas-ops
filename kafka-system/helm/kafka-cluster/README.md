@@ -2,19 +2,40 @@
 
 Helm chart deploy **Kafka cluster** (KRaft, 3 controllers + 3 brokers).
 
-## 1. Prerequisites
+## Prerequisites
 
 1. **Strimzi operator** has deployed
 2. **StorageClass** `longhorn`
 
-## 2. Kafka Node Pool
+## AUTHENTICATION and AUTHORIZATION
+
+SCRAM (Challenge-Response Authentication)
+
+1. Client → Broker: Send username.
+2. Broker → Client: Return salt, nonce, and iteration count.
+3. Client: Generate a proof using password + salt + nonce (HMAC-SHA-512).
+4. Client → Broker: Send the proof (not the password).
+5. Broker: Verify the proof and authenticate the client.
+
+| TLS   | Authentication    | Client Protocol   | Description                                   |
+|-------|-------------------|-------------------|-----------------------------------------------|
+| false | None              | `PLAINTEXT`       | No encryption, no authentication              |
+| false | `scram-sha-512`   | `SASL_PLAINTEXT`  | SCRAM authentication, no TLS                  |
+| true  | None              | `SSL`             | TLS encryption, no client authentication      |
+| true  | `scram-sha-512`   | `SASL_SSL`        | **PRODUCTION** SCRAM authentication over TLS  |
+| true  | `tls`             | `SSL` (mTLS)      | Mutual TLS (client certificate authentication)|
+| true  | `oauth`           | `SASL_SSL`        | OAuth authentication over TLS                 |
+| true  | `custom`          | Depends           | Custom authentication plugin                  |
+
+
+## Kafka Node Pool
 
 045-Crd-kafkanodepool.yaml
  - only 2 role (controller | broker)
  - storage: type (ephemeral | persistent-claim | jbod)
 
 
-## 3. Kafka Topic
+## Kafka Topic
 
 | Key | required | Default | description |
 |-----|----------|---------|-------|

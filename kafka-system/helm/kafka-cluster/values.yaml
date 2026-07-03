@@ -273,7 +273,6 @@ users:
             - Write
             - Describe
           host: "*"
-
         - resource:
             type: topic
             name: __history
@@ -285,7 +284,6 @@ users:
             - Describe
             - DescribeConfigs
           host: "*"
-
         - resource:
             type: topic
             name: cdc
@@ -297,6 +295,14 @@ users:
           host: "*"
           
         # --- Consumer groups ---
+        - resource:
+            type: group
+            name: connect
+            patternType: prefix
+          operations:
+            - Read
+            - Describe
+          host: "*"
         - resource:
             type: group
             name: connect
