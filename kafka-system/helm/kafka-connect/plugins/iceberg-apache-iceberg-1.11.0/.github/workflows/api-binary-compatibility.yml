@@ -1,0 +1,71 @@
+#
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+#
+
+name: "API Binary Compatibility Checks"
+on:
+  push:
+    branches:
+      - 'main'
+      - '0.*'
+      - '1.*'
+      - '2.*'
+    tags:
+      - 'apache-iceberg-**'
+  pull_request:
+    paths:
+      - '.github/workflows/api-binary-compatibility.yml'
+      - '*.gradle'
+      - 'gradle*'
+      - 'api/**'
+      - '.palantir/revapi.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  revapi:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          # fetch-depth of zero ensures that the tags are pulled in and we're not in a detached HEAD state
+          # revapi depends on the tags, specifically the tag from git describe, to find the relevant override
+          # in the .palantir/revapi.yml file
+          #
+          # See https://github.com/actions/checkout/issues/124
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5.2.0
+        with:
+          distribution: zulu
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@0723195856401067f7a2779048b490ace7a47d7c # v5.0.2
+      - run: |
+          echo "Using the old version tag, as per git describe, of $(git describe)";
+      - run: ./gradlew revapi --rerun-tasks
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: failure()
+        with:
+          name: test logs
+          path: |
+            **/build/testlogs
