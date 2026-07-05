@@ -1,1 +1,0 @@
-../../format/gcm-stream-spec.md

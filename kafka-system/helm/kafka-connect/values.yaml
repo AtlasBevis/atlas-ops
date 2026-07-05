@@ -312,3 +312,41 @@ connectors:
       # format
       decimal.handling.mode: precise
       time.precision.mode: adaptive
+  
+  - name: iceberg-sink-oracle
+    enabled: true
+    state: running
+    class: org.apache.iceberg.connect.IcebergSinkConnector
+    tasksMax: 4
+    autoRestart:
+      enabled: true
+      maxRestarts: 10
+    config:
+      topics.regex: ^cdc\.oracle\..*
+      # Converter — chọn 1 trong 2 hướng
+      key.converter: org.apache.kafka.connect.json.JsonConverter
+      key.converter.schemas.enable: false
+      value.converter: org.apache.kafka.connect.json.JsonConverter
+      value.converter.schemas.enable: true   # nếu Debezium gửi schema trong payload
+
+      # Iceberg tables
+      iceberg.tables: lake.oracle_customers,lake.oracle_orders
+      iceberg.tables.auto-create-enabled: "true"
+      iceberg.tables.evolve-schema-enabled: "true"
+
+      # Catalog (REST + MinIO)
+      iceberg.catalog.type: rest
+      iceberg.catalog.uri: http://iceberg-rest.iceberg.svc:8181
+      iceberg.catalog.io-impl: org.apache.iceberg.aws.s3.S3FileIO
+      iceberg.catalog.warehouse: s3://prod-lake/warehouse
+      iceberg.catalog.s3.endpoint: ${secrets:minio:endpoint}
+      iceberg.catalog.s3.access-key-id: ${secrets:minio:access-key}
+      iceberg.catalog.s3.secret-access-key: ${secrets:minio:secret-key}
+      iceberg.catalog.s3.path-style-access: "true"
+
+      # Coordinator
+      iceberg.control.topic: control-iceberg
+      iceberg.control.commit.interval-ms: 300000
+      iceberg.kafka.auto.offset.reset: earliest
+
+      errors.tolerance: none
