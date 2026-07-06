@@ -1,6 +1,6 @@
 apiVersion: v2
 appVersion: 3.3.0
-description: Schema Registry Operator
+description: Apicurio Operator
 keywords:
 - apicurio
 - schema-registry
@@ -9,5 +9,5 @@ maintainers:
   - name: Truong Thanh Binh
     email: dev.binhtt@gmail.com
     url: https://github.com/BevisDev
-name: schema-registry-operator
+name: apicurio-operator
 version: 0.1.0

@@ -1,0 +1,47 @@
+global:
+  imageRegistry:
+  imagePullSecrets: []
+  imagePullPolicy: IfNotPresent
+
+apicurio-operator:
+  enabled: true
+
+  operator:
+    watchNamespaces:
+      - kafka
+
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+apicurio-registry:
+  enabled: true
+  registry:
+    enabled: true
+    name: apicurio-registry
+    storage:
+      type: kafkasql
+      kafkasql:
+        bootstrapServers: kafka-cluster-kafka-bootstrap.kafka.svc:9092
+        tls:
+          truststoreSecretRef:
+            name: kafka-cluster-cluster-ca-cert
+            key: ca.p12
+          truststorePasswordSecretRef:
+            name: kafka-cluster-cluster-ca-cert
+            key: ca.password
+        scram:
+          secretName: apicurio-registry
+          secretKey: sasl.jaas.config
+
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi

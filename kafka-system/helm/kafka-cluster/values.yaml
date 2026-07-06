@@ -270,6 +270,53 @@ users:
           host: "*"
 
 # ==========================
+# ==== SCHEMA-REGISTRY =====
+# ==========================
+  - name: registry
+    enabled: false
+    authentication:
+      type: scram-sha-512
+    authorization:
+      type: simple
+      acls:
+        - resource:
+            type: cluster
+          operations:
+            - Describe
+          host: "*"
+          
+        # Internal Kafka Connect Cluster Topic
+        - resource:
+            type: topic
+            name: kafkasql
+            patternType: prefix
+          operations:
+            - Create
+            - Read
+            - Write
+            - Describe
+          host: "*"
+        
+        # KafkaSQL group 
+        - resource:
+            type: group
+            name: kafkasql
+            patternType: prefix
+          operations:
+            - Read
+            - Describe
+          host: "*"
+          
+        - resource:
+            type: group
+            name: apicurio-registry
+            patternType: prefix
+          operations:
+            - Read
+            - Describe
+          host: "*"
+
+# ==========================
 # ======= CONNECT ==========
 # ==========================
   - name: cdc

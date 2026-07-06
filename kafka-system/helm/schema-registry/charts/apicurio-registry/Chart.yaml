@@ -1,0 +1,13 @@
+apiVersion: v2
+appVersion: 0.1.0
+description: Apicurio Registry
+keywords:
+- apicurio
+- schema-registry
+- registry
+maintainers:
+  - name: Truong Thanh Binh
+    email: dev.binhtt@gmail.com
+    url: https://github.com/BevisDev
+name: apicurio-registry
+version: 0.1.0

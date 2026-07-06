@@ -11,6 +11,11 @@ maintainers:
 name: schema-registry
 version: 0.1.0
 dependencies:
-  - name: schema-registry-operator
-    repository: file://./charts/operator
+  - name: apicurio-operator
+    condition: apicurio-operator.enabled
+    repository: file://./charts/apicurio-operator
+    version: 0.1.0
+  - name: apicurio-registry
+    condition: apicurio-registry.enabled
+    repository: file://./charts/apicurio-registry
     version: 0.1.0

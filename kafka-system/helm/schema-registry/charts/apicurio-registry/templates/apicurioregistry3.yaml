@@ -1,0 +1,54 @@
+{{- if .Values.registry.enabled }}
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry3
+metadata:
+  name: {{ .Values.registry.name }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  app:
+    replicas: {{ .Values.registry.app.replicas }}
+    storage:
+      type: {{ .Values.registry.storage.type }}
+      kafkasql:
+        bootstrapServers: {{ .Values.registry.storage.kafkasql.bootstrapServers | quote }}
+        {{- with .Values.registry.storage.kafkasql.tls }}
+        tls:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+    env:
+      - name: APICURIO_KAFKA_COMMON_SECURITY_PROTOCOL
+        value: SASL_SSL
+      - name: APICURIO_KAFKA_COMMON_SASL_MECHANISM
+        value: SCRAM-SHA-512
+      - name: APICURIO_KAFKA_COMMON_SASL_JAAS_CONFIG
+        valueFrom:
+          secretKeyRef:
+            name: {{ .Values.registry.storage.kafkasql.scram.secretName }}
+            key: {{ .Values.registry.storage.kafkasql.scram.secretKey }}
+    {{- if .Values.registry.app.ingress.enabled }}
+    ingress:
+      enabled: true
+      host: {{ .Values.registry.app.ingress.host }}
+    {{- else }}
+    ingress:
+      enabled: false
+    {{- end }}
+    {{- with .Values.registry.resources }}
+    podTemplateSpec:
+      spec:
+        containers:
+          - name: apicurio-registry
+            resources:
+              {{- toYaml . | nindent 14 }}
+    {{- end }}
+  ui:
+    enabled: {{ .Values.registry.ui.enabled }}
+    {{- if .Values.registry.ui.ingress.enabled }}
+    ingress:
+      enabled: true
+      host: {{ .Values.registry.ui.ingress.host }}
+    {{- else }}
+    ingress:
+      enabled: false
+    {{- end }}
+{{- end }}
