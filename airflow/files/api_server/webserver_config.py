@@ -172,8 +172,8 @@ class AzureSecurityManager(FabAirflowSecurityManagerOverride):
                 continue
 
             if az_role in self.DEFAULT_ROLE_MAPPING:
-                role = self.DEFAULT_ROLE_MAPPING[az_role]
-                self._get_or_create_capability_role(role)
+                name = self.DEFAULT_ROLE_MAPPING[az_role]
+                role = self._get_or_create_capability_role(name)
                 roles.append(role)
             else:
                 team_name = az_role.removeprefix(self.AIRFLOW_ROLE_PREFIX)
@@ -181,7 +181,7 @@ class AzureSecurityManager(FabAirflowSecurityManagerOverride):
                     continue
 
                 pending_teams[team_name] = az_role
-                self._get_or_create_team_role(az_role)
+                role = self._get_or_create_team_role(az_role)
                 roles.append(role)
 
         if pending_teams:
