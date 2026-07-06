@@ -12,7 +12,7 @@ from flask_appbuilder.const import AUTH_OAUTH
 from airflow.security import permissions
 from airflow.models.team import Team
 from airflow.providers.fab.auth_manager.models import (
-    User, assoc_user_role
+    Role, User, assoc_user_role
 )
 from airflow.utils.session import create_session
 
@@ -37,7 +37,7 @@ AZ_TENANT_ID = os.environ["AZ_TENANT_ID"]
 AZ_CLIENT_ID = os.environ["AZ_CLIENT_ID"]
 AZ_CLIENT_SECRET = os.environ["AZ_CLIENT_SECRET"]
 
-APP_NAME = "Bevis Data Platform"
+APP_NAME = "Data Platform"
 
 OAUTH_PROVIDERS = [
     {
@@ -128,12 +128,12 @@ class AzureSecurityManager(FabAirflowSecurityManagerOverride):
                 perm = self.create_permission(action_name, resource_name)
             self.add_permission_to_role(role, perm)
 
-    def _get_or_create_capability_role(self, fab_role_name: str):
+    def _get_or_create_capability_role(self, fab_role_name: str) -> Role:
         role = self.find_role(fab_role_name) or self.add_role(fab_role_name)
         self._ensure_role_permissions(role, self.ONBOARDING_ROLE)
         return role
 
-    def _get_or_create_team_role(self, az_role_name: str):
+    def _get_or_create_team_role(self, az_role_name: str) -> Role:
         role = self.find_role(az_role_name) or self.add_role(az_role_name)
         self._ensure_role_permissions(role, self.ONBOARDING_TEAM)
         return role
@@ -145,13 +145,13 @@ class AzureSecurityManager(FabAirflowSecurityManagerOverride):
     def get_oauth_user_info(self, provider, response=None):
         if provider != "azure":
             return {}
-       
+
         claims = (response or {}).get("userinfo", {})
         username = claims.get("preferred_username") or claims.get("email")
         roles = claims.get("roles", [])
 
         log.info(">>>>> [login] username=%s, roles=%s", 
-                 username, roles)
+                username, roles)
 
         return {
             "username": username,
@@ -161,8 +161,8 @@ class AzureSecurityManager(FabAirflowSecurityManagerOverride):
             "role_keys": roles,
         }
     
-    def _oauth_calculate_user_roles(self, userinfo) -> list[str]:
-        roles = []
+    def _oauth_calculate_user_roles(self, userinfo) -> list[Role]:
+        roles: list[Role] = []
         pending_teams: dict[str, str] = {}
         for az_role in userinfo.get("role_keys", []):
             if not isinstance(az_role, str):
@@ -182,7 +182,7 @@ class AzureSecurityManager(FabAirflowSecurityManagerOverride):
 
                 pending_teams[team_name] = az_role
                 self._get_or_create_team_role(az_role)
-                roles.append(az_role)
+                roles.append(role)
 
         if pending_teams:
             existing_teams = Team.get_all_team_names()
@@ -203,33 +203,41 @@ class AzureSecurityManager(FabAirflowSecurityManagerOverride):
                 .where(assoc_user_role.c.user_id == user_id)
             ).all()
         )
-
-    def _sync_user_roles(self, user: User, roles: list[str]) -> None:
-        new_roles = set(roles)
+    
+    def _bind_user(self, user_id: int) -> User | None:
+        return self.session.get(self.user_model, user_id)
+    
+    def _sync_user_roles(self, user: User, roles: list[Role]) -> User | None:
+        bound_user = self._bind_user(user.id)
+        if bound_user is None:
+            log.error("User id=%s not found in current session", user.id)
+            return None
+        
+        new_roles = {role.name for role in roles}
         current_roles = self._get_user_role_names(user.id)
 
-        # not change => skip
-        if new_roles == current_roles:
-            return
-  
-        role_ids = list(
-            self.session.scalars(
-                select(self.role_model.id).where(self.role_model.name.in_(new_roles))
-            ).all()
-        ) if new_roles else []
-        
-        self.session.execute(
-            delete(assoc_user_role).where(assoc_user_role.c.user_id == user.id)
-        )
-        
-        if role_ids:
+        if new_roles != current_roles:
+            role_ids = list(
+                self.session.scalars(
+                    select(self.role_model.id).where(self.role_model.name.in_(new_roles))
+                ).all()
+            ) if new_roles else []
+            
             self.session.execute(
-                assoc_user_role.insert(),
-                [{"user_id": user.id, "role_id": role_id} for role_id in role_ids],
+                delete(assoc_user_role).where(assoc_user_role.c.user_id == user.id)
             )
+        
+            if role_ids:
+                self.session.execute(
+                    assoc_user_role.insert(),
+                    [{"user_id": user.id, "role_id": role_id} for role_id in role_ids],
+                )
 
-        self.session.expire(user, ["roles"])
-        self._reset_user_permissions_cache(user)
+            self.session.commit()
+            self.session.refresh(bound_user, attribute_names=["roles"])
+
+        self._reset_user_permissions_cache(bound_user)
+        return bound_user
     
     def auth_user_oauth(self, userinfo):
         username = userinfo.get("username") or userinfo.get("email")
@@ -252,8 +260,9 @@ class AzureSecurityManager(FabAirflowSecurityManagerOverride):
         # Sync the user's roles
         if user and self.auth_roles_sync_at_login:
             roles = self._oauth_calculate_user_roles(userinfo)
-            self._sync_user_roles(user, roles)
-            user.changed_on = self._now_local()
+            user = self._sync_user_roles(user, roles)
+            if user:
+                user.changed_on = self._now_local()
 
         if not user and self.auth_user_registration:
             user = self.add_user(
@@ -268,6 +277,8 @@ class AzureSecurityManager(FabAirflowSecurityManagerOverride):
                 log.error("Error creating a new OAuth user %s", username)
                 return None
             
+            user = self._bind_user(user.id)
+            
         # LOGIN SUCCESS (only if user is now registered)
         if user:
             self._rotate_session_id()
@@ -278,7 +289,7 @@ class AzureSecurityManager(FabAirflowSecurityManagerOverride):
         
     def update_user(self, user: User) -> bool:
         try:
-            bound_user = self.session.get(self.user_model, user.id)
+            bound_user = self._bind_user(user.id)
             if not bound_user:
                 return False
             
