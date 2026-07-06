@@ -205,7 +205,29 @@ users:
     enabled: true
     authentication:
       type: scram-sha-512
-
+    authorization:
+      type: simple
+      acls:
+        - resource:
+            type: cluster
+          operations:
+            - All
+          host: "*"
+        - resource:
+            type: topic
+            name: "*"
+            patternType: literal
+          operations:
+            - All
+          host: "*"
+        - resource:
+            type: group
+            name: "*"
+            patternType: literal
+          operations:
+            - All
+          host: "*"
+          
 # ==========================
 # ======= UI ===============
 # ==========================
@@ -289,6 +311,17 @@ users:
             - DescribeConfigs # required for validate
           host: "*"
         
+        # Internal Iceberg Topic
+        - resource:
+            type: topic
+            name: __control
+            patternType: prefix
+          operations:
+            - Read
+            - Write
+            - Describe
+          host: "*"
+
         # Internal Debezium Topic to produce
         - resource:
             type: topic
@@ -371,6 +404,9 @@ users:
 # source: oracle, postgres
 # schema: main
 # table: orders, customers
+# ---
+# NOTE: not supported change name
+# should: delete topics and create it
 topics:
   - name: cdc-order
     enabled: false
