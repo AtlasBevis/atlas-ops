@@ -17,7 +17,6 @@ registry:
 
     auth:
       enabled: true
-      # registry-client-api Used by the Apicurio Registry backend (REST API) component.
       appClientId: registry-client-api
       uiClientId: registry-client-ui
       authServerUrl: https://keycloak.example.com/realms/registry
