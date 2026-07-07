@@ -15,25 +15,93 @@ spec:
         {{- toYaml .Values.registry.storage.sql | nindent 8 }}
       {{- else if eq $storageType "kafkasql" }}
       kafkasql:
-        {{- toYaml .Values.registry.storage.kafkasql | nindent 8 }}
+        {{- $kafkasql := omit .Values.registry.storage.kafkasql "scram" }}
+        {{- toYaml $kafkasql | nindent 8 }}
+      {{- else if eq $storageType "gitops" }}
+      gitops:
+        {{- with .Values.registry.storage.gitops.mode }}
+        mode: {{ . }}
+        {{- end }}
+        {{- with .Values.registry.storage.gitops.registryId }}
+        registryId: {{ . }}
+        {{- end }}
+        {{- with .Values.registry.storage.gitops.repos }}
+        repos:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        {{- with .Values.registry.storage.gitops.pull }}
+        pull:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        {{- with .Values.registry.storage.gitops.push }}
+        push:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+      {{- else if eq $storageType "kubernetesops" }}
+      kubernetesops:
+        {{- toYaml .Values.registry.storage.kubernetesops | nindent 8 }}
       {{- end }}
-    {{- with .Values.registry.app.env }}
+    {{- $kafkasql := .Values.registry.storage.kafkasql | default dict }}
+    {{- if and (eq $storageType "kafkasql") $kafkasql.scram }}
     env:
-      {{- toYaml . | nindent 6 }}
+      - name: APICURIO_KAFKA_COMMON_SECURITY_PROTOCOL
+        value: SASL_SSL
+      - name: APICURIO_KAFKA_COMMON_SASL_MECHANISM
+        value: SCRAM-SHA-512
+      - name: APICURIO_KAFKA_COMMON_SASL_JAAS_CONFIG
+        valueFrom:
+          secretKeyRef:
+            name: {{ $kafkasql.scram.secretName }}
+            key: {{ $kafkasql.scram.secretKey }}
+    {{- else if .Values.registry.app.env }}
+    env:
+      {{- toYaml .Values.registry.app.env | nindent 6 }}
+    {{- end }}
+    {{- if .Values.registry.app.auth.enabled }}
+    auth:
+      enabled: true
+      appClientId: {{ .Values.registry.app.auth.appClientId }}
+      uiClientId: {{ .Values.registry.app.auth.uiClientId }}
+      authServerUrl: {{ .Values.registry.app.auth.authServerUrl }}
+      redirectUri: {{ .Values.registry.app.auth.redirectUri }}
+      logoutUrl: {{ .Values.registry.app.auth.logoutUrl }}
+      {{- with .Values.registry.app.auth.authz }}
+      authz:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.registry.app.auth.basicAuth }}
+      basicAuth:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.registry.app.auth.tls }}
+      tls:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
     {{- end }}
     {{- if .Values.registry.app.ingress.enabled }}
     ingress:
       enabled: true
       host: {{ .Values.registry.app.ingress.host }}
+      {{- with .Values.registry.app.ingress.ingressClassName }}
+      ingressClassName: {{ . }}
+      {{- end }}
+      {{- with .Values.registry.app.ingress.annotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
     {{- else }}
     ingress:
       enabled: false
+    {{- end }}
+    {{- with .Values.registry.app.podDisruptionBudget }}
+    podDisruptionBudget:
+      {{- toYaml . | nindent 6 }}
     {{- end }}
     podTemplateSpec:
       spec:
         {{- if .Values.registry.app.resources }}
         containers:
-          - name: {{ .Values.registry.name }}-app
+          - name: apicurio-registry-app
             resources:
               {{- toYaml .Values.registry.app.resources | nindent 14 }}
         {{- end }}
@@ -43,13 +111,28 @@ spec:
         {{- end }}
   ui:
     enabled: {{ .Values.registry.ui.enabled }}
-    replicas: {{ .Values.registry.ui.replicas }}
+    replicas: {{ .Values.registry.ui.replicas | default 1 }}
+    {{- with .Values.registry.ui.env }}
+    env:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
     {{- if .Values.registry.ui.ingress.enabled }}
     ingress:
       enabled: true
       host: {{ .Values.registry.ui.ingress.host }}
+      {{- with .Values.registry.ui.ingress.ingressClassName }}
+      ingressClassName: {{ . }}
+      {{- end }}
+      {{- with .Values.registry.ui.ingress.annotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
     {{- else }}
     ingress:
       enabled: false
+    {{- end }}
+    {{- with .Values.registry.ui.podDisruptionBudget }}
+    podDisruptionBudget:
+      {{- toYaml . | nindent 6 }}
     {{- end }}
 {{- end }}

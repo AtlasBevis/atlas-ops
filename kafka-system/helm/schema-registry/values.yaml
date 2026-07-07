@@ -15,25 +15,22 @@ global:
       name: apicurio-registry
       tag: ~
 
-    ui:  
+    ui:
       name: apicurio-registry-ui
       tag: ~
 
     gitops:
       name: apicurio-registry-gitops-sync
       tag: ~
-  
+
 operator:
   enabled: true
 
   operator:
     enabled: true
-
     replicas: 1
-
     watchNamespaces:
       - kafka
-
     resources:
       limits:
         cpu: 200m
@@ -44,7 +41,7 @@ operator:
 
 registry:
   enabled: true
-  
+
   registry:
     enabled: true
     name: apicurio-registry
@@ -60,7 +57,7 @@ registry:
           nginx.org/proxy-connect-timeout: "30s"
 
       auth:
-        enabled: true
+        enabled: false
         appClientId: registry-client-api
         uiClientId: registry-client-ui
         authServerUrl: https://keycloak.example.com/realms/registry
@@ -77,21 +74,24 @@ registry:
 
     ui:
       enabled: true
+      replicas: 1
       ingress:
-        enabled: true
+        enabled: false
         host: ""
         ingressClassName: nginx
         annotations:
           nginx.org/proxy-connect-timeout: "30s"
-        
-    storage:
-      type: postgresql
-      sql:
-        dataSource:
-          url: jdbc:postgresql://postgresql.my-project.svc:5432/registry
-          username: registry_user
-          password:
-            name: postgresql-credentials
-            key: password
 
-    
+    storage:
+      type: gitops
+      gitops:
+        mode: pull
+        registryId: prod
+        repos:
+          - url: https://github.com/Apicurio/apicurio-registry-gitops-example.git
+            branch: main
+            dir: default
+        # pull:
+        #   sshKeys:
+        #     name: gitops-ssh-keys
+        #     key: id_ed25519

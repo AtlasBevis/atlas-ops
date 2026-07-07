@@ -1,0 +1,9 @@
+dependencies:
+- name: apicurio-operator
+  repository: file://./charts/apicurio-operator
+  version: 0.1.0
+- name: apicurio-registry
+  repository: file://./charts/apicurio-registry
+  version: 0.1.0
+digest: sha256:8e56ebf9089cd9655d9a0d32b03e9ffc578c68de1dbfaa515c99257a4fbc0939
+generated: "2026-07-07T23:06:46.077606468+07:00"

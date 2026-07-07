@@ -16,12 +16,14 @@ registry:
         nginx.org/proxy-connect-timeout: "30s"
 
     auth:
-      enabled: true
+      enabled: false
       appClientId: registry-client-api
       uiClientId: registry-client-ui
       authServerUrl: https://keycloak.example.com/realms/registry
       redirectUri: https://registry-ui.example.com
       logoutUrl: https://registry-ui.example.com
+
+    env: []
 
     resources:
       requests:
@@ -31,15 +33,13 @@ registry:
         cpu: 1
         memory: 1Gi
 
-    podDisruptionBudget: 
+    podDisruptionBudget:
       enabled: false
 
   ui:
     enabled: true
-    
-    replicas: 2
+    replicas: 1
 
-    # Configuring ingress
     ingress:
       enabled: false
       host: ""
@@ -47,7 +47,6 @@ registry:
       annotations:
         nginx.org/proxy-connect-timeout: "30s"
 
-    # configuring UI environemnt variables
     env: []
 
     podDisruptionBudget:
@@ -55,10 +54,35 @@ registry:
 
   # docs: https://www.apicur.io/registry/docs/apicurio-registry/3.3.x/getting-started/assembly-deploying-registry-operator.html
   storage:
-    # postgresql, mysql, kafkasql, or kubernetesops
-    type: ~
+    # postgresql | mysql | kafkasql | gitops | kubernetesops
+    type: gitops
 
-    # for type sql
+    # GitOps storage (read-only, experimental). Schemas are managed via Git commits.
+    # Example repo: https://github.com/Apicurio/apicurio-registry-gitops-example
+    gitops:
+      mode: pull
+      registryId: prod
+      repos:
+        - url: https://github.com/Apicurio/apicurio-registry-gitops-example.git
+          branch: main
+          dir: default
+      # For private SSH repos:
+      # pull:
+      #   sshKeys:
+      #     name: gitops-ssh-keys
+      #     key: id_ed25519
+      #   knownHosts:
+      #     name: gitops-known-hosts
+      #     key: known_hosts
+      # For push mode (CI git push over SSH on port 2222):
+      # push:
+      #   authorizedKeys:
+      #     name: gitops-authorized-keys
+      #     key: authorized_keys
+      #   hostKey:
+      #     name: gitops-host-key
+      #     key: ssh_host_key
+
     sql:
       dataSource:
         url: jdbc:postgresql://postgresql.my-project.svc:5432/registry
@@ -67,16 +91,19 @@ registry:
           name: postgresql-credentials
           key: password
 
-    # for type kafkasql
-    # kafkasql:
-    #   bootstrapServers: kafka-cluster-kafka-bootstrap.kafka.svc:9092
-    #   tls:
-    #     truststoreSecretRef:
-    #       name: kafka-cluster-cluster-ca-cert
-    #       key: ca.p12
-    #     truststorePasswordSecretRef:
-    #       name: kafka-cluster-cluster-ca-cert
-    #       key: ca.password
-    #   scram:
-    #     secretName: registry
-    #     secretKey: sasl.jaas.config
+    kafkasql:
+      bootstrapServers: kafka-cluster-kafka-bootstrap.kafka.svc:9092
+      tls:
+        truststoreSecretRef:
+          name: kafka-cluster-cluster-ca-cert
+          key: ca.p12
+        truststorePasswordSecretRef:
+          name: kafka-cluster-cluster-ca-cert
+          key: ca.password
+      scram:
+        secretName: registry
+        secretKey: sasl.jaas.config
+
+    kubernetesops:
+      registryId: default
+      namespace: ""
