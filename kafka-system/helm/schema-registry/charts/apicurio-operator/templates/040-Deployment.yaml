@@ -1,19 +1,19 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "sr.name" . }}-deployment
+  name: {{ include "operator.name" . }}-deployment
   namespace: {{ .Release.Namespace }}
   labels:
-    {{- include "sr.labels" . | nindent 4 }}
+    {{- include "operator.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.operator.replicas }}
   selector:
     matchLabels:
-      {{- include "sr.selectorLabels" . | nindent 6 }}
+      {{- include "operator.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       labels:
-        {{- include "sr.labels" . | nindent 8 }}
+        {{- include "operator.labels" . | nindent 8 }}
     spec:
       {{- with include "operator.imagePullSecrets" . }}
       imagePullSecrets:
@@ -80,4 +80,4 @@ spec:
           initialDelaySeconds: 20
           periodSeconds: 5
           timeoutSeconds: 3
-      serviceAccountName: {{ include "sr.name" . }}-sa
+      serviceAccountName: {{ include "operator.name" . }}-sa

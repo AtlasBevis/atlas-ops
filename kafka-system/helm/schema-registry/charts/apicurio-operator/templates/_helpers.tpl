@@ -1,7 +1,7 @@
 {{/*
 Expand the name of the chart.
 */}}
-{{- define "sr.name" -}}
+{{- define "operator.name" -}}
 {{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
 
@@ -9,28 +9,36 @@ Expand the name of the chart.
   get operator image registry from parent, fallback child
 */}}
 {{- define "operator.imageRegistry" -}}
-{{- coalesce .Values.imageRegistry .Values.global.imageRegistry "quay.io" -}}
+{{- $global := (get .Values "global" | default dict) -}}
+{{- coalesce .Values.imageRegistry (get $global "imageRegistry") "quay.io" -}}
 {{- end -}}
 
 {{/*
   get operator image repository from parent, fallback child
 */}}
 {{- define "operator.imageRepository" -}}
-{{- coalesce .Values.imageRepository .Values.global.imageRepository "apicurio" -}}
+{{- $global := (get .Values "global" | default dict) -}}
+{{- coalesce .Values.imageRepository (get $global "imageRepository") "apicurio" -}}
 {{- end -}}
 
 {{/*
   get operator image pull policy from parent, fallback child
 */}}
 {{- define "operator.imagePullPolicy" -}}
-{{- coalesce .Values.imagePullPolicy .Values.global.imagePullPolicy "IfNotPresent" -}}
+{{- $global := (get .Values "global" | default dict) -}}
+{{- coalesce .Values.imagePullPolicy (get $global "imagePullPolicy") "IfNotPresent" -}}
 {{- end -}}
 
 {{/*
   get operator image pull secrets from parent, fallback child
 */}}
 {{- define "operator.imagePullSecrets" -}}
-{{- coalesce .Values.imagePullSecrets .Values.global.imagePullSecrets -}}
+{{- $global := (get .Values "global" | default dict) -}}
+{{- $globalSecrets := (get $global "imagePullSecrets") -}}
+{{- $secrets := coalesce .Values.imagePullSecrets $globalSecrets -}}
+{{- if $secrets -}}
+{{ toYaml $secrets }}
+{{- end -}}
 {{- end -}}
 
 # ============================
@@ -40,11 +48,10 @@ Expand the name of the chart.
   get operator image name from parent, fallback child
 */}}
 {{- define "operator.operatorImageName" -}}
-{{- $globalName := "" -}}
-{{- if and .Values.global.images .Values.global.images.operator -}}
-  {{- $globalName = .Values.global.images.operator.name -}}
-{{- end -}}
-{{- coalesce .Values.operator.image.name $globalName "apicurio-registry-3-operator" -}}
+{{- $global := (get .Values "global" | default dict) -}}
+{{- $images := (get $global "images" | default dict) -}}
+{{- $img := (get $images "operator" | default dict) -}}
+{{- coalesce .Values.operator.image.tag .Values.imageTag (get $img "tag") (get $global "imageTag") .Chart.AppVersion -}}
 {{- end -}}
 
 {{/*
@@ -191,17 +198,17 @@ Expand the name of the chart.
 {{/*
  Selector labels
 */}}
-{{- define "sr.selectorLabels" -}}
-app: apicurio-registry-operator
-app.kubernetes.io/name: {{ include "sr.name" . }}
+{{- define "operator.selectorLabels" -}}
+app: apicurio-operator
+app.kubernetes.io/name: {{ include "operator.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end -}}
 
 {{/*
  commons labels
 */}}
-{{- define "sr.labels" -}}
-{{ include "sr.selectorLabels" . }}
+{{- define "operator.labels" -}}
+{{ include "operator.selectorLabels" . }}
 app.kubernetes.io/component: operator
 helm.sh/chart: {{ printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" }}
 {{- if .Chart.AppVersion }}

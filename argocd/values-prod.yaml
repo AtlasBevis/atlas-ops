@@ -49,8 +49,8 @@ global:
   runtimeClassName: ""
 
   # -- Common labels for the all resources
-  additionalLabels: {}
-    # app: argo-cd
+  additionalLabels:
+    app: argo-cd
 
   # -- Number of old deployment ReplicaSets to retain. The rest will be garbage collected.
   revisionHistoryLimit: 3
@@ -442,14 +442,15 @@ configs:
     annotations: {}
     
     # You can customize parameters by adding parameters here.
-    server.insecure: false
+    server.insecure: true
+    controller.repo.server.timeout.seconds: "180"
+    # controller.self.heal.timeout.seconds: "5"
     # controller.status.processors: "20"
     # controller.operation.processors: "10"
-    # controller.repo.server.timeout.seconds: "120"
-    # controller.self.heal.timeout.seconds: "5"
-    # server.disable.auth: false
-    # reposerver.parallelism.limit: "10"
     # applicationsetcontroller.enable.progressive.syncs: "true"
+    reposerver.git.request.timeout: "60s"
+    reposerver.parallelism.limit: "4"
+    reposerver.git.lsremote.parallelism.limit: "3"
 
   # Argo CD RBAC policy configuration
   ## Ref: https://github.com/argoproj/argo-cd/blob/master/docs/operator-manual/rbac.md
@@ -464,7 +465,7 @@ configs:
 
     # -- The name of the default role which Argo CD will falls back to, when authorizing API requests (optional).
     # If omitted or empty, users may be still be able to login, but will see no apps, projects, etc...
-    policy.default: "role:readonly"
+    policy.default: ""
 
     # -- File containing user-defined policies and role definitions.
     # @default -- `''` (See [values.yaml])
@@ -772,20 +773,20 @@ controller:
   heartbeatTime: 10
 
   # -- Maximum number of controller revisions that will be maintained in StatefulSet history
-  revisionHistoryLimit: 5
+  revisionHistoryLimit: 3
 
   ## Application controller Pod Disruption Budget
   ## Ref: https://kubernetes.io/docs/tasks/run-application/configure-pdb/
   pdb:
     # -- Deploy a [PodDisruptionBudget] for the application controller
-    enabled: false
+    enabled: true
     # -- Labels to be added to application controller pdb
     labels: {}
     # -- Annotations to be added to application controller pdb
     annotations: {}
     # -- Number of pods that are available after eviction as number or percentage (eg.: 50%)
     # @default -- `""` (defaults to 0 if not specified)
-    minAvailable: ""
+    minAvailable: "1"
     # -- Number of pods that are unavailable after eviction as number or percentage (eg.: 50%).
     ## Has higher precedence over `controller.pdb.minAvailable`
     maxUnavailable: ""
@@ -1569,8 +1570,7 @@ redis:
 
   # -- Secrets with credentials to pull images from a private registry
   # @default -- `[]` (defaults to global.imagePullSecrets)
-  imagePullSecrets: 
-    - name: dockerhub-secret
+  imagePullSecrets: []
 
   # -- Additional command line arguments to pass to redis-server
   extraArgs: []
@@ -2222,11 +2222,11 @@ server:
   # -- Resource limits and requests for the Argo CD server
   resources:
    limits:
-     cpu: 1
-     memory: 512Mi
+     cpu: 2
+     memory: 1Gi
    requests:
-     cpu: 250m
-     memory: 256Mi
+     cpu: 500m
+     memory: 512Mi
 
   # Server container ports
   containerPorts:
@@ -2302,7 +2302,15 @@ server:
 
   # -- Assign custom [affinity] rules to the deployment
   # @default -- `{}` (defaults to global.affinity preset)
-  affinity: {}
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            topologyKey: kubernetes.io/hostname
+            labelSelector:
+              matchLabels:
+                app.kubernetes.io/name: argocd-server
 
   # -- Assign custom [TopologySpreadConstraints] rules to the Argo CD server
   # @default -- `[]` (defaults to global.topologySpreadConstraints)
@@ -3026,11 +3034,11 @@ repoServer:
   # -- Resource limits and requests for the repo server pods
   resources:
     requests:
-      cpu: 0.5
-      memory: 1Gi
+      cpu: 1
+      memory: 2Gi
     limits:
-      memory: 4Gi
       cpu: 2
+      memory: 4Gi
 
   # Repo server container ports
   containerPorts:
