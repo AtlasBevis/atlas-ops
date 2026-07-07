@@ -15,9 +15,9 @@ spec:
       labels:
         {{- include "sr.labels" . | nindent 8 }}
     spec:
-      {{- with .Values.imagePullSecrets }}
+      {{- with include "operator.imagePullSecrets" . }}
       imagePullSecrets:
-        {{- toYaml . | nindent 8 }}
+        {{- . | nindent 8 }}
       {{- end }}
       containers:
       - env:
@@ -31,7 +31,7 @@ spec:
               fieldPath: metadata.namespace
         - name: APICURIO_OPERATOR_WATCHED_NAMESPACES
         {{- if .Values.operator.watchNamespaces }}
-          value: {{ include "sr.watchNamespaces" . | quote }}
+          value: {{ include "operator.watchNamespaces" . | quote }}
         {{- else -}}
           valueFrom:
             fieldRef:
@@ -40,15 +40,13 @@ spec:
         - name: QUARKUS_PROFILE
           value: prod
         - name: REGISTRY_APP_IMAGE
-          value: {{ include "sr.image" (dict "registry" .Values.imageRegistry "repository" .Values.imageRepository "name" .Values.app.name "tag" .Values.app.tag) }}
+          value: {{ include "operator.appImage" . | quote }}
         - name: REGISTRY_UI_IMAGE
-          value: {{ include "sr.image" (dict "registry" .Values.imageRegistry "repository" .Values.imageRepository "name" .Values.ui.name "tag" .Values.ui.tag) }}
+          value: {{ include "operator.uiImage" . | quote }}
         - name: REGISTRY_GITOPS_SYNC_IMAGE
-          value: {{ include "sr.image" (dict "registry" .Values.imageRegistry "repository" .Values.imageRepository "name" .Values.gitops.name "tag" .Values.gitops.tag) }}
-        image: {{ include "sr.image" (dict "registry" .Values.imageRegistry "repository" .Values.imageRepository "name" .Values.operator.image.name "tag" .Values.operator.image.tag) }}
-        {{- with .Values.imagePullPolicy }}
-        imagePullPolicy: {{ . }}
-        {{- end }}
+          value: {{ include "operator.gitopsImage" . | quote }}
+        image: {{ include "operator.operatorImage" . | quote }}
+        imagePullPolicy: {{ include "operator.imagePullPolicy" . }}
         livenessProbe:
           failureThreshold: 3
           httpGet:
@@ -57,7 +55,7 @@ spec:
           initialDelaySeconds: 0
           periodSeconds: 10
           timeoutSeconds: 3
-        name: apicurio-registry-operator
+        name: apicurio-operator
         ports:
         - containerPort: 8080
           name: http

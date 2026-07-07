@@ -58,7 +58,6 @@ Expand the name of the chart.
 {{- coalesce .Values.operator.image.tag .Values.imageTag $globalTag .Chart.AppVersion -}}
 {{- end -}}
 
-
 # ============================
 # ========= APP =============
 # ============================
@@ -215,7 +214,7 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{/*
  Create a list of comma-separated namespaces the operators should watch.
 */}}
-{{- define "sr.watchNamespaces" -}}
+{{- define "operator.watchNamespaces" -}}
 {{- $namespacesList := .Values.operator.watchNamespaces | default (list) -}}
 {{- $returnList := append $namespacesList .Release.Namespace | sortAlpha | uniq -}}
 {{- join "," $returnList -}}

@@ -11,7 +11,7 @@ operator:
   replicas: 1
   image:
     name: apicurio-registry-3-operator
-    tag: "3.3.0"
+    tag: ~
 
   watchNamespaces: []
     # - kafka
@@ -27,15 +27,15 @@ operator:
 app:
   image:
     name: apicurio-registry
-    tag: "3.3.0"
+    tag: ~
 ui:
   image:
     name: apicurio-registry-ui
-    tag: "3.3.0"
+    tag: ~
 gitops:
   image:
     name: apicurio-registry-gitops-sync
-    tag: "3.3.0"
+    tag: ~
 
 serviceAccount:
   name: "apicurio-registry-operator"
