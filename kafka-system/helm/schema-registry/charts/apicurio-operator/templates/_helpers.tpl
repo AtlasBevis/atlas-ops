@@ -5,8 +5,133 @@ Expand the name of the chart.
 {{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
 
-{{- define "sr.image" -}}
-{{- printf "%s/%s/%s:%s" .registry .repository .name .tag -}}
+{{/*
+  get operator image registry from parent, fallback child
+*/}}
+{{- define "operator.imageRegistry" -}}
+{{- coalesce .Values.imageRegistry .Values.global.imageRegistry "quay.io" -}}
+{{- end -}}
+
+{{/*
+  get operator image repository from parent, fallback child
+*/}}
+{{- define "operator.imageRepository" -}}
+{{- coalesce .Values.imageRepository .Values.global.imageRepository "apicurio" -}}
+{{- end -}}
+
+{{/*
+  get operator image pull policy from parent, fallback child
+*/}}
+{{- define "operator.imagePullPolicy" -}}
+{{- coalesce .Values.imagePullPolicy .Values.global.imagePullPolicy "IfNotPresent" -}}
+{{- end -}}
+
+{{/*
+  get operator image pull secrets from parent, fallback child
+*/}}
+{{- define "operator.imagePullSecrets" -}}
+{{- coalesce .Values.imagePullSecrets .Values.global.imagePullSecrets -}}
+{{- end -}}
+
+# ============================
+# ========= OPERATOR =========
+# ============================
+{{/*
+  get operator image name from parent, fallback child
+*/}}
+{{- define "operator.operatorImageName" -}}
+{{- $globalName := "" -}}
+{{- if and .Values.global.images .Values.global.images.operator -}}
+  {{- $globalName = .Values.global.images.operator.name -}}
+{{- end -}}
+{{- coalesce .Values.operator.image.name $globalName "apicurio-registry-3-operator" -}}
+{{- end -}}
+
+{{/*
+  get operator image tag from parent, fallback child
+*/}}
+{{- define "operator.operatorImageTag" -}}
+{{- $globalTag := .Values.global.imageTag -}}
+{{- if and .Values.global.images .Values.global.images.operator -}}
+  {{- $globalTag = .Values.global.images.operator.tag -}}
+{{- end -}}
+{{- coalesce .Values.operator.image.tag .Values.imageTag $globalTag .Chart.AppVersion -}}
+{{- end -}}
+
+
+# ============================
+# ========= APP =============
+# ============================
+{{/*
+  get app image name from parent, fallback child
+*/}}
+{{- define "operator.appImageName" -}}
+{{- $globalName := "" -}}
+{{- if and .Values.global.images .Values.global.images.app -}}
+  {{- $globalName = .Values.global.images.app.name -}}
+{{- end -}}
+{{- coalesce .Values.app.image.name $globalName "apicurio-registry" -}}
+{{- end -}}
+
+{{/*
+  get app image tag from parent, fallback child
+*/}}
+{{- define "operator.appImageTag" -}}
+{{- $globalTag := .Values.global.imageTag -}}
+{{- if and .Values.global.images .Values.global.images.app -}}
+  {{- $globalTag = .Values.global.images.app.tag -}}
+{{- end -}}
+{{- coalesce .Values.app.image.tag .Values.imageTag $globalTag .Chart.AppVersion -}}
+{{- end -}}
+
+# ============================
+# ========= UI =========
+# ============================
+{{/*
+  get ui image name from parent, fallback child
+*/}}
+{{- define "operator.uiImageName" -}}
+{{- $globalName := "" -}}
+{{- if and .Values.global.images .Values.global.images.ui -}}
+  {{- $globalName = .Values.global.images.ui.name -}}
+{{- end -}}
+{{- coalesce .Values.ui.image.name $globalName "apicurio-registry-ui" -}}
+{{- end -}}
+
+{{/*
+  get ui image tag from parent, fallback child
+*/}}
+{{- define "operator.uiImageTag" -}}
+{{- $globalTag := .Values.global.imageTag -}}
+{{- if and .Values.global.images .Values.global.images.ui -}}
+  {{- $globalTag = .Values.global.images.ui.tag -}}
+{{- end -}}
+{{- coalesce .Values.ui.image.tag .Values.imageTag $globalTag .Chart.AppVersion -}}
+{{- end -}}
+
+# ============================
+# ========= GIT-OPS =========
+# ============================
+{{/*
+  get gitops image name from parent, fallback child
+*/}}
+{{- define "operator.gitopsImageName" -}}
+{{- $globalName := "" -}}
+{{- if and .Values.global.images .Values.global.images.gitops -}}
+  {{- $globalName = .Values.global.images.gitops.name -}}
+{{- end -}}
+{{- coalesce .Values.gitops.image.name $globalName "apicurio-registry-gitops-sync" -}}
+{{- end -}}
+
+{{/*
+  get gitops image tag from parent, fallback child
+*/}}
+{{- define "operator.gitopsImageTag" -}}
+{{- $globalTag := .Values.global.imageTag -}}
+{{- if and .Values.global.images .Values.global.images.gitops.tag -}}
+  {{- $globalTag = .Values.global.images.gitops.tag -}}
+{{- end -}}
+{{- coalesce .Values.gitops.image.tag .Values.imageTag $globalTag .Chart.AppVersion -}}
 {{- end -}}
 
 {{/*
