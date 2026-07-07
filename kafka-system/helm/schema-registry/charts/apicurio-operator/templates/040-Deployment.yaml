@@ -32,10 +32,10 @@ spec:
         - name: APICURIO_OPERATOR_WATCHED_NAMESPACES
         {{- if .Values.operator.watchNamespaces }}
           value: {{ include "operator.watchNamespaces" . | quote }}
-        {{- else -}}
+        {{- else }}
           valueFrom:
             fieldRef:
-              fieldPath: metadata.annotations['olm.targetNamespaces']
+              fieldPath: "metadata.annotations['olm.targetNamespaces']"
         {{- end }}
         - name: QUARKUS_PROFILE
           value: prod

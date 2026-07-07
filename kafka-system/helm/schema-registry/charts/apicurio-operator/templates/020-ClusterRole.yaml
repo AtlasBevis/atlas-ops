@@ -3,7 +3,7 @@ kind: ClusterRole
 metadata:
   name: {{ include "operator.name" . }}-clusterrole
   labels:
-    {{- include "sr.labels" . | nindent 4 }}
+    {{- include "operator.labels" . | nindent 4 }}
 rules:
 - apiGroups:
   - registry.apicur.io

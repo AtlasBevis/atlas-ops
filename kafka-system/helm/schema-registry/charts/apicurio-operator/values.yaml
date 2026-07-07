@@ -1,16 +1,23 @@
 nameOverride: 
 
-imageRegistry: quay.io
-imageRepository: apicurio
-imagePullSecrets:
-  - name: dockerhub-regcred
-imagePullPolicy: IfNotPresent
-imageTag: "3.3.0"
+# default: quay.io
+imageRegistry: ~
+
+# default: apicurio
+imageRepository: ~
+
+imagePullSecrets: []
+
+imagePullPolicy: ~
+
+# default: 3.3.0
+imageTag: ~
 
 operator:
   replicas: 1
   image:
-    name: apicurio-registry-3-operator
+    # default: apicurio-registry-3-operator
+    name: ~
     tag: ~
 
   watchNamespaces: []
@@ -26,16 +33,19 @@ operator:
     
 app:
   image:
-    name: apicurio-registry
+    # default: apicurio-registry
+    name: ~
     tag: ~
 ui:
   image:
-    name: apicurio-registry-ui
+    # default: apicurio-registry-ui
+    name: ~
     tag: ~
 gitops:
   image:
-    name: apicurio-registry-gitops-sync
+    # default: apicurio-registry-gitops-sync
+    name: ~
     tag: ~
 
 serviceAccount:
-  name: "apicurio-registry-operator"
+  name: ~"

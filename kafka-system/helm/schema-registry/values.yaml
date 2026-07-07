@@ -19,7 +19,7 @@ global:
       name: apicurio-registry-ui
       tag: ~
 
-    gitSync:
+    gitops:
       name: apicurio-registry-gitops-sync
       tag: ~
   
