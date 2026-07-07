@@ -9,22 +9,17 @@ spec:
     replicas: {{ .Values.registry.app.replicas }}
     storage:
       type: {{ .Values.registry.storage.type }}
+      {{- if .Values.registry.storage.sql }}
+      sql:
+        {{- toYaml .Values.registry.storage.sql | nindent 8 }}
+      {{- else if .Values.registry.storage.kafkasql }}
       kafkasql:
-        bootstrapServers: {{ .Values.registry.storage.kafkasql.bootstrapServers | quote }}
-        {{- with .Values.registry.storage.kafkasql.tls }}
-        tls:
-          {{- toYaml . | nindent 10 }}
-        {{- end }}
+        {{- toYaml .Values.registry.storage.kafkasql | nindent 8 }}
+      {{- end }}
+    {{- with .Values.registry.app.env }}
     env:
-      - name: APICURIO_KAFKA_COMMON_SECURITY_PROTOCOL
-        value: SASL_SSL
-      - name: APICURIO_KAFKA_COMMON_SASL_MECHANISM
-        value: SCRAM-SHA-512
-      - name: APICURIO_KAFKA_COMMON_SASL_JAAS_CONFIG
-        valueFrom:
-          secretKeyRef:
-            name: {{ .Values.registry.storage.kafkasql.scram.secretName }}
-            key: {{ .Values.registry.storage.kafkasql.scram.secretKey }}
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
     {{- if .Values.registry.app.ingress.enabled }}
     ingress:
       enabled: true
@@ -33,16 +28,21 @@ spec:
     ingress:
       enabled: false
     {{- end }}
-    {{- with .Values.registry.resources }}
     podTemplateSpec:
       spec:
+        {{- if .Values.registry.resources }}
         containers:
-          - name: apicurio-registry
+          - name: {{ .Values.registry.name }}-app
             resources:
-              {{- toYaml . | nindent 14 }}
-    {{- end }}
+              {{- toYaml .Values.registry.resources | nindent 14 }}
+        {{- end }}
+        {{- with .Values.registry.app.affinity }}
+        affinity:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
   ui:
     enabled: {{ .Values.registry.ui.enabled }}
+    replicas: {{ .Values.registry.ui.replicas }}
     {{- if .Values.registry.ui.ingress.enabled }}
     ingress:
       enabled: true

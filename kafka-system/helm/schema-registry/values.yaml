@@ -46,21 +46,39 @@ registry:
   enabled: true
   
   registry:
+    enabled: true
     name: apicurio-registry
+
+    app:
+      replicas: 1
+
+      ingress:
+        enabled: false
+        host: ""
+
+      auth:
+        enabled: true
+        appClientId: registry-client-api
+        uiClientId: registry-client-ui
+        authServerUrl: https://keycloak.example.com/realms/registry
+        redirectUri: https://registry-ui.example.com
+        logoutUrl: https://registry-ui.example.com
+
+    ui:
+      enabled: true
+      ingress:
+        enabled: true
+        host: ""
+        
     storage:
-      type: kafkasql
-      kafkasql:
-        bootstrapServers: dp-kafka-kafka-bootstrap.kafka.svc:9092
-        tls:
-          truststoreSecretRef:
-            name: dp-kafka-cluster-ca-cert
-            key: ca.p12
-          truststorePasswordSecretRef:
-            name: dp-kafka-cluster-ca-cert
-            key: ca.password
-        scram:
-          secretName: registry
-          secretKey: sasl.jaas.config
+      type: postgresql
+      sql:
+        dataSource:
+          url: jdbc:postgresql://postgresql.my-project.svc:5432/registry
+          username: registry_user
+          password:
+            name: postgresql-credentials
+            key: password
 
     resources:
       requests:

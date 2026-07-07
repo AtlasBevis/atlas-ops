@@ -13,11 +13,11 @@ version: 0.1.0
 dependencies:
   - name: apicurio-operator
     alias: operator
-    condition: apicurio-operator.enabled
+    condition: operator.enabled
     repository: file://./charts/apicurio-operator
     version: 0.1.0
   - name: apicurio-registry
     alias: registry
-    condition: apicurio-registry.enabled
+    condition: registry.enabled
     repository: file://./charts/apicurio-registry
     version: 0.1.0
