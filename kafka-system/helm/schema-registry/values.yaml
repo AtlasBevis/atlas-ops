@@ -67,6 +67,14 @@ registry:
         redirectUri: https://registry-ui.example.com
         logoutUrl: https://registry-ui.example.com
 
+      resources:
+        requests:
+          cpu: 0.5
+          memory: 512Mi
+        limits:
+          cpu: 1
+          memory: 1Gi
+
     ui:
       enabled: true
       ingress:
@@ -86,10 +94,4 @@ registry:
             name: postgresql-credentials
             key: password
 
-    resources:
-      requests:
-        cpu: 0.5
-        memory: 512Mi
-      limits:
-        cpu: 1
-        memory: 1Gi
+    

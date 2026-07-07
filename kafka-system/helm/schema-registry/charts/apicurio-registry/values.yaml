@@ -24,6 +24,14 @@ registry:
       redirectUri: https://registry-ui.example.com
       logoutUrl: https://registry-ui.example.com
 
+    resources:
+      requests:
+        cpu: 0.5
+        memory: 512Mi
+      limits:
+        cpu: 1
+        memory: 1Gi
+
     podDisruptionBudget: 
       enabled: false
 
@@ -73,11 +81,3 @@ registry:
     #   scram:
     #     secretName: registry
     #     secretKey: sasl.jaas.config
-
-  resources: {}
-    # requests:
-    #   cpu: 250m
-    #   memory: 512Mi
-    # limits:
-    #   cpu: 1
-    #   memory: 1Gi

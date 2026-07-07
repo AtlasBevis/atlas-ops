@@ -31,11 +31,11 @@ spec:
     {{- end }}
     podTemplateSpec:
       spec:
-        {{- if .Values.registry.resources }}
+        {{- if .Values.registry.app.resources }}
         containers:
           - name: {{ .Values.registry.name }}-app
             resources:
-              {{- toYaml .Values.registry.resources | nindent 14 }}
+              {{- toYaml .Values.registry.app.resources | nindent 14 }}
         {{- end }}
         {{- with .Values.registry.app.affinity }}
         affinity:
