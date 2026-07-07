@@ -88,10 +88,14 @@ registry:
         mode: pull
         registryId: prod
         repos:
-          - url: https://github.com/Apicurio/apicurio-registry-gitops-example.git
+          - url: git@github.com:Apicurio/apicurio-registry-gitops-example.git
             branch: main
             dir: default
-        # pull:
-        #   sshKeys:
-        #     name: gitops-ssh-keys
-        #     key: id_ed25519
+        pull:
+          sshKeys:
+            name: git-ssh # Secret name
+            key: id_ed25519 # Key within the Secret (default: id_ed25519)
+          knownHosts:
+            name: git-known-hosts
+            key: known_hosts
+            
