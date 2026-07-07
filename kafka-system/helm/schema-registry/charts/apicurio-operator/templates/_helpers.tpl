@@ -135,6 +135,61 @@ Expand the name of the chart.
 {{- end -}}
 
 {{/*
+  Format: registry/repository/name:tag
+*/}}
+{{- define "operator.image" -}}
+{{- printf "%s/%s/%s:%s" .registry .repository .name .tag -}}
+{{- end -}}
+
+{{/*
+  Build image operator
+*/}}
+{{- define "operator.operatorImage" -}}
+{{- include "operator.image" (dict
+  "registry"   (include "operator.imageRegistry" .)
+  "repository" (include "operator.imageRepository" .)
+  "name"       (include "operator.operatorImageName" .)
+  "tag"        (include "operator.operatorImageTag" .)
+) -}}
+{{- end -}}
+
+{{/*
+  Build image app
+*/}}
+{{- define "operator.appImage" -}}
+{{- include "operator.image" (dict
+  "registry"   (include "operator.imageRegistry" .)
+  "repository" (include "operator.imageRepository" .)
+  "name"       (include "operator.appImageName" .)
+  "tag"        (include "operator.appImageTag" .)
+) -}}
+{{- end -}}
+
+{{/*
+  Build image ui
+*/}}
+{{- define "operator.uiImage" -}}
+{{- include "operator.image" (dict
+  "registry"   (include "operator.imageRegistry" .)
+  "repository" (include "operator.imageRepository" .)
+  "name"       (include "operator.uiImageName" .)
+  "tag"        (include "operator.uiImageTag" .)
+) -}}
+{{- end -}}
+
+{{/*
+  Build image gitops
+*/}}
+{{- define "operator.gitopsImage" -}}
+{{- include "operator.image" (dict
+  "registry"   (include "operator.imageRegistry" .)
+  "repository" (include "operator.imageRepository" .)
+  "name"       (include "operator.gitopsImageName" .)
+  "tag"        (include "operator.gitopsImageTag" .)
+) -}}
+{{- end -}}
+
+{{/*
  Selector labels
 */}}
 {{- define "sr.selectorLabels" -}}
