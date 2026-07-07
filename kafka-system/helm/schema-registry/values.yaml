@@ -50,11 +50,14 @@ registry:
     name: apicurio-registry
 
     app:
-      replicas: 1
+      replicas: 2
 
       ingress:
         enabled: false
         host: ""
+        ingressClassName: nginx
+        annotations:
+          nginx.org/proxy-connect-timeout: "30s"
 
       auth:
         enabled: true
@@ -69,6 +72,9 @@ registry:
       ingress:
         enabled: true
         host: ""
+        ingressClassName: nginx
+        annotations:
+          nginx.org/proxy-connect-timeout: "30s"
         
     storage:
       type: postgresql
