@@ -10,5 +10,5 @@ roleRef:
   name: {{ include "operator.name" . }}-clusterrole
 subjects:
 - kind: ServiceAccount
-  name: {{ include "operator.name" . }}-sa
+  name: {{ include "operator.serviceAccountName" . }}
   namespace: {{ .Release.Namespace }}

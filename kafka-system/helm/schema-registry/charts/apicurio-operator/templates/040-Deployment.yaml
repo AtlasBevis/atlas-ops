@@ -80,4 +80,4 @@ spec:
           initialDelaySeconds: 20
           periodSeconds: 5
           timeoutSeconds: 3
-      serviceAccountName: {{ include "operator.name" . }}-sa
+      serviceAccountName: {{ include "operator.serviceAccountName" . }}

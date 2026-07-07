@@ -7,12 +7,13 @@ metadata:
 spec:
   app:
     replicas: {{ .Values.registry.app.replicas }}
+    {{- $storageType := .Values.registry.storage.type | default "" }}
     storage:
-      type: {{ .Values.registry.storage.type }}
-      {{- if .Values.registry.storage.sql }}
+      type: {{ $storageType }}
+      {{- if or (eq $storageType "postgresql") (eq $storageType "mysql") (eq $storageType "sql") }}
       sql:
         {{- toYaml .Values.registry.storage.sql | nindent 8 }}
-      {{- else if .Values.registry.storage.kafkasql }}
+      {{- else if eq $storageType "kafkasql" }}
       kafkasql:
         {{- toYaml .Values.registry.storage.kafkasql | nindent 8 }}
       {{- end }}

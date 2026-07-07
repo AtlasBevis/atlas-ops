@@ -48,4 +48,4 @@ gitops:
     tag: ~
 
 serviceAccount:
-  name: ~"
+  name: ~

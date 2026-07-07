@@ -2,35 +2,39 @@
 Expand the name of the chart.
 */}}
 {{- define "operator.name" -}}
-{{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" -}}
+{{- .Values.nameOverride | default .Chart.Name | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
 
 {{/*
-  get operator image registry from parent, fallback child
+  get operator image registry from local, fallback global
 */}}
 {{- define "operator.imageRegistry" -}}
-{{- coalesce .Values.imageRegistry .Values.global.imageRegistry "quay.io" -}}
+{{- $global := get .Values "global" | default dict -}}
+{{- coalesce .Values.imageRegistry (get $global "imageRegistry") "quay.io" -}}
 {{- end -}}
 
 {{/*
-  get operator image repository from parent, fallback child
+  get operator image repository from local, fallback global
 */}}
 {{- define "operator.imageRepository" -}}
-{{- coalesce .Values.imageRepository .Values.global.imageRepository "apicurio" -}}
+{{- $global := get .Values "global" | default dict -}}
+{{- coalesce .Values.imageRepository (get $global "imageRepository") "apicurio" -}}
 {{- end -}}
 
 {{/*
-  get operator image pull policy from parent, fallback child
+  get operator image pull policy from local, fallback global
 */}}
 {{- define "operator.imagePullPolicy" -}}
-{{- coalesce .Values.imagePullPolicy .Values.global.imagePullPolicy "IfNotPresent" -}}
+{{- $global := get .Values "global" | default dict -}}
+{{- coalesce .Values.imagePullPolicy (get $global "imagePullPolicy") "IfNotPresent" -}}
 {{- end -}}
 
 {{/*
-  get operator image pull secrets from parent, fallback child
+  get operator image pull secrets from local, fallback global
 */}}
 {{- define "operator.imagePullSecrets" -}}
-{{- $secrets := .Values.imagePullSecrets -}}
+{{- $global := get .Values "global" | default dict -}}
+{{- $secrets := coalesce .Values.imagePullSecrets (get $global "imagePullSecrets") -}}
 {{- if $secrets -}}
 {{ toYaml $secrets }}
 {{- end -}}
@@ -40,24 +44,24 @@ Expand the name of the chart.
 # ========= OPERATOR =========
 # ============================
 {{/*
-  get operator image name from parent, fallback child
+  get operator image name from local, fallback global
 */}}
 {{- define "operator.operatorImageName" -}}
-{{- $globalName := "" -}}
-{{- if and .Values.global.images .Values.global.images.operator -}}
-  {{- $globalName = .Values.global.images.operator.name -}}
-{{- end -}}
+{{- $global := get .Values "global" | default dict -}}
+{{- $images := get $global "images" | default dict -}}
+{{- $globalImage := get $images "operator" | default dict -}}
+{{- $globalName := coalesce (get $globalImage "name") (get $globalImage "repository") -}}
 {{- coalesce .Values.operator.image.name $globalName "apicurio-registry-3-operator" -}}
 {{- end -}}
 
 {{/*
-  get operator image tag from parent, fallback child
+  get operator image tag from local, fallback global
 */}}
 {{- define "operator.operatorImageTag" -}}
-{{- $globalTag := .Values.global.imageTag -}}
-{{- if and .Values.global.images .Values.global.images.operator -}}
-  {{- $globalTag = .Values.global.images.operator.tag -}}
-{{- end -}}
+{{- $global := get .Values "global" | default dict -}}
+{{- $images := get $global "images" | default dict -}}
+{{- $globalImage := get $images "operator" | default dict -}}
+{{- $globalTag := coalesce (get $globalImage "tag") (get $global "imageTag") -}}
 {{- coalesce .Values.operator.image.tag .Values.imageTag $globalTag .Chart.AppVersion -}}
 {{- end -}}
 
@@ -65,24 +69,24 @@ Expand the name of the chart.
 # ========= APP =============
 # ============================
 {{/*
-  get app image name from parent, fallback child
+  get app image name from local, fallback global
 */}}
 {{- define "operator.appImageName" -}}
-{{- $globalName := "" -}}
-{{- if and .Values.global.images .Values.global.images.app -}}
-  {{- $globalName = .Values.global.images.app.name -}}
-{{- end -}}
+{{- $global := get .Values "global" | default dict -}}
+{{- $images := get $global "images" | default dict -}}
+{{- $globalImage := get $images "app" | default dict -}}
+{{- $globalName := coalesce (get $globalImage "name") (get $globalImage "repository") -}}
 {{- coalesce .Values.app.image.name $globalName "apicurio-registry" -}}
 {{- end -}}
 
 {{/*
-  get app image tag from parent, fallback child
+  get app image tag from local, fallback global
 */}}
 {{- define "operator.appImageTag" -}}
-{{- $globalTag := .Values.global.imageTag -}}
-{{- if and .Values.global.images .Values.global.images.app -}}
-  {{- $globalTag = .Values.global.images.app.tag -}}
-{{- end -}}
+{{- $global := get .Values "global" | default dict -}}
+{{- $images := get $global "images" | default dict -}}
+{{- $globalImage := get $images "app" | default dict -}}
+{{- $globalTag := coalesce (get $globalImage "tag") (get $global "imageTag") -}}
 {{- coalesce .Values.app.image.tag .Values.imageTag $globalTag .Chart.AppVersion -}}
 {{- end -}}
 
@@ -90,24 +94,24 @@ Expand the name of the chart.
 # ========= UI =========
 # ============================
 {{/*
-  get ui image name from parent, fallback child
+  get ui image name from local, fallback global
 */}}
 {{- define "operator.uiImageName" -}}
-{{- $globalName := "" -}}
-{{- if and .Values.global.images .Values.global.images.ui -}}
-  {{- $globalName = .Values.global.images.ui.name -}}
-{{- end -}}
+{{- $global := get .Values "global" | default dict -}}
+{{- $images := get $global "images" | default dict -}}
+{{- $globalImage := get $images "ui" | default dict -}}
+{{- $globalName := coalesce (get $globalImage "name") (get $globalImage "repository") -}}
 {{- coalesce .Values.ui.image.name $globalName "apicurio-registry-ui" -}}
 {{- end -}}
 
 {{/*
-  get ui image tag from parent, fallback child
+  get ui image tag from local, fallback global
 */}}
 {{- define "operator.uiImageTag" -}}
-{{- $globalTag := .Values.global.imageTag -}}
-{{- if and .Values.global.images .Values.global.images.ui -}}
-  {{- $globalTag = .Values.global.images.ui.tag -}}
-{{- end -}}
+{{- $global := get .Values "global" | default dict -}}
+{{- $images := get $global "images" | default dict -}}
+{{- $globalImage := get $images "ui" | default dict -}}
+{{- $globalTag := coalesce (get $globalImage "tag") (get $global "imageTag") -}}
 {{- coalesce .Values.ui.image.tag .Values.imageTag $globalTag .Chart.AppVersion -}}
 {{- end -}}
 
@@ -115,24 +119,24 @@ Expand the name of the chart.
 # ========= GIT-OPS =========
 # ============================
 {{/*
-  get gitops image name from parent, fallback child
+  get gitops image name from local, fallback global
 */}}
 {{- define "operator.gitopsImageName" -}}
-{{- $globalName := "" -}}
-{{- if and .Values.global.images .Values.global.images.gitops -}}
-  {{- $globalName = .Values.global.images.gitops.name -}}
-{{- end -}}
+{{- $global := get .Values "global" | default dict -}}
+{{- $images := get $global "images" | default dict -}}
+{{- $globalImage := get $images "gitops" | default dict -}}
+{{- $globalName := coalesce (get $globalImage "name") (get $globalImage "repository") -}}
 {{- coalesce .Values.gitops.image.name $globalName "apicurio-registry-gitops-sync" -}}
 {{- end -}}
 
 {{/*
-  get gitops image tag from parent, fallback child
+  get gitops image tag from local, fallback global
 */}}
 {{- define "operator.gitopsImageTag" -}}
-{{- $globalTag := .Values.global.imageTag -}}
-{{- if and .Values.global.images .Values.global.images.gitops.tag -}}
-  {{- $globalTag = .Values.global.images.gitops.tag -}}
-{{- end -}}
+{{- $global := get .Values "global" | default dict -}}
+{{- $images := get $global "images" | default dict -}}
+{{- $globalImage := get $images "gitops" | default dict -}}
+{{- $globalTag := coalesce (get $globalImage "tag") (get $global "imageTag") -}}
 {{- coalesce .Values.gitops.image.tag .Values.imageTag $globalTag .Chart.AppVersion -}}
 {{- end -}}
 
@@ -221,4 +225,11 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- $namespacesList := .Values.operator.watchNamespaces | default (list) -}}
 {{- $returnList := append $namespacesList .Release.Namespace | sortAlpha | uniq -}}
 {{- join "," $returnList -}}
+{{- end -}}
+
+{{/*
+Create service account name with optional override.
+*/}}
+{{- define "operator.serviceAccountName" -}}
+{{- .Values.serviceAccount.name | default (printf "%s-sa" (include "operator.name" .)) -}}
 {{- end -}}
