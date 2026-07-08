@@ -1,0 +1,13 @@
+$type: registry-v0
+registryId: prod
+
+# list of rules
+# Each rule has `ruleType` (VALIDITY, COMPATIBILITY, INTEGRITY) and `config`.
+globalRules:
+  - ruleType: VALIDITY
+    config: FULL
+  - ruleType: COMPATIBILITY
+    config: BACKWARD
+
+# Configuration properties. Each property has `name` and `value`.
+properties: []

@@ -57,31 +57,35 @@ registry:
     # postgresql | mysql | kafkasql | gitops | kubernetesops
     type: gitops
 
-    # GitOps storage (read-only, experimental). Schemas are managed via Git commits.
+    # GitOps storage (read-only). Schemas are managed via Git commits.
     # Example repo: https://github.com/Apicurio/apicurio-registry-gitops-example
     gitops:
+      # only: pull | push
       mode: pull
+      # Registry instance identifier.
       registryId: prod
       repos:
         - url: https://github.com/Apicurio/apicurio-registry-gitops-example.git
-          branch: main
-          dir: default
-      # For private SSH repos:
-      # pull:
-      #   sshKeys:
-      #     name: gitops-ssh-keys
-      #     key: id_ed25519
-      #   knownHosts:
-      #     name: gitops-known-hosts
-      #     key: known_hosts
-      # For push mode (CI git push over SSH on port 2222):
-      # push:
-      #   authorizedKeys:
-      #     name: gitops-authorized-keys
-      #     key: authorized_keys
-      #   hostKey:
-      #     name: gitops-host-key
-      #     key: ssh_host_key
+          branch: main # to manage prod
+          dir: registry # workspace name clone
+
+    # For pull mode (using private SSH repos)
+    pull:
+      sshKeys:
+        name: gitops-ssh-keys
+        key: id_ed25519
+      knownHosts:
+        name: gitops-known-hosts
+        key: known_hosts
+
+    # For push mode (CI git push over SSH on port 2222):
+    push:
+      authorizedKeys:
+        name: gitops-authorized-keys
+        key: authorized_keys
+      hostKey:
+        name: gitops-host-key
+        key: ssh_host_key
 
     sql:
       dataSource:
