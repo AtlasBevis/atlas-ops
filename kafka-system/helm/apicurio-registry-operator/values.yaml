@@ -1,0 +1,51 @@
+nameOverride: 
+
+# default: quay.io
+imageRegistry: ~
+
+# default: apicurio
+imageRepository: ~
+
+imagePullSecrets: []
+
+imagePullPolicy: ~
+
+# default: 3.3.0
+imageTag: ~
+
+operator:
+  replicas: 1
+  image:
+    # default: apicurio-registry-3-operator
+    name: ~
+    tag: ~
+
+  watchNamespaces: []
+    # - kafka
+
+  resources: {}
+    # limits:
+    #   cpu: 200m
+    #   memory: 500Mi
+    # requests:
+    #   cpu: 100m
+    #   memory: 100Mi
+    
+app:
+  image:
+    # default: apicurio-registry
+    name: ~
+    tag: ~
+ui:
+  image:
+    # default: apicurio-registry-ui
+    name: ~
+    tag: ~
+gitops:
+  image:
+    # default: apicurio-registry-gitops-sync
+    name: ~
+    tag: ~
+
+serviceAccount:
+  name: ~

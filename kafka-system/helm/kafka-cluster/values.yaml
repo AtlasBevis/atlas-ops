@@ -343,6 +343,7 @@ users:
             - Read
             - Write
             - Describe
+            - DescribeConfigs
           host: "*"
         
         # Internal Debezium schema-history
@@ -357,7 +358,17 @@ users:
             - Describe
             - DescribeConfigs # required for validate
           host: "*"
-        
+
+        # Internal Debeizum signal to ad-hoc snapshot
+        - resource:
+            type: topic
+            name: __cdc
+            patternType: prefix
+          operations:
+            - Read
+            - Describe
+          host: "*"
+
         # Internal Iceberg Topic
         - resource:
             type: topic
@@ -396,6 +407,16 @@ users:
             type: group
             name: cdc
             patternType: prefix
+          operations:
+            - Read
+            - Describe
+          host: "*"
+
+        # Debezium kafka-signal
+        - resource:
+            type: group
+            name: kafka-signal
+            patternType: literal
           operations:
             - Read
             - Describe
@@ -459,3 +480,10 @@ topics:
     enabled: false
     topicName: cdc.orders
     partitions: 4
+
+# ====================
+# signal topic for debezium to snapshot
+# ====================
+  - name: cdc-signal-uat-oracle
+    topicName: __cdc.signal.uat.oracle
+    partitions: 1

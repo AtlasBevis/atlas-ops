@@ -13,6 +13,14 @@ Kafka cluster name used by Strimzi CRs and bootstrap service.
 {{- end -}}
 
 {{/*
+KafkaTopic metadata name
+*/}}
+{{- define "topic.metadataName" -}}
+{{- $name := trunc 57 (. | toString) | trimSuffix "-" -}}
+{{- printf "%s-topic" $name -}}
+{{- end -}}
+
+{{/*
  labels for resources
 */}}
 {{- define "kafka.labels" -}}

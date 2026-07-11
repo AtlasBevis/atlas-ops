@@ -1,0 +1,83 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "operator.name" . }}-deployment
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "operator.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.operator.replicas }}
+  selector:
+    matchLabels:
+      {{- include "operator.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "operator.labels" . | nindent 8 }}
+    spec:
+      {{- with include "operator.imagePullSecrets" . }}
+      imagePullSecrets:
+        {{- . | nindent 8 }}
+      {{- end }}
+      containers:
+      - env:
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: APICURIO_OPERATOR_WATCHED_NAMESPACES
+        {{- if .Values.operator.watchNamespaces }}
+          value: {{ include "operator.watchNamespaces" . | quote }}
+        {{- else }}
+          valueFrom:
+            fieldRef:
+              fieldPath: "metadata.annotations['olm.targetNamespaces']"
+        {{- end }}
+        - name: QUARKUS_PROFILE
+          value: prod
+        - name: REGISTRY_APP_IMAGE
+          value: {{ include "operator.appImage" . | quote }}
+        - name: REGISTRY_UI_IMAGE
+          value: {{ include "operator.uiImage" . | quote }}
+        - name: REGISTRY_GITOPS_SYNC_IMAGE
+          value: {{ include "operator.gitopsImage" . | quote }}
+        image: {{ include "operator.operatorImage" . | quote }}
+        imagePullPolicy: {{ include "operator.imagePullPolicy" . }}
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /q/health/live
+            port: 8080
+          initialDelaySeconds: 0
+          periodSeconds: 10
+          timeoutSeconds: 3
+        name: apicurio-operator
+        ports:
+        - containerPort: 8080
+          name: http
+          protocol: TCP
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /q/health/ready
+            port: 8080
+          initialDelaySeconds: 0
+          periodSeconds: 10
+          timeoutSeconds: 3
+        {{- with .Values.operator.resources }}
+        resources:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        startupProbe:
+          failureThreshold: 14
+          httpGet:
+            path: /q/health/started
+            port: 8080
+          initialDelaySeconds: 20
+          periodSeconds: 5
+          timeoutSeconds: 3
+      serviceAccountName: {{ include "operator.serviceAccountName" . }}

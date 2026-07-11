@@ -61,6 +61,7 @@ connect:
 
     # docs: https://kafka.apache.org/42/configuration/configuration-providers/
     # strimzi provider: https://strimzi.io/docs/operators/latest/full/deploying.html#assembly-loading-config-with-providers-str
+    # to use providers, we have created role and rolebinding provider allows pod to get secrets, configmap
     config.providers: env,secrets,configmaps
     config.providers.env.class: org.apache.kafka.common.config.provider.EnvVarConfigProvider
     config.providers.secrets.class: io.strimzi.kafka.KubernetesSecretConfigProvider
@@ -277,10 +278,35 @@ connectors:
 
       log.mining.strategy: online_catalog
       
-      # snapshot
+      # snapshot mode
+      # default: initial
       snapshot.mode: initial
       snapshot.database.errors.max.retries: "3"
-      
+
+      # watch signal from signal kafka topic
+      # purpose: ad-hoc snapshot table
+      # By default, a connector runs an initial snapshot operation only after it starts for first time
+      # ---
+      # You specify the tables to capture by sending an `execute-snapshot` message to the signaling table.
+      # example message using the Kafka signaling channel to trigger
+      # key: must match the value of the `topic.prefix` connector configuration option.
+      # {"type":"execute-snapshot","data":{"data-collections":["MAIN.ACC_BALANCE"],"type":"incremental"}}
+      # spec:
+      # type: execute-snapshot
+      # data.type: incremental | blocking
+      # data.data-collections: specify table names by using the format database.schema.table.
+      # ---
+      # channels: source | kafka | file | jmx (optional)
+      signal.enabled.channels: kafka
+      signal.kafka.groupId: kafka-signal
+      signal.kafka.topic: __cdc.signal.oracle
+      signal.kafka.bootstrap.servers: kafka-cluster-kafka-bootstrap.kafka.svc:9092
+      signal.consumer.security.protocol: SASL_SSL
+      signal.consumer.sasl.mechanism: SCRAM-SHA-512
+      signal.consumer.sasl.jaas.config: ${secrets:cdc:sasl.jaas.config}
+      signal.consumer.ssl.truststore.type: PEM
+      signal.consumer.ssl.truststore.certificates: ${secrets:kafka-cluster-ca-cert:ca_cert}
+
       # schema history internal
       schema.history.internal.kafka.topic: __history.oracle
       schema.history.internal.kafka.bootstrap.servers: dp-kafka-kafka-bootstrap.kafka.svc:9092
