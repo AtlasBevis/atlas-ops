@@ -1,0 +1,7 @@
+for n in 01 02 03 04 05 06; do
+  kubectl debug node/k8s-worker-$n -it \
+    --image=dockerhub.company.com.vn/ubuntu:22.04 \
+    --image-pull-secret=dockerhub-regcred \
+    --profile=sysadmin \
+    -- bash -c 'chroot /host bash'
+done

@@ -27,8 +27,10 @@ spec:
       valueFiles: {{ .helm.valueFiles | toYaml | nindent 8 }}
     {{- else if .directory }}
     path: {{ .directory.path }}
+    {{- if .directory.recurse }}
     directory:
-      recurse: {{ .directory.recurse | default false }}
+      recurse: true
+    {{- end }}
     {{- end }}
   syncPolicy:
     {{- toYaml $sync | nindent 4 }}
