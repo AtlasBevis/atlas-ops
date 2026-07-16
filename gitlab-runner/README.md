@@ -56,9 +56,22 @@ kubectl create secret docker-registry dockerhub-regcred \
     -n gitlab-runner
 ```
 
+### 4. (Optionnal) Using runners cache (One of: s3, gcs, azure.)
+
+```shell
+kubectl create secret generic s3access \
+  --from-literal=accesskey='MINIO_ACCESS_KEY' \
+  --from-literal=secretkey='MINIO_SECRET_KEY'
+  -n gitlab-runner 
+```
+
 ## Best Practice
 
-### 1. (Optional) Using cache (.m2, .npm, .cache/pip, Gradle cache…)
+### 1. (Optional) Using runner cache (.m2, .npm, .cache/pip, Gradle cache…)
+
+docs: 
+- [Section](https://docs.gitlab.com/runner/configuration/advanced-configuration/#the-runnerscache-section)
+- [S3](https://docs.gitlab.com/runner/configuration/advanced-configuration/#the-runnerscaches3-section)
 
 ```yaml
 runners
@@ -68,6 +81,7 @@ runners
 
 ## Document
 
+- [Configuration](https://docs.gitlab.com/runner/executors/kubernetes/#configuration-settings)
 - [Install K8s](https://docs.gitlab.com/runner/install/kubernetes/)
 - [Docs](https://docs.gitlab.com/runner/)
 - [Charts](https://gitlab.com/gitlab-org/charts/gitlab-runner)

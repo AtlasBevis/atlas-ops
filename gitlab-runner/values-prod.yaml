@@ -513,10 +513,22 @@ runners:
   config: |
     [[runners]]
       environment = [
+        "TZ=Asia/Ho_Chi_Minh",
         "HOME=/home/appuser",
         "GIT_SSH_COMMAND=ssh -i /home/appuser/.ssh/id_ed25519 -o UserKnownHostsFile=/home/appuser/.ssh/known_hosts -o StrictHostKeyChecking=yes -o BatchMode=yes"
       ]
       request_concurrency = 4
+
+      [runners.cache]
+        Type = "s3"
+        Path = "gitlab-runner"
+        Shared = true
+        MaxUploadedArchiveSize = 20971520
+
+      [runners.cache.s3]
+        ServerAddress = "minio.company.local:9000"
+        BucketName = "gitlab-runner-cache"
+        BucketLocation = "ap-southeast-1"
 
       [runners.kubernetes]
         image = "dockerhub.company.com.vn/alpine:3.23"
@@ -550,6 +562,8 @@ runners:
   configPath: ""
 
   tags: "runner-prod"
+
+  runUntagged: false
 
   ## When set, written verbatim as the runner's config.toml and `gitlab-runner
   ## register` is skipped on boot. The supplied TOML is passed through `tpl`,
