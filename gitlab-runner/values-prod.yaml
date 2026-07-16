@@ -512,18 +512,44 @@ runners:
   # runner configuration: https://docs.gitlab.com/runner/configuration/advanced-configuration.html
   config: |
     [[runners]]
+      environment = [
+        "HOME=/home/appuser",
+        "GIT_SSH_COMMAND=ssh -i /home/appuser/.ssh/id_ed25519 -o UserKnownHostsFile=/home/appuser/.ssh/known_hosts -o StrictHostKeyChecking=yes -o BatchMode=yes"
+      ]
       request_concurrency = 4
+
       [runners.kubernetes]
         image = "dockerhub.company.com.vn/alpine:3.23"
         image_pull_secrets = ["dockerhub-secret"]
         pull_policy = "if-not-present"
+        privileged = true
+
+        helper_image = "dockerhub.vietcredit.com.vn/dwh/gitlab-runner:helper-19.1.1"
+        helper_cpu_request = "100m"
+        helper_cpu_limit = "500m"
+        helper_memory_request = "128Mi"
+        helper_memory_limit = "512Mi"
+
+        cpu_request = "2"
+        cpu_limit = "4"
+        memory_request = "2Gi"
+        memory_limit = "8Gi"
+
+        [runners.kubernetes.pod_security_context]
+          fs_group = 1000
+
+        [[runners.kubernetes.volumes.secret]]
+            name = "gitlab-runner-ssh"
+            mount_path = "/home/appuser/.ssh"
+            read_only = true
+            default_mode = 384
 
   ## Absolute path for an existing runner configuration file
   ## Can be used alongside "volumes" and "volumeMounts" to use an external config file
   ## Active if runners.config is empty or null
   configPath: ""
 
-  tags: "prod"
+  tags: "runner-prod"
 
   ## When set, written verbatim as the runner's config.toml and `gitlab-runner
   ## register` is skipped on boot. The supplied TOML is passed through `tpl`,
@@ -572,7 +598,7 @@ runners:
 
   ## Specify the name for the runner.
   ##
-  name: "prod-runner"
+  name: "runner-prod"
 
   ## The name of the secret containing runner-token and runner-registration-token
   secret: gitlab-runner-secret
