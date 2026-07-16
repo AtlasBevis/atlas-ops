@@ -70,7 +70,7 @@ kubectl create secret generic gitlab-runner-ssh \
   --from-file=id_ed25519="$HOME/.ssh/id_ed25519" \
   --from-file=id_ed25519.pub="$HOME/.ssh/id_ed25519.pub" \
   --from-file=known_hosts="$HOME/.ssh/known_hosts" \
-  -n gitlab-runner 
+  -n gitlab-runner
 ```
 
 ### 4. (Optionnal) Using runners cache (One of: s3, gcs, azure.)
