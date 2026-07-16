@@ -4,7 +4,7 @@
 ## This allows separation between runner management (this namespace) and job execution (runners.jobNamespace)
 ##
 ## Example: Deploy runner in "ops" namespace while jobs run in "gitlab" namespace
-# namespace: ""
+namespace: "gitlab-runner"
 
 ## GitLab Runner Image
 ##
@@ -48,19 +48,21 @@ imagePullSecrets:
 # probeTimeoutSeconds: 4
 
 ## Configure the livenessProbe
-livenessProbe: {}
-#   initialDelaySeconds: 60
-#   periodSeconds: 60
-#   successThreshold: 1
-#   failureThreshold: 3
-#   terminationGracePeriodSeconds: 30
+livenessProbe:
+  initialDelaySeconds: 180
+  periodSeconds: 30
+  timeoutSeconds: 5
+  successThreshold: 1
+  failureThreshold: 5
+  terminationGracePeriodSeconds: 30
 
 ## Configure the readinessProbe
-readinessProbe: {}
-#   initialDelaySeconds: 60
-#   periodSeconds: 60
-#   successThreshold: 1
-#   failureThreshold: 3
+readinessProbe:
+  initialDelaySeconds: 30
+  periodSeconds: 15
+  timeoutSeconds: 5
+  successThreshold: 1
+  failureThreshold: 5
 
 ## How many runner pods to launch.
 ##

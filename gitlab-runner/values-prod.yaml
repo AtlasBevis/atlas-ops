@@ -4,7 +4,7 @@
 ## This allows separation between runner management (this namespace) and job execution (runners.jobNamespace)
 ##
 ## Example: Deploy runner in "ops" namespace while jobs run in "gitlab" namespace
-# namespace: ""
+namespace: "gitlab-runner"
 
 ## GitLab Runner Image
 ##
@@ -20,7 +20,7 @@
 image:
   registry: registry.gitlab.com
   image: gitlab-org/gitlab-runner
-  # tag: alpine-v{{.Chart.AppVersion}}
+  tag: alpine-v19.1.1
 
 ## When using GitLab Runner Helm Chart with gitlab-runner-ubi-images (https://gitlab.com/gitlab-org/ci-cd/gitlab-runner-ubi-images/container_registry)
 ## the installation fails because `dumb-init` is not packaged in the image. However, `tini` is present.
@@ -49,18 +49,20 @@ imagePullSecrets:
 
 ## Configure the livenessProbe
 livenessProbe:
-  initialDelaySeconds: 30
-  periodSeconds: 60
+  initialDelaySeconds: 120
+  periodSeconds: 30
+  timeoutSeconds: 5
   successThreshold: 1
   failureThreshold: 3
   terminationGracePeriodSeconds: 30
 
 ## Configure the readinessProbe
-readinessProbe: {}
-#   initialDelaySeconds: 60
-#   periodSeconds: 60
-#   successThreshold: 1
-#   failureThreshold: 3
+readinessProbe: 
+  initialDelaySeconds: 20
+  periodSeconds: 15
+  timeoutSeconds: 5
+  successThreshold: 1
+  failureThreshold: 3
 
 ## How many runner pods to launch.
 ##
