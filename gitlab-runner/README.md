@@ -56,6 +56,15 @@ kubectl create secret docker-registry dockerhub-regcred \
     -n gitlab-runner
 ```
 
+## Best Practice
+
+### 1. (Optional) Using cache (.m2, .npm, .cache/pip, Gradle cache…)
+
+```yaml
+runners
+    cache:
+```
+
 
 ## Document
 
