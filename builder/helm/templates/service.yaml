@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "builder.fullname" . }}
+  namespace: {{ include "builder.namespace" . }}
+  labels:
+    {{- include "builder.labels" . | nindent 4 }}
+  {{- with .Values.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - name: buildkit
+      port: {{ .Values.service.port }}
+      targetPort: buildkit
+      protocol: TCP
+  selector:
+    {{- include "builder.selectorLabels" . | nindent 4 }}

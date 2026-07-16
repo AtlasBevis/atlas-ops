@@ -1,0 +1,26 @@
+BuildKit daemon has been deployed.
+
+  Namespace: {{ include "builder.namespace" . }}
+  Service:   {{ include "builder.fullname" . }}:{{ .Values.service.port }}
+
+Use from CI jobs in the same cluster:
+
+  export BUILDKIT_HOST=tcp://{{ include "builder.fullname" . }}.{{ include "builder.namespace" . }}.svc:{{ .Values.service.port }}
+
+Example build with registry cache:
+
+  buildctl build \
+    --frontend dockerfile.v0 \
+    --local context=. \
+    --local dockerfile=. \
+    --import-cache type=registry,ref=<registry>/<image>:cache \
+    --export-cache type=registry,ref=<registry>/<image>:cache,mode=max \
+    --output type=image,name=<registry>/<image>:<tag>,push=true
+
+{{- if .Values.registry.credentialsSecret }}
+
+Registry credentials are mounted from Secret "{{ .Values.registry.credentialsSecret }}".
+{{- else }}
+
+WARNING: No registry.credentialsSecret configured. Push/pull to private registries may fail.
+{{- end }}

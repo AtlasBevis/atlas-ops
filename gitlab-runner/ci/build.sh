@@ -18,7 +18,7 @@ fi
 
 echo "===== Build Image ${IMAGE_REPO}:${IMAGE_TAG} ====="
 
-buildctl-daemonless.sh build \
+buildctl build \
 --frontend dockerfile.v0 \
 --local context=. \
 --local dockerfile=. \

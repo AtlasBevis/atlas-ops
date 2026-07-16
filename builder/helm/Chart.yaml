@@ -1,15 +1,15 @@
 apiVersion: v2
-name: buildkitd
-appVersion: "0.1.0"
-description: Builder image toolkit for Kubernetes
+name: builder
+appVersion: "0.30.0"
+description: BuildKit daemon for internal CI/CD image builds
 type: application
 version: 0.1.0
 kubeVersion: ">=1.30.0-0"
 keywords:
-  - buildkit
-  - docker
+  - builder
   - image
-  - ci
+  - ci/cd
+  - kubernetes
 maintainers:
   - name: Truong Thanh Binh
     email: dev.binhtt@gmail.com

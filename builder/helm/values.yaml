@@ -1,31 +1,25 @@
 namespace: ""
 
 nameOverride: ""
-
 fullnameOverride: ""
 
 image:
   repository: moby/buildkit
-  tag: v0.26.2
+  tag: v0.30.0
   pullPolicy: IfNotPresent
 
 imagePullSecrets: []
 
-replicaCount: 2
+replicas: 2
 
 revisionHistoryLimit: 3
 
-# Service Account
 serviceAccount:
   create: true
   name: ""
   annotations: {}
+  imagePullSecrets: []
 
-# rbac
-rbac:
-  create: true
-
-# Service
 service:
   type: ClusterIP
   port: 1234
@@ -50,15 +44,14 @@ securityContext:
   allowPrivilegeEscalation: true
   readOnlyRootFilesystem: false
 
-persistence:
-  enabled: false
-  storageClass: ""
-  accessModes:
-    - ReadWriteOnce
-  size: 100Gi
-
 registry:
+  # Private registry host, e.g. registry.internal:5000
+  host: ""
+  http: false
   insecure: false
+  # Existing Secret (type kubernetes.io/dockerconfigjson) in the release namespace
+  credentialsSecret: ""
+  credentialsMountPath: /root/.docker
 
 livenessProbe:
   initialDelaySeconds: 20
@@ -80,7 +73,6 @@ tolerations: []
 
 affinity: {}
 
-
 extraEnv: []
 
 extraVolumes: []
@@ -88,3 +80,5 @@ extraVolumes: []
 extraVolumeMounts: []
 
 podLabels: {}
+
+podAnnotations: {}

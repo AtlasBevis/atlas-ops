@@ -1,3 +1,5 @@
+FROM moby/buildkit:v0.30.0 AS builder
+
 FROM python:3.12.13-slim
 
 ENV DEBIAN_FRONTEND=noninteractive \
@@ -20,6 +22,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN pip install --no-cache-dir \
     ruff==0.15.13 \
     pytest==9.0.3
+
+COPY --from=builder /usr/bin/buildctl /usr/bin/buildctl
 
 RUN groupadd -g 1000 appuser && useradd -u 1000 -g appuser -m appuser
 
