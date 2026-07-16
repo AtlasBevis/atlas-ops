@@ -414,12 +414,12 @@ controller:
   ## Ideally, there should be no limits.
   ## https://engineering.indeedblog.com/blog/2019/12/cpu-throttling-regression-fix/
   resources:
-    ##  limits:
-    ##    cpu: 100m
-    ##    memory: 90Mi
+    limits:
+      cpu: 1500m
+      memory: 1Gi
     requests:
-      cpu: 100m
-      memory: 90Mi
+      cpu: 300m
+      memory: 512Mi
   # -- Resize policy for controller containers.
   # Ref: https://kubernetes.io/docs/tasks/configure-pod-container/resize-container-resources
   resizePolicy: []
@@ -429,12 +429,12 @@ controller:
   #   restartPolicy: RestartContainer
   # Mutually exclusive with keda autoscaling
   autoscaling:
-    enabled: false
+    enabled: true
     annotations: {}
-    minReplicas: 1
-    maxReplicas: 11
-    targetCPUUtilizationPercentage: 50
-    targetMemoryUtilizationPercentage: 50
+    minReplicas: 3
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 60
+    targetMemoryUtilizationPercentage: 75
     behavior: {}
     # scaleDown:
     #   stabilizationWindowSeconds: 300
