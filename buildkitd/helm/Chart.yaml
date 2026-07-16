@@ -1,5 +1,5 @@
 apiVersion: v2
-name: Builder toolkit
+name: buildkitd
 appVersion: "0.1.0"
 description: Builder image toolkit for Kubernetes
 type: application
@@ -11,5 +11,7 @@ keywords:
   - image
   - ci
 maintainers:
-  - name: dev.binhtt@gmail.com
+  - name: Truong Thanh Binh
+    email: dev.binhtt@gmail.com
+    url: https://github.com/BevisDev
 
