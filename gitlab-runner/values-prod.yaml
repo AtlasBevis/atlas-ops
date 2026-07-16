@@ -514,6 +514,9 @@ runners:
     [[runners]]
       environment = [
         "TZ=Asia/Ho_Chi_Minh",
+        "GIT_DEPTH=1",
+        "GIT_FETCH_EXTRA_FLAGS=--no-tags",
+        "GIT_LFS_SKIP_SMUDGE=1",
         "HOME=/home/appuser",
         "GIT_SSH_COMMAND=ssh -i /home/appuser/.ssh/id_ed25519 -o UserKnownHostsFile=/home/appuser/.ssh/known_hosts -o StrictHostKeyChecking=yes -o BatchMode=yes"
       ]

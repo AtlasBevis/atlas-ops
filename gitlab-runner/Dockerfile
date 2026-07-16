@@ -31,5 +31,3 @@ USER appuser
 WORKDIR $HOME
 
 CMD ["bash"]
-
-ENTRYPOINT ["/opt/ci/entrypoint.sh"]
