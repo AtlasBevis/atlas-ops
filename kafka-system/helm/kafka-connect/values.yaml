@@ -280,7 +280,7 @@ connectors:
       
       # snapshot mode
       # default: initial
-      snapshot.mode: initial
+      snapshot.mode: when_needed
       snapshot.database.errors.max.retries: "3"
 
       # watch signal from signal kafka topic

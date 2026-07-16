@@ -34,5 +34,9 @@ spec:
     {{- end }}
   syncPolicy:
     {{- toYaml $sync | nindent 4 }}
+  {{- with .ignoreDifferences }}
+  ignoreDifferences:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 {{- end }}
 {{- end }}
