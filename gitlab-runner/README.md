@@ -47,13 +47,30 @@ kubectl create secret docker-registry dockerhub-regcred \
 
 ### 3. (Optional) SSH Private Repository
 
+3.1 Create Key Pair
+
+```sh
+mkdir -p "$HOME/.ssh" && chmod 700 "$HOME/.ssh"
+ssh-keygen -t ed25519 -C "gitlab-runner" -f "$HOME/.ssh/id_ed25519" -N ""
+chmod 600 "$HOME/.ssh/id_ed25519"
+chmod 644 "$HOME/.ssh/id_ed25519.pub"
+```
+
+3.2. Get Known_Hosts
+
+```sh
+ssh-keyscan -H gitlab.company.com.vn > "$HOME/.ssh/known_hosts"
+chmod 644 "$HOME/.ssh/known_hosts"
+```
+
+3.3 Create Secrets
+
 ```shell
-kubectl create secret docker-registry dockerhub-regcred \
-    --docker-server='dockerhub.company.com.vn' \
-    --docker-username='robot$...' \  
-    --docker-password='pass@123' \
-    --docker-email='dwh@company.com.vn' \
-    -n gitlab-runner
+kubectl create secret generic gitlab-runner-ssh \
+  --from-file=id_ed25519="$HOME/.ssh/id_ed25519" \
+  --from-file=id_ed25519.pub="$HOME/.ssh/id_ed25519.pub" \
+  --from-file=known_hosts="$HOME/.ssh/known_hosts" \
+  -n gitlab-runner 
 ```
 
 ### 4. (Optionnal) Using runners cache (One of: s3, gcs, azure.)
