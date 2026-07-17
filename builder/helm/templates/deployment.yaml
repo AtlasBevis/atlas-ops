@@ -98,6 +98,12 @@ spec:
             - name: buildkit-config
               mountPath: /etc/buildkit
               readOnly: true
+            {{- if not .Values.buildkit.cdi.disabled }}
+            {{- range $i, $dir := .Values.buildkit.cdi.specDirs }}
+            - name: cdi-{{ $i }}
+              mountPath: {{ $dir }}
+            {{- end }}
+            {{- end }}
             - name: buildkit-data
               mountPath: /var/lib/buildkit
             {{- if .Values.registry.credentialsSecret }}
@@ -112,6 +118,12 @@ spec:
         - name: buildkit-config
           configMap:
             name: {{ include "builder.fullname" . }}-config
+        {{- if not .Values.buildkit.cdi.disabled }}
+        {{- range $i, $dir := .Values.buildkit.cdi.specDirs }}
+        - name: cdi-{{ $i }}
+          emptyDir: {}
+        {{- end }}
+        {{- end }}
         - name: buildkit-data
           emptyDir: {}
         {{- if .Values.registry.credentialsSecret }}

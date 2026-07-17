@@ -10,6 +10,11 @@ data:
     {{- if .Values.buildkit.debug }}
     debug = true
     {{- end }}
+    [cdi]
+      disabled = {{ .Values.buildkit.cdi.disabled }}
+    {{- if and (not .Values.buildkit.cdi.disabled) .Values.buildkit.cdi.specDirs }}
+      specDirs = [{{ range $i, $dir := .Values.buildkit.cdi.specDirs }}{{ if $i }}, {{ end }}"{{ $dir }}"{{ end }}]
+    {{- end }}
     {{- if .Values.registry.host }}
     [registry."{{ .Values.registry.host }}"]
     {{- if .Values.registry.http }}

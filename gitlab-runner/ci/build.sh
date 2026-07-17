@@ -22,6 +22,6 @@ buildctl build \
 --frontend dockerfile.v0 \
 --local context=. \
 --local dockerfile=. \
---export-cache type=registry,ref=${IMAGE_REPO}:cache \
 --import-cache type=registry,ref=${IMAGE_REPO}:cache \
+--export-cache type=registry,ref=${IMAGE_REPO}:cache,mode=max \
 --output type=image,\"name=${IMAGE_REPO}:${IMAGE_TAG},${IMAGE_REPO}:latest\",push=true

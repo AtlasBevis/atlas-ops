@@ -31,8 +31,6 @@ buildkit:
   rootless: false
   grpcAddr: tcp://0.0.0.0:1234
   configFile: /etc/buildkit/buildkitd.toml
-  # CDI is for GPU/device injection; CI image builds do not need it.
-  # Leaving it enabled causes: "CDI setup error /etc/buildkit/cdi: failed to monitor..."
   cdi:
     disabled: true
     specDirs:
@@ -42,11 +40,11 @@ buildkit:
 
 resources:
   requests:
-    cpu: 500m
-    memory: 1Gi
+    cpu: 250m
+    memory: 512Mi
   limits:
-    cpu: 2
-    memory: 4Gi
+    cpu: 1
+    memory: 2Gi
 
 securityContext:
   privileged: true
