@@ -2,6 +2,52 @@ clusterName: kafka-connect-cdc
 
 nameOverride: connect-cdc
 
+# =====================================================================
+# Apicurio Avro converter - WIRE FORMAT CONTRACT (YAML anchor)
+# =====================================================================
+# This block MUST be identical on the Debezium source and on EVERY sink
+# that reads the same topics (S3, Iceberg, JDBC...). A mismatch causes
+# deserialize errors like "artifact reference cannot be null".
+#
+# IMPORTANT: Kafka Connect does NOT merge converter config between
+# worker and connector. If a connector sets `value.converter`, it must
+# redefine ALL `value.converter.*` keys. That is why this anchor exists:
+# merge it into each connector config with `<<: *apicurioConverter`.
+#
+# Keys explained:
+# - as-confluent=true    : payload = magic byte 0x0 + 4-byte contentId
+#                          (Confluent-compatible encoding)
+# - headers.enabled=false: schema ID lives in the payload, NOT in Kafka
+#                          record headers
+# - use-id=contentId     : required together with as-confluent
+#                          (NOTE: key is `apicurio.registry.use-id`,
+#                          not `apicurio.use-id`)
+# - auto-register=false  : registry storage is GitOps (read-only);
+#                          schemas are managed in the dp-schemas repo
+# - find-latest=true     : serializer looks up the latest version of
+#                          artifact "<topic>-key" / "<topic>-value"
+#                          (TopicIdStrategy) in the configured group
+#
+# Per-connector: set `*.apicurio.registry.artifact.group-id` to the
+# group defined in dp-schemas (see connectors below).
+_apicurioConverter: &apicurioConverter
+  key.converter: io.apicurio.registry.utils.converter.AvroConverter
+  value.converter: io.apicurio.registry.utils.converter.AvroConverter
+  key.converter.apicurio.registry.url: http://schema-registry-app-service.kafka.svc:8080/apis/registry/v3
+  value.converter.apicurio.registry.url: http://schema-registry-app-service.kafka.svc:8080/apis/registry/v3
+  key.converter.apicurio.registry.artifact-resolver-strategy: io.apicurio.registry.serde.strategy.TopicIdStrategy
+  value.converter.apicurio.registry.artifact-resolver-strategy: io.apicurio.registry.serde.strategy.TopicIdStrategy
+  key.converter.apicurio.registry.auto-register: "false"
+  value.converter.apicurio.registry.auto-register: "false"
+  key.converter.apicurio.registry.find-latest: "true"
+  value.converter.apicurio.registry.find-latest: "true"
+  key.converter.apicurio.registry.as-confluent: "true"
+  value.converter.apicurio.registry.as-confluent: "true"
+  key.converter.apicurio.registry.headers.enabled: "false"
+  value.converter.apicurio.registry.headers.enabled: "false"
+  key.converter.apicurio.registry.use-id: contentId
+  value.converter.apicurio.registry.use-id: contentId
+
 # Upstream Kafka cluster that Connect attaches to.
 kafka:
   name: kafka-cluster
@@ -67,12 +113,11 @@ connect:
     config.providers.secrets.class: io.strimzi.kafka.KubernetesSecretConfigProvider
     config.providers.configmaps.class: io.strimzi.kafka.KubernetesConfigMapConfigProvider
 
-    # default: org.apache.kafka.connect.json.JsonConverter
-    # apicurio: io.apicurio.registry.utils.converter.AvroConverter
-    key.converter: io.apicurio.registry.utils.converter.AvroConverter
-    value.converter: io.apicurio.registry.utils.converter.AvroConverter
-    key.converter.schemas.enable: false
-    value.converter.schemas.enable: false
+    # Worker-level default converters = the shared Apicurio contract.
+    # Connectors that do not override converters inherit exactly this.
+    # (`schemas.enable` was removed: it is a JsonConverter-only option,
+    # it has no effect on the Avro converter.)
+    <<: *apicurioConverter
 
     # The value must be set lower than session.timeout.ms
     heartbeat.interval.ms: 5000
@@ -197,6 +242,17 @@ s3:
   - name: domain
     enabled: false
     config:
+      # Same wire-format contract as the Debezium source (see anchor).
+      # DO NOT redefine only part of the value.converter.* keys here:
+      # worker/connector converter configs are NOT merged by Connect.
+      <<: *apicurioConverter
+      # Keys are not written into S3 Avro files, so a String key
+      # converter is acceptable here. Keep the Avro key converter from
+      # the anchor if you also plan to reuse this block for JDBC sinks.
+      key.converter: org.apache.kafka.connect.storage.StringConverter
+      # Must match the group defined in dp-schemas (governance repo).
+      value.converter.apicurio.registry.artifact.group-id: oracle
+
       topics.dir: cdc
       topics.regex: ^cdc\..*
       s3.bucket.name: prod-raw
@@ -209,7 +265,7 @@ s3:
       rotate.interval.ms: 300000 # 5min
       storage.class: io.confluent.connect.s3.storage.S3Storage
       # io.confluent.connect.s3.format.parquet.ParquetFormat
-      format.class: io.confluent.connect.s3.format.json.JsonFormat
+      format.class: io.confluent.connect.s3.format.avro.AvroFormat
       partitioner.class: io.confluent.connect.storage.partitioner.TimeBasedPartitioner
       partition.duration.ms: 3600000
       path.format: "YYYY-MM-dd/HH"
@@ -245,6 +301,16 @@ connectors:
       enabled: true
       maxRestarts: 10
     config:
+      # Serializer side of the wire-format contract. Every sink reading
+      # cdc.oracle.* topics must use the exact same converter block.
+      <<: *apicurioConverter
+      # Group in Apicurio where dp-schemas defines the artifacts
+      # `<topic>-key` / `<topic>-value` (TopicIdStrategy).
+      # auto-register=false (GitOps registry is read-only), so the
+      # schemas MUST exist in dp-schemas BEFORE this connector starts.
+      key.converter.apicurio.registry.artifact.group-id: oracle
+      value.converter.apicurio.registry.artifact.group-id: oracle
+
       database.hostname: ${secrets:oracle/host}
       database.port: 1521
       database.user: ${secrets:oracle/username}
@@ -333,11 +399,10 @@ connectors:
       maxRestarts: 10
     config:
       topics.regex: ^cdc\.oracle\..*
-      # Converter — chọn 1 trong 2 hướng
-      key.converter: org.apache.kafka.connect.json.JsonConverter
-      key.converter.schemas.enable: false
-      value.converter: org.apache.kafka.connect.json.JsonConverter
-      value.converter.schemas.enable: true   # nếu Debezium gửi schema trong payload
+      # Topics are Avro (Apicurio) - a JsonConverter here would fail to
+      # deserialize. Reuse the shared contract instead.
+      <<: *apicurioConverter
+      value.converter.apicurio.registry.artifact.group-id: oracle
 
       # Iceberg tables
       iceberg.tables: lake.oracle_customers,lake.oracle_orders

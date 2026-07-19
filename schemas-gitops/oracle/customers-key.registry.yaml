@@ -1,0 +1,21 @@
+# Kafka record KEY schema for topic cdc.oracle.CORE.CUSTOMERS.
+# TopicIdStrategy resolves artifactId = "<topic>-key".
+#
+# IMPORTANT: the registry runs in GitOps mode (read-only) and the
+# connectors use auto-register=false + find-latest=true. The content
+# below MUST be byte-identical in structure to the schema Debezium
+# generates at runtime, otherwise the source serializer fails.
+# To obtain the real schema: run the connector against a dev registry
+# with auto-register=true (sql storage) and export the artifact.
+$type: artifact-v0
+registryIds: [uat, prod]
+groupId: oracle
+artifactId: cdc.oracle.CORE.CUSTOMERS-key
+artifactType: AVRO
+name: CORE.CUSTOMERS key
+description: Primary key struct emitted by Debezium for CORE.CUSTOMERS
+versions:
+  - version: "1"
+    state: ENABLED
+    description: Initial version
+    content: ./customers-key-v1.avsc

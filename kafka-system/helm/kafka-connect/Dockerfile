@@ -7,12 +7,13 @@ LABEL maintainer="dev.binhtt@gmail.com"
 
 USER root:root
 
-RUN mkdir -p /opt/kafka/plugins/{debezium-postgres,debezium-mysql,debezium-sqlserver,debezium-oracle,minio,iceberg,apicurio}
+RUN mkdir -p /opt/kafka/plugins/{debezium-postgres,debezium-mysql,debezium-sqlserver,debezium-oracle,debezium-jdbc,minio,iceberg,apicurio}
 
 COPY plugins/debezium-postgres/         /opt/kafka/plugins/debezium-postgres/
 COPY plugins/debezium-mysql/            /opt/kafka/plugins/debezium-mysql/
 COPY plugins/debezium-sqlserver/        /opt/kafka/plugins/debezium-sqlserver/
 COPY plugins/debezium-oracle/           /opt/kafka/plugins/debezium-oracle/
+COPY plugins/debezium-jdbc/           /opt/kafka/plugins/debezium-jdbc/
 COPY plugins/s3-kafkaconnect/           /opt/kafka/plugins/minio/
 COPY plugins/iceberg-kafkaconnect/      /opt/kafka/plugins/iceberg/
 COPY plugins/apicurio/                  /opt/kafka/plugins/apicurio/

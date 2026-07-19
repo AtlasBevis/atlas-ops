@@ -140,6 +140,22 @@ Deployments:
 - [MySQL](https://debezium.io/documentation/reference/3.5/connectors/mysql.html#mysql-deploying-a-connector)
 - [Postgres](https://debezium.io/documentation/reference/3.5/connectors/postgresql.html#postgresql-deployment)
 - [MSSQL](https://debezium.io/documentation/reference/3.5/connectors/sqlserver.html#sqlserver-deploying-a-connector)
+- [Jdbc](https://debezium.io/documentation/reference/stable/connectors/jdbc.html#jdbc-connector-configuration)
+
+Driver if you use Jdbc connector:
+- [Oracle](https://www.oracle.com/database/technologies/appdev/jdbc-downloads.html)
+- [Postgres](https://jdbc.postgresql.org/download/)
+- [MySQL Platform independent](https://dev.mysql.com/downloads/connector/j/)
+- [MSSQL](https://learn.microsoft.com/en-us/sql/connect/jdbc/download-microsoft-jdbc-driver-for-sql-server?view=sql-server-ver17#download)
+
+Summary:
+| DB | Maven artifact | URL Connection |
+| ---| ---------------| ---------------|
+| Oracle | `com.oracle.database.jdbc:ojdbc11` | `jdbc:oracle:thin:@//host:1521/service` |
+| Postgres | `org.postgresql:postgresql`  | `jdbc:postgresql://host:5432/db` |
+| MySQL | `com.mysql:mysql-connector-j` | `jdbc:mysql://host:3306/db` |
+| SQL Server | `com.microsoft.sqlserver:mssql-jdbc` | `jdbc:sqlserver://host:1433;databaseName=db` |
+
 
 ## Document
 

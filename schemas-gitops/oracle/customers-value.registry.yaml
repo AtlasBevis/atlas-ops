@@ -1,0 +1,26 @@
+# Kafka record VALUE schema (Debezium envelope) for topic
+# cdc.oracle.CORE.CUSTOMERS. TopicIdStrategy resolves
+# artifactId = "<topic>-value".
+#
+# IMPORTANT: the registry runs in GitOps mode (read-only) and the
+# connectors use auto-register=false + find-latest=true. The content
+# below MUST match the schema Debezium generates at runtime (envelope
+# with before/after/source/op/ts_ms), otherwise serialization fails.
+# To obtain the real schema: run the connector against a dev registry
+# with auto-register=true (sql storage) and export the artifact.
+#
+# Schema changes on the Oracle table => commit a NEW version here
+# FIRST (BACKWARD compatibility is enforced by the registry global
+# rule), then let the connector pick it up via find-latest.
+$type: artifact-v0
+registryIds: [uat, prod]
+groupId: oracle
+artifactId: cdc.oracle.CORE.CUSTOMERS-value
+artifactType: AVRO
+name: CORE.CUSTOMERS value (Debezium envelope)
+description: Debezium change-event envelope for CORE.CUSTOMERS
+versions:
+  - version: "1"
+    state: ENABLED
+    description: Initial version
+    content: ./customers-value-v1.avsc

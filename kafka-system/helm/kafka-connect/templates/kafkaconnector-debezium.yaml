@@ -6,7 +6,7 @@
 apiVersion: kafka.strimzi.io/v1
 kind: KafkaConnector
 metadata:
-  name: {{ required "s3.name is required" .name }}-s3-sink
+  name: {{ required "debezium.name is required" .name }}
   labels:
     {{- include "connect.labels" $root | nindent 4 }}
   {{- with .annotations }}

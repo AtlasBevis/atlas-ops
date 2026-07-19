@@ -1,0 +1,10 @@
+# Group holding all CDC schemas produced by the `cdc-oracle` Debezium
+# connector. Must match the connector config:
+#   *.converter.apicurio.registry.artifact.group-id: oracle
+$type: group-v0
+registryIds: [uat, prod]
+groupId: oracle
+description: Debezium CDC schemas for the Oracle core database (topic prefix cdc.oracle)
+labels:
+  team: data-platform
+  source: oracle

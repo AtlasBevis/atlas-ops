@@ -1,0 +1,20 @@
+{
+  "type": "record",
+  "name": "Key",
+  "namespace": "cdc.oracle.CORE.CUSTOMERS",
+  "fields": [
+    {
+      "name": "ID",
+      "type": {
+        "type": "bytes",
+        "logicalType": "decimal",
+        "precision": 38,
+        "scale": 0,
+        "connect.version": 1,
+        "connect.parameters": { "scale": "0" },
+        "connect.name": "org.apache.kafka.connect.data.Decimal"
+      }
+    }
+  ],
+  "connect.name": "cdc.oracle.CORE.CUSTOMERS.Key"
+}
