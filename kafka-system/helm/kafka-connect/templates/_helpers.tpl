@@ -34,3 +34,21 @@ app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 {{- end }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- end -}}
+
+
+{{- define "debezium.sourceClass" -}}
+{{- $type := required "source.type is required" .sourceTyoe | lower -}}
+{{- $classes := dict
+  "oracle"    "io.debezium.connector.oracle.OracleConnector"
+  "postgres"  "io.debezium.connector.postgresql.PostgresConnector"
+  "mysql"     "io.debezium.connector.mysql.MySqlConnector"
+  "sqlserver" "io.debezium.connector.sqlserver.SqlServerConnector"
+  "mongodb"   "io.debezium.connector.mongodb.MongoDbConnector"
+-}}
+
+{{- if not (hasKey $classes $type) -}}
+  {{- fail (printf "Unsupported Debezium source.type: %s" $type) -}}
+{{- end -}}
+
+{{- get $classes $type -}}
+{{- end -}}

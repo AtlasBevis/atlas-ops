@@ -188,44 +188,14 @@ rbac:
   # should enabled if using io.strimzi.kafka.KubernetesConfigMapConfigProvider
   configmapProvider:
     enabled: true
-    
-# KafkaConnector CRs. Requires connect.useConnectorResources: true.
-# 122. KafkaConnector schema reference
-# docs: https://strimzi.io/docs/operators/latest/configuring.html#type-KafkaConnector-reference
-# CONVENTION:
-#   name: metadata resource name (DNS-safe)
-#   connector.class: fully qualified connector class
-# --- Connector name
-# recommend: cdc-<env>-s3-sink
-connectors:
-# ============================
-# ========= S3 Sink ==========
-# ============================
-  - name: s3-sink
-    enabled: true
-    # The state the connector should be in.
-    # paused | stopped | running
-    state: running
 
-    # annotation
-    # docs: https://strimzi.io/docs/operators/latest/deploying.html#proc-resetting-connector-offsets-str
-    # 
-    # should be run once
-    # kubectl annotate KafkaConnector <kafka_connector_name> strimzi.io/restart="true"
-
-    # NOTE: stops the connector before resetting offsets.
-    # annotations:
-    #   strimzi.io/connector-offsets: reset
-
-    # the automatic restart to each failed connector and its tasks
-    autoRestart:
-      enabled: true
-      maxRestarts: 10
-
-    # the Class for the Kafka Connector. read README.md
-    class: io.confluent.connect.s3.S3SinkConnector
-    # The maximum number of tasks for the Kafka Connector.
-    tasksMax: 10
+# ---
+# KafkaConnector - S3 Sink
+# we use class `io.confluent.connect.s3.S3SinkConnector`
+# docs: https://www.confluent.io/hub/confluentinc/kafka-connect-s3
+s3: 
+  - name: domain
+    enabled: false
     config:
       topics.dir: cdc
       topics.regex: ^cdc\..*
@@ -249,7 +219,21 @@ connectors:
       timestamp.field: ts_ms
       behavior.on.null.values: ignore
       errors.tolerance: none
-      
+
+# ---
+# Kafka Connector - Debeizum Connector
+debezium: []
+
+
+# KafkaConnector CRs. Requires connect.useConnectorResources: true.
+# 122. KafkaConnector schema reference
+# docs: https://strimzi.io/docs/operators/latest/configuring.html#type-KafkaConnector-reference
+# CONVENTION:
+#   name: metadata resource name (DNS-safe)
+#   connector.class: fully qualified connector class
+# --- Connector name
+# recommend: cdc-<env>-s3-sink
+connectors:
 # ==========================
 # ===== CDC ORACLE =========
 # ==========================

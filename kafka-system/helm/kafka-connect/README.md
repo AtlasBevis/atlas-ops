@@ -21,6 +21,29 @@ connector.class:
 - mssql: **io.debezium.connector.sqlserver.SqlServerConnector**
 - mysql: **io.debezium.connector.mysql.MySqlConnector**
 
+config explain:
+
+1. `state`: The state the connector should be in. (paused | stopped | running)
+
+2. `annotation`: refer docs: https://strimzi.io/docs/operators/latest/deploying.html#proc-resetting-connector-offsets-str
+ 
+should be run once
+```shell
+kubectl annotate KafkaConnector <kafka_connector_name> strimzi.io/restart="true"
+```
+
+NOTE: stops the connector before resetting offsets.
+```yaml
+annotations:
+  strimzi.io/connector-offsets: reset
+```
+
+3. `autoRestart`: the automatic restart to each failed connector and its tasks
+```yaml
+autoRestart:
+  enabled: true
+  maxRestarts: 10
+```
 
 ### 2.1 S3/Minio
 

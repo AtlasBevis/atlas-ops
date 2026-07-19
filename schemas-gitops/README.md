@@ -29,5 +29,8 @@ my-schemas/
 
 ### Document
 
-[Rule Types](https://www.apicur.io/registry/docs/apicurio-registry/3.3.x/getting-started/assembly-rule-reference.html)
-[Explain Config](https://www.apicur.io/registry/docs/apicurio-registry/3.3.x/getting-started/assembly-configuring-kubernetesops-storage.html)
+- [Schema Debezium](https://github.com/debezium/debezium/blob/main/debezium-connector-binlog/src/main/java/io/debezium/connector/binlog/converters/ZeroDateFallbackConverter.java#L110)
+
+- [Rule Types](https://www.apicur.io/registry/docs/apicurio-registry/3.3.x/getting-started/assembly-rule-reference.html)
+
+-[Explain Config](https://www.apicur.io/registry/docs/apicurio-registry/3.3.x/getting-started/assembly-configuring-kubernetesops-storage.html)
