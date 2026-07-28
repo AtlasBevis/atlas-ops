@@ -1940,10 +1940,10 @@ scheduler:
 
   resources: 
     limits:
-      cpu: 1
+      cpu: 2
       memory: "2Gi"
     requests:
-      cpu: 0.5
+      cpu: 1
       memory: "1Gi"
 
   # This setting tells Kubernetes that its ok to evict
@@ -2465,10 +2465,10 @@ apiServer:
 
   resources:
     limits:
-      cpu: 1
+      cpu: 2
       memory: "2Gi"
     requests:
-      cpu: 0.5
+      cpu: 1
       memory: "1Gi"
 
   # Add custom annotations to the `apiServer` ConfigMap
@@ -3039,7 +3039,7 @@ dagProcessor:
         git_conn_id: git_team1
         tracking_ref: master
         subdir: dags
-        refresh_interval: 60
+        # refresh_interval: 60
 
     - name: team2-bundle
       classpath: airflow.providers.git.bundles.git.GitDagBundle
@@ -3047,7 +3047,7 @@ dagProcessor:
       kwargs:
         git_conn_id: git_team2
         tracking_ref: master
-        refresh_interval: 60
+        # refresh_interval: 60
 
 
   # Number of Airflow dag processors in the Deployment
@@ -3119,10 +3119,10 @@ dagProcessor:
 
   resources:
     limits:
-      cpu: 1.5
+      cpu: 2
       memory: 2Gi
     requests:
-      cpu: 0.5
+      cpu: 1
       memory: 1Gi
 
   # Grace period for dag processor to finish after SIGTERM is sent from Kubernetes
@@ -4340,7 +4340,7 @@ config:
     # time refreshes DAG bundle default: 300
     refresh_interval: 300
     # Number of seconds after which a DAG file is parsed, default: 30
-    min_file_process_interval: 30
+    min_file_process_interval: 120
   smtp:
     smtp_host: "smtp.company.com.vn"
     smtp_port: 25
@@ -4380,7 +4380,7 @@ config:
 
 # Whether Airflow can launch workers and/or pods in multiple namespaces
 # If true, it creates ClusterRole/ClusterRolebinding (with access to entire cluster)
-multiNamespaceMode: false
+multiNamespaceMode: true
 
 # `podTemplate` is a templated string which overwrites the content of `pod_template_file.yaml` used by
 # KubernetesExecutor. The default `podTemplate` will use `workers` configuration parameters

@@ -38,9 +38,17 @@ existingConfigMap: ""
 yamlApplicationConfig:
   kafka:
     clusters:
-      - name: dp-kafka
+      - name: card-bo
         bootstrapServers: dp-kafka-kafka-bootstrap:9092
         disableLogDirsCollection: true
+        # schema-registry
+        schemaRegistry: http://schema-registry-app-service:8080/apis/ccompat/v8
+        schemaRegistryHeaders:
+          X-Registry-GroupId: card-bo
+        schemaRegistryShowNullValues: true
+        defaultKeySerde: SchemaRegistry
+        defaultValueSerde: SchemaRegistry
+        schemaRegistryUseFullyQualifiedNames: true
         ssl:
           truststore-location: /etc/kafka/ca/ca.p12
           truststore-type: PKCS12

@@ -140,3 +140,8 @@ destination:
     includes:
       - "^token$"
 ```
+
+
+### Document
+
+- [ApiReference](https://developer.hashicorp.com/vault/docs/deploy/kubernetes/vso/api-reference)
