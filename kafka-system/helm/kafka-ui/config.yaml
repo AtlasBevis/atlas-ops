@@ -16,15 +16,12 @@ kafka:
         verify-ssl: true
 
       # Schema Registry connection and authentication details
+      # Built-in SchemaRegistry serde
+      schemaRegistry: http://schema-registry-app-service:8080/apis/ccompat/v8
+      schemaRegistryShowNullValues: true
+      schemaRegistryUseFullyQualifiedNames: true
       defaultKeySerde: SchemaRegistry
       defaultValueSerde: SchemaRegistry
-      serde:
-        - name: SchemaRegistry
-          className: io.kafbat.ui.serdes.builtin.sr.SchemaRegistrySerde
-          properties:
-            url: http://schema-registry-app-service:8080/apis/ccompat/v8
-            showNullValues: "true"
-            useFullyQualifiedNames: "true"
 
       # schema-registry-auth:
       #   # Basic authentication
@@ -102,9 +99,10 @@ rbac:
         - resource: consumer
           value: ".*"
           actions: all
-        - resource: schema
-          value: ".*"
-          actions: all
+        # error groupId cannot get with Apicurio Registry
+        # - resource: schema
+        #   value: ".*"
+        #   actions: all
         - resource: connect
           value: ".*"
           actions: all
