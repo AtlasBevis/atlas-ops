@@ -1,0 +1,150 @@
+# ======================================================
+# Kafka Clusters Configuration
+# Define all Kafka cluster-specific settings and related integrations.
+# ======================================================
+kafka:
+  clusters:
+    - name: dp-kafka
+      bootstrapServers: dp-kafka-kafka-bootstrap:9092
+      disableLogDirsCollection: true
+
+      # SSL configuration for secure connection to Kafka brokers
+      ssl:
+        truststore-location: /etc/kafka/ca/ca.p12
+        truststore-type: PKCS12
+        truststore-password: ${UI_KAFKA_TRUSTSTORE_PASSWORD}  
+        verify-ssl: true
+
+      # Schema Registry connection and authentication details
+      defaultKeySerde: SchemaRegistry
+      defaultValueSerde: SchemaRegistry
+      serde:
+        - name: SchemaRegistry
+          className: io.kafbat.ui.serdes.builtin.sr.SchemaRegistrySerde
+          properties:
+            url: http://schema-registry-app-service:8080/apis/ccompat/v8
+            showNullValues: "true"
+            useFullyQualifiedNames: "true"
+
+      # schema-registry-auth:
+      #   # Basic authentication
+      #   username: schema registry username
+      #   password: schema registry password
+      #   # OAuth client-credentials authentication
+      #   oauth:
+      #     tokenUrl: https://auth.example.com/oauth/token
+      #     clientId: your-client-id
+      #     clientSecret: your-client-secret
+      #     scopes: schema-registry:read,schema-registry:write
+      #     tokenCacheEnabled: true   # default: true
+      #     tokenRefreshBuffer: 60s   # default: 60s
+      #     maxRetries: 1             # default: 1 (retries on 401 Unauthorized)
+
+      # Kafka Connect REST endpoint and optional authentication
+      kafka-connect:
+        - name: cdc-connect  # Identifier for the Connect cluster
+          address: http://kafka-connect-host:8083
+          username: Auth username
+          password: Auth password
+          keystore-location: path/to/keystore/file.jks
+          keystore-password: keystore password
+
+      # Global Kafka client properties
+      properties:
+        security.protocol: SASL_SSL
+        sasl.mechanism: SCRAM-SHA-512
+        sasl.jaas.config: "${UI_KAFKA_SASL_JAAS_CONFIG}"
+
+  # Prefix to identify internal Kafka topics used by system tools
+  internalTopicPrefix: "__"  
+  
+  # Timeout for admin Kafka operations (in milliseconds)
+  admin-client-timeout: 30000
+
+  # Polling behavior for consumer previews in the UI
+  polling:
+    poll-timeout-ms: 1000  # How long to wait for new records (ms)
+    max-page-size: 500  # Maximum number of records per poll
+    default-page-size: 100  # Default number of records per poll
+
+auth:
+  type: OAUTH2
+  oauth2:
+    client:
+      azure:
+        scope: openid,profile,email
+        client-name: "Company" # Display name on the login screen
+        provider: azure
+        redirect-uri: "https://kafka-ui.com.vn/login/oauth2/code/azure"
+        authorization-grant-type: authorization_code
+        user-name-attribute: email
+        custom-params:
+          type: oauth
+          roles-field: roles
+rbac:
+  roles:
+    # Admin: user có Azure App Role "kafka_admin"
+    - name: "admin"
+      clusters:
+        - dp-kafka
+      subjects:
+        - provider: oauth
+          type: role
+          value: "kafka_admin"
+      permissions:
+        - resource: applicationconfig
+          actions: all
+        - resource: clusterconfig
+          actions: all
+        - resource: topic
+          value: ".*"
+          actions: all
+        - resource: consumer
+          value: ".*"
+          actions: all
+        - resource: schema
+          value: ".*"
+          actions: all
+        - resource: connect
+          value: ".*"
+          actions: all
+        - resource: ksql
+          actions: all
+        - resource: acl
+          actions: all
+
+    # Viewer: user có Azure App Role "kafka_viewer"
+    - name: "viewer"
+      clusters:
+        - dp-kafka
+      subjects:
+        - provider: oauth
+          type: role
+          value: "kafka_viewer"
+      permissions:
+        - resource: clusterconfig
+          actions: [view]
+        - resource: topic
+          value: ".*"
+          actions: [view, messages_read, analysis_view]
+        - resource: consumer
+          value: ".*"
+          actions: [view]
+        - resource: schema
+          value: ".*"
+          actions: [view]
+  
+  # default roles: can login
+  # default-role:
+  #   permissions:
+  #     - resource: clusterconfig
+  #       actions: [view]
+
+# ======================================================
+# Application Logging Configuration
+# Configure logging levels for specific packages.
+# ======================================================
+logging:
+  level:
+    root: INFO
+    io.kafbat.ui: INFO
