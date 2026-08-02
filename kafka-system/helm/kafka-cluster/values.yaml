@@ -106,8 +106,24 @@ entityOperator:
 
 # 58. KafkaExporterSpec schema reference
 # doc: https://strimzi.io/docs/operators/latest/configuring.html#type-KafkaExporterSpec-reference
+# # Scrape Service: <clusterName>-kafka-exporter:9404  (e.g. dp-kafka-kafka-exporter)
 kafkaExporter:
-  enabled: false
+  enabled: true
+  spec:
+    groupRegex: ".*"
+    topicRegex: ".*"
+    logging: info
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 500m
+        memory: 256Mi
+    template:
+      pod:
+        imagePullSecrets:
+          - name: dockerhub-regcred
 
 # 50. CruiseControlSpec schema reference
 # doc: https://strimzi.io/docs/operators/latest/configuring.html#type-CruiseControlSpec-reference

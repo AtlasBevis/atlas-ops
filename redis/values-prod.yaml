@@ -42,7 +42,7 @@ global:
       adaptSecurityContext: auto
   ##  Configure FIPS mode: '', 'restricted', 'relaxed', 'off'
   ##
-  defaultFips: restricted
+  defaultFips: "off"
 
 ## @section Common parameters
 ##
@@ -121,7 +121,7 @@ image:
   registry: registry-1.docker.io
   repository: bitnami/redis
   tag: latest
-  digest: ""
+  digest: "sha256:08863c2c3f4e051fb6139b38fa223e9c13be5033326a59bead182860d899bf98"
   ## Specify a imagePullPolicy
   ## ref: https://kubernetes.io/docs/concepts/containers/images/#pre-pulled-images
   ##
@@ -133,7 +133,8 @@ image:
   ## pullSecrets:
   ##   - myRegistryKeySecretName
   ##
-  pullSecrets: []
+  pullSecrets:
+    - dockerhub-regcred
   ## Enable debug mode
   ##
   debug: false
@@ -161,11 +162,11 @@ auth:
   ## @param auth.existingSecret The name of an existing secret with Redis(R) credentials
   ## NOTE: When it's set, the previous `auth.password` parameter is ignored
   ##
-  existingSecret: ""
+  existingSecret: "redis-auth"
   ## @param auth.existingSecretPasswordKey Password key to be retrieved from existing secret
   ## NOTE: ignored unless `auth.existingSecret` parameter is set
   ##
-  existingSecretPasswordKey: ""
+  existingSecretPasswordKey: "password"
   ## @param auth.usePasswordFiles Mount credentials as files instead of using an environment variable
   ##
   usePasswordFiles: true
@@ -200,12 +201,15 @@ auth:
 ##
 commonConfiguration: |-
   # Enable ReJSON y Redisearch
-  loadmodule /opt/bitnami/redis/lib/redis/modules/redisearch.so
-  loadmodule /opt/bitnami/redis/lib/redis/modules/rejson.so
+  # loadmodule /opt/bitnami/redis/lib/redis/modules/redisearch.so
+  # loadmodule /opt/bitnami/redis/lib/redis/modules/rejson.so
   # Enable AOF https://redis.io/topics/persistence#append-only-file
   appendonly yes
+  appendfsync everysec
   # Disable RDB persistence, AOF persistence already enabled.
   save ""
+  maxmemory 1536mb
+  maxmemory-policy allkeys-lru
 ## @param existingConfigmap The name of an existing ConfigMap with your custom configuration for Redis(R) nodes
 ##
 existingConfigmap: ""
@@ -217,7 +221,7 @@ master:
   count: 1
   ## @param master.revisionHistoryLimit The number of old history to retain to allow rollback
   ## NOTE: Explicitly setting this field to 0, will result in cleaning up all the history, breaking ability to rollback
-  revisionHistoryLimit: 10
+  revisionHistoryLimit: 3
   ## @param master.configuration Configuration for Redis(R) master nodes
   ## ref: https://redis.io/topics/config
   ##
@@ -336,11 +340,11 @@ master:
   ##
   resources:
     requests:
-      cpu: 2
+      cpu: 250m
       memory: 512Mi
     limits:
-      cpu: 3
-      memory: 1024Mi
+      cpu: 1
+      memory: 1Gi
 
   ## @param master.fips.openssl Configure OpenSSL FIPS mode: '', 'restricted', 'relaxed', 'off'. If empty (""), 'global.defaultFips' would be used
   ##
@@ -458,7 +462,14 @@ master:
   ## ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
   ## NOTE: `master.podAffinityPreset`, `master.podAntiAffinityPreset`, and `master.nodeAffinityPreset` will be ignored when it's set
   ##
-  affinity: {}
+  affinity: 
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: redis
+          topologyKey: kubernetes.io/hostname
+
   ## @param master.nodeSelector Node labels for Redis(R) master pods assignment
   ## ref: https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/
   ##
@@ -475,7 +486,14 @@ master:
   ##     topologyKey: node
   ##     whenUnsatisfiable: DoNotSchedule
   ##
-  topologySpreadConstraints: []
+  topologySpreadConstraints:
+    - maxSkew: 1
+      topologyKey: kubernetes.io/hostname
+      whenUnsatisfiable: ScheduleAnyway
+      labelSelector:
+        matchLabels:
+          app.kubernetes.io/name: redis
+
   ## @param master.dnsPolicy DNS Policy for Redis(R) master pod
   ## ref: https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/
   ## E.g.
@@ -558,7 +576,7 @@ master:
       - ReadWriteOnce
     ## @param master.persistence.size Persistent Volume size
     ##
-    size: 20Gi
+    size: 10Gi
     ## @param master.persistence.annotations Additional custom annotations for the PVC
     ##
     annotations: {}
@@ -586,7 +604,7 @@ master:
   ## @param master.persistentVolumeClaimRetentionPolicy.whenDeleted Volume retention behavior that applies when the StatefulSet is deleted
   ##
   persistentVolumeClaimRetentionPolicy:
-    enabled: false
+    enabled: true
     whenScaled: Retain
     whenDeleted: Retain
   ## Redis(R) master service parameters
@@ -688,7 +706,7 @@ master:
   ##
   pdb:
     create: true
-    minAvailable: ""
+    minAvailable: "1"
     maxUnavailable: ""
   ## @param master.extraPodSpec Optionally specify extra PodSpec for the Redis(R) master pod(s)
   ##
@@ -705,10 +723,10 @@ replica:
   kind: StatefulSet
   ## @param replica.replicaCount Number of Redis(R) replicas to deploy
   ##
-  replicaCount: 3
+  replicaCount: 2
   ## @param replica.revisionHistoryLimit The number of old history to retain to allow rollback
   ## NOTE: Explicitly setting this field to 0, will result in cleaning up all the history, breaking ability to rollback
-  revisionHistoryLimit: 10
+  revisionHistoryLimit: 3
   ## @param replica.configuration Configuration for Redis(R) replicas nodes
   ## ref: https://redis.io/topics/config
   ##
@@ -833,7 +851,14 @@ replica:
   ##     cpu: 3
   ##     memory: 1024Mi
   ##
-  resources: {}
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+
   ## @param replica.fips.openssl Configure OpenSSL FIPS mode: '', 'restricted', 'relaxed', 'off'. If empty (""), 'global.defaultFips' would be used
   ##
   fips:
@@ -950,7 +975,14 @@ replica:
   ## ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
   ## NOTE: `replica.podAffinityPreset`, `replica.podAntiAffinityPreset`, and `replica.nodeAffinityPreset` will be ignored when it's set
   ##
-  affinity: {}
+  affinity: 
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: redis
+          topologyKey: kubernetes.io/hostname
+
   ## @param replica.nodeSelector Node labels for Redis(R) replicas pods assignment
   ## ref: https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/
   ##
@@ -967,7 +999,14 @@ replica:
   ##     topologyKey: node
   ##     whenUnsatisfiable: DoNotSchedule
   ##
-  topologySpreadConstraints: []
+  topologySpreadConstraints:
+    - maxSkew: 1
+      topologyKey: kubernetes.io/hostname
+      whenUnsatisfiable: DoNotSchedule
+      labelSelector:
+        matchLabels:
+          app.kubernetes.io/name: redis
+
   ## @param replica.dnsPolicy DNS Policy for Redis(R) replica pods
   ## ref: https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/
   ## E.g.
@@ -1043,14 +1082,14 @@ replica:
     ## If set to "-", storageClassName: "", which disables dynamic provisioning
     ## If undefined (the default) or set to null, no storageClassName spec is set, choosing the default provisioner
     ##
-    storageClass: ""
+    storageClass: "longhorn"
     ## @param replica.persistence.accessModes Persistent Volume access modes
     ##
     accessModes:
       - ReadWriteOnce
     ## @param replica.persistence.size Persistent Volume size
     ##
-    size: 8Gi
+    size: 10Gi
     ## @param replica.persistence.annotations Additional custom annotations for the PVC
     ##
     annotations: {}
@@ -1078,7 +1117,7 @@ replica:
   ## @param replica.persistentVolumeClaimRetentionPolicy.whenDeleted Volume retention behavior that applies when the StatefulSet is deleted
   ##
   persistentVolumeClaimRetentionPolicy:
-    enabled: false
+    enabled: true
     whenScaled: Retain
     whenDeleted: Retain
   ## Redis(R) replicas service parameters
@@ -1186,7 +1225,7 @@ replica:
   ##
   pdb:
     create: true
-    minAvailable: ""
+    minAvailable: "1"
     maxUnavailable: ""
   ## @param replica.extraPodSpec Optionally specify extra PodSpec for the Redis(R) replicas pod(s)
   ##
@@ -1202,7 +1241,7 @@ sentinel:
   ## IMPORTANT: this will disable the master and replicas services and
   ## create a single Redis(R) service exposing both the Redis and Sentinel ports
   ##
-  enabled: false
+  enabled: true
   ## Bitnami Redis(R) Sentinel image version
   ## ref: https://hub.docker.com/r/bitnami/redis-sentinel/tags/
   ## @param sentinel.image.registry [default: REGISTRY_NAME] Redis(R) Sentinel image registry
@@ -1217,7 +1256,7 @@ sentinel:
     registry: registry-1.docker.io
     repository: bitnami/redis-sentinel
     tag: latest
-    digest: ""
+    digest: "sha256:ae75dd69c192a632bdeb21baa6721080be5b12347e52add922036398b47631da"
     ## Specify a imagePullPolicy
     ## ref: https://kubernetes.io/docs/concepts/containers/images/#pre-pulled-images
     ##
@@ -1229,7 +1268,8 @@ sentinel:
     ## pullSecrets:
     ##   - myRegistryKeySecretName
     ##
-    pullSecrets: []
+    pullSecrets:
+      - dockerhub-regcred
     ## Enable debug mode
     ##
     debug: false
@@ -1427,7 +1467,14 @@ sentinel:
   ##     cpu: 3
   ##     memory: 1024Mi
   ##
-  resources: {}
+  resources: 
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+
   ## @param sentinel.fips.openssl Configure OpenSSL FIPS mode: '', 'restricted', 'relaxed', 'off'. If empty (""), 'global.defaultFips' would be used
   ##
   fips:
