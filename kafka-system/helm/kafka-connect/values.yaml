@@ -139,6 +139,10 @@ connect:
   jvmOptions:
     -Xms: 3g
     -Xmx: 3g
+    # Iceberg/S3 buffer: Strimzi only allows mounts under /mnt; default /tmp is 5Mi tmpfs
+    javaSystemProperties:
+      - name: java.io.tmpdir
+        value: /mnt/connect-tmp
 
   logging:
     # only: inline | external
@@ -226,10 +230,13 @@ connect:
                     strimzi.io/cluster: "{{ .Values.clusterName }}"
                     strimzi.io/kind: KafkaConnect
                 topologyKey: kubernetes.io/hostname
+
+    # https://strimzi.io/docs/operators/latest/configuring.html#con-common-configuration-volumes-reference
+    # All additional mounted paths are located inside /mnt to ensure compatibility with future Kafka and Strimzi updates.
     connectContainer:
       volumeMounts:
         - name: connect-tmp
-          mountPath: /tmp
+          mountPath: /mnt/connect-tmp
           
 rbac:
   # create provider binding with user connect-sa which created by strimzi

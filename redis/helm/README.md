@@ -5,6 +5,12 @@
 
 ```docker
 docker pull registry-1.docker.io
+docker pull registry-1.docker.io/bitnami/kubectl:latest@sha256:1a86ba502f618724fd493f6a2b129f060454db04f06faa58d8ed94510280b17f
+docker pull registry-1.docker.io/bitnami/redis-exporter:latest
+```
+
+```docker
+
 ```
 
 ## Install 

@@ -416,7 +416,7 @@ master:
   priorityClassName: ""
   ## @param master.automountServiceAccountToken Mount Service Account token in pod
   ##
-  automountServiceAccountToken: false
+  automountServiceAccountToken: true
   ## @param master.hostAliases Redis(R) master pods host aliases
   ## https://kubernetes.io/docs/concepts/services-networking/add-entries-to-pod-etc-hosts-with-host-aliases/
   ##
@@ -1213,7 +1213,7 @@ replica:
     ## @param replica.serviceAccount.automountServiceAccountToken Whether to auto mount the service account token
     ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/#use-the-default-service-account-to-access-the-api-server
     ##
-    automountServiceAccountToken: false
+    automountServiceAccountToken: true
     ## @param replica.serviceAccount.annotations Additional custom annotations for the ServiceAccount
     ##
     annotations: {}
@@ -1278,7 +1278,7 @@ sentinel:
   annotations: {}
   ## @param sentinel.masterSet Master set name
   ##
-  masterSet: mymaster
+  masterSet: master
   ## @param sentinel.quorum Sentinel Quorum
   ##
   quorum: 2
@@ -1599,7 +1599,7 @@ sentinel:
     ## @param sentinel.masterService.enabled Enable master service pointing to the current master (experimental)
     ## NOTE: rbac.create need to be set to true
     ##
-    enabled: false
+    enabled: true
     ## @param sentinel.masterService.type Redis(R) Sentinel master service type
     ##
     type: ClusterIP
@@ -1784,7 +1784,7 @@ podSecurityPolicy:
 rbac:
   ## @param rbac.create Specifies whether RBAC resources should be created
   ##
-  create: false
+  create: true
   ## @param rbac.rules Custom RBAC rules to set
   ## e.g:
   ## rules:
@@ -2366,8 +2366,12 @@ kubectl:
   ## @param kubectl.resources.requests The requested resources for the kubectl containers
   ##
   resources:
-    limits: {}
-    requests: {}
+    limits:
+      cpu: 100m
+      memory: 128Mi
+    requests:
+      cpu: 10m
+      memory: 32Mi
   ## @param kubectl.fips.openssl Configure OpenSSL FIPS mode: '', 'restricted', 'relaxed', 'off'. If empty (""), 'global.defaultFips' would be used
   ## @param kubectl.fips.golang Configure Golang FIPS mode: '', 'restricted', 'relaxed', 'off'. If empty (""), 'global.defaultFips' would be used
   ##
