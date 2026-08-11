@@ -1,0 +1,26 @@
+{{- if and .Values.connect.enabled .Values.connect.useConnectorResources }}
+{{- $root := . }}
+{{- range .Values.icebergs }}
+{{- if .enabled }}
+---
+apiVersion: kafka.strimzi.io/v1
+kind: KafkaConnector
+metadata:
+  name: {{ include "connect.iceberg.name" .name }}
+  labels:
+    {{- include "connect.labels" $root | nindent 4 }}
+spec:
+  class: {{ include "connect.iceberg.class" . | quote }}
+  tasksMax: {{ default 1 .tasksMax }}
+  {{- with .state }}
+  state: {{ . | quote }}
+  {{- end }}
+  {{- with .autoRestart }}
+  autoRestart:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  config:
+    {{- required "icebergs.config is required" .config | toYaml | nindent 4 }}
+{{- end }}
+{{- end }}
+{{- end }}

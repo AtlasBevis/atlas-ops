@@ -52,3 +52,35 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 
 {{- get $classes $type -}}
 {{- end -}}
+
+
+{{/*
+S3 sink name: <name>-s3-sink
+Usage: include "connect.s3.name" .name
+*/}}
+{{- define "connect.s3.name" -}}
+{{- printf "%s-s3-sink" (required "name is required" .) | trunc 63 | trimSuffix "-" -}}
+{{- end -}}
+
+{{/*
+S3 sink connector class
+*/}}
+{{- define "connect.s3.class" -}}
+io.confluent.connect.s3.S3SinkConnector
+{{- end -}}
+
+{{/*
+Iceberg sink KafkaConnector name: iceberg-<name>
+Usage: include "connect.iceberg.name" .
+Context: item from .Values.icebergs
+*/}}
+{{- define "connect.iceberg.name" -}}
+{{- printf "iceberg-%s" (required "name is required" .) | trunc 63 | trimSuffix "-" -}}
+{{- end -}}
+
+{{/*
+Iceberg sink connector class
+*/}}
+{{- define "connect.iceberg.class" -}}
+org.apache.iceberg.connect.IcebergSinkConnector
+{{- end -}}

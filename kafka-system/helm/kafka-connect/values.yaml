@@ -130,19 +130,21 @@ connect:
     requests:
       cpu: 2
       memory: 6Gi
+      ephemeral-storage: 20Gi
     limits:
       cpu: 4
       memory: 8Gi
+      ephemeral-storage: 40Gi
 
   jvmOptions:
     -Xms: 3g
     -Xmx: 3g
 
-  # logging:
-  #   # only: inline | external
-  #   type: inline 
-  #   loggers:
-  #      rootLogger.level: INFO
+  logging:
+    # only: inline | external
+    type: inline 
+    loggers:
+       rootLogger.level: INFO
 
   # Build a custom image with connector plugins (Debezium, JDBC, S3, ...).
   # Requires Strimzi Cluster Operator with Kaniko/Buildah support.
@@ -208,6 +210,10 @@ connect:
     #           name: minio
     #           key: secret-key
     pod:
+      volumes:
+        - name: connect-tmp
+          emptyDir:
+            sizeLimit: 20Gi
       imagePullSecrets:
         - name: dockerhub-regcred
       affinity:
@@ -220,7 +226,11 @@ connect:
                     strimzi.io/cluster: "{{ .Values.clusterName }}"
                     strimzi.io/kind: KafkaConnect
                 topologyKey: kubernetes.io/hostname
-
+    connectContainer:
+      volumeMounts:
+        - name: connect-tmp
+          mountPath: /tmp
+          
 rbac:
   # create provider binding with user connect-sa which created by strimzi
   enabled: true
@@ -279,6 +289,82 @@ s3:
 # ---
 # Kafka Connector - Debeizum Connector
 debezium: []
+
+# ---
+# KafkaConnector - Iceberg Sink
+icebergs: 
+  - name: oracle
+    enabled: true
+    tasksMax: 4
+    autoRestart:
+      enabled: true
+      maxRestarts: 10
+    config:
+      topics.regex: ^cdc\.oracle\.(tbl1|tbl2)$
+
+      key.converter: io.apicurio.registry.utils.converter.AvroConverter
+      key.converter.schemas.enable: "false"
+      key.converter.apicurio.registry.url: http://schema-registry-app-service.kafka.svc:8080/apis/registry/v3
+      key.converter.apicurio.registry.artifact.group-id: groupId
+      key.converter.apicurio.registry.auto-register: "false"
+      key.converter.apicurio.registry.find-latest: "true"
+      key.converter.apicurio.registry.as-confluent: "true"
+      key.converter.apicurio.registry.headers.enabled: "false"
+      key.converter.apicurio.use-id: contentId
+
+      value.converter: io.apicurio.registry.utils.converter.AvroConverter
+      value.converter.schemas.enable: "false"
+      value.converter.apicurio.registry.url: http://schema-registry-app-service.kafka.svc:8080/apis/registry/v3
+      value.converter.apicurio.registry.artifact.group-id: groupId
+      value.converter.apicurio.registry.auto-register: "false"
+      value.converter.apicurio.registry.find-latest: "true"
+      value.converter.apicurio.registry.as-confluent: "true"
+      value.converter.apicurio.registry.headers.enabled: "false"
+      value.converter.apicurio.use-id: contentId
+
+      iceberg.catalog.type: rest
+      iceberg.catalog.uri: http://lakekeeper.lakekeeper.svc:8181/catalog
+      iceberg.catalog.io-impl: org.apache.iceberg.aws.s3.S3FileIO
+      iceberg.catalog.warehouse: lakehouse
+      iceberg.catalog.s3.endpoint: ${secrets:minio:endpoint}
+      iceberg.catalog.s3.access-key-id: ${secrets:minio:access-key}
+      iceberg.catalog.s3.secret-access-key: ${secrets:minio:secret-key}
+      iceberg.catalog.s3.path-style-access: true
+
+      # Inject Kafka topic into record so route-field can map topic → Iceberg table
+      transforms: insertTopic
+      transforms.insertTopic.type: org.apache.kafka.connect.transforms.InsertField$Value
+      transforms.insertTopic.topic.field: topic
+
+      iceberg.tables.dynamic-enabled: false
+      iceberg.tables: >-
+        raw.schema.tbl1,
+        raw.schema.tbl2
+      
+      iceberg.tables.route-field: topic
+      iceberg.table.raw.schema.tbl1.route-regex: .*TBL1$
+      iceberg.table.raw.schema.tbl1.partition-by: truncate(ts_ms, 86400000)
+
+      iceberg.table.raw.schema.tbl2.route-regex: .*TBL2$
+      iceberg.table.raw.schema.tbl2.partition-by: truncate(ts_ms, 86400000)
+
+      iceberg.tables.auto-create-enabled: true
+      iceberg.tables.evolve-schema-enabled: true
+      iceberg.tables.schema-force-optional: true
+
+      iceberg.catalog.rest.auth.type: oauth2
+      iceberg.catalog.oauth2-server-uri: https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token
+      iceberg.catalog.credential: ${secrets:etl:client-id}:${secrets:etl:secret-key}
+      iceberg.catalog.scope: api://<app-id>/.default
+      iceberg.catalog.token-exchange-enabled: "false"
+      iceberg.catalog.token-refresh-enabled: "true"
+
+      # Coordinator
+      iceberg.control.group-id-prefix: connect-control-
+      iceberg.control.topic: __control.uat.oracle
+      iceberg.control.commit.interval-ms: 60000
+
+      errors.tolerance: none
 
 
 # KafkaConnector CRs. Requires connect.useConnectorResources: true.
@@ -389,39 +475,3 @@ connectors:
       decimal.handling.mode: precise
       time.precision.mode: adaptive
   
-  - name: iceberg-sink-oracle
-    enabled: true
-    state: running
-    class: org.apache.iceberg.connect.IcebergSinkConnector
-    tasksMax: 4
-    autoRestart:
-      enabled: true
-      maxRestarts: 10
-    config:
-      topics.regex: ^cdc\.oracle\..*
-      # Topics are Avro (Apicurio) - a JsonConverter here would fail to
-      # deserialize. Reuse the shared contract instead.
-      <<: *apicurioConverter
-      value.converter.apicurio.registry.artifact.group-id: oracle
-
-      # Iceberg tables
-      iceberg.tables: lake.oracle_customers,lake.oracle_orders
-      iceberg.tables.auto-create-enabled: "true"
-      iceberg.tables.evolve-schema-enabled: "true"
-
-      # Catalog (REST + MinIO)
-      iceberg.catalog.type: rest
-      iceberg.catalog.uri: http://iceberg-rest.iceberg.svc:8181
-      iceberg.catalog.io-impl: org.apache.iceberg.aws.s3.S3FileIO
-      iceberg.catalog.warehouse: s3://prod-lake/warehouse
-      iceberg.catalog.s3.endpoint: ${secrets:minio:endpoint}
-      iceberg.catalog.s3.access-key-id: ${secrets:minio:access-key}
-      iceberg.catalog.s3.secret-access-key: ${secrets:minio:secret-key}
-      iceberg.catalog.s3.path-style-access: "true"
-
-      # Coordinator
-      iceberg.control.topic: control-iceberg
-      iceberg.control.commit.interval-ms: 300000
-      iceberg.kafka.auto.offset.reset: earliest
-
-      errors.tolerance: none
