@@ -1,4 +1,4 @@
-# OpenSearch
+# Opensearch Stack
 
 
 ## Install
@@ -21,11 +21,19 @@ helm repo update
 helm search repo opensearch
 ```
 
-4. (optional) pull chart 
+## Opensearch
 
 ```shell
 helm pull opensearch/opensearch --version 3.7.0 --untar
 ```
+
+## Opensearch Dashboard
+
+```shell
+helm pull opensearch/opensearch-dashboards --version 3.7.0 --untar
+```
+
+
 ### Document
 
 - [Github](https://github.com/opensearch-project/OpenSearch)
