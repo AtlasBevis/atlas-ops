@@ -158,21 +158,21 @@ resources:
     cpu: "4"
     memory: "10Gi"
 
-initResources: {}
-#  limits:
-#     cpu: "25m"
-#     memory: "128Mi"
-#  requests:
-#     cpu: "25m"
-#     memory: "128Mi"
+initResources:
+  requests:
+    cpu: "100m"
+    memory: "128Mi"
+  limits:
+    cpu: "300m"
+    memory: "256Mi"
 
-sidecarResources: {}
-#   limits:
-#     cpu: "25m"
-#     memory: "128Mi"
-#   requests:
-#     cpu: "25m"
-#     memory: "128Mi"
+sidecarResources:
+  requests:
+    cpu: "50m"
+    memory: "64Mi"
+  limits:
+    cpu: "200m"
+    memory: "256Mi"
 
 networkHost: "0.0.0.0"
 
