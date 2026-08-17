@@ -74,9 +74,10 @@ podAnnotations: {}
 # Deployment annotations
 dashboardAnnotations: {}
 
-extraEnvs: []
-#  - name: "NODE_OPTIONS"
-#    value: "--max-old-space-size=1800"
+extraEnvs:
+# disable security -> set opensearchAccount: ""
+  - name: "DISABLE_SECURITY_DASHBOARDS_PLUGIN"
+    value: "true"
 
 envFrom: []
 
