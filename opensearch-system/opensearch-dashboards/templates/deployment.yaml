@@ -9,6 +9,7 @@ metadata:
   {{- end }}
 spec:
   replicas: {{ .Values.replicaCount }}
+  revisionHistoryLimit: {{ .Values.revisionHistoryLimit | default 5 }}
   strategy:
 {{ toYaml .Values.updateStrategy | indent 4 }}
   selector:

@@ -7,6 +7,7 @@
 
 opensearchHosts: "https://opensearch-cluster-master:9200"
 replicaCount: 1
+revisionHistoryLimit: 5
 
 image:
   repository: "opensearchproject/opensearch-dashboards"
