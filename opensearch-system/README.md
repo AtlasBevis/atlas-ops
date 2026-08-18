@@ -36,5 +36,6 @@ helm pull opensearch/opensearch-dashboards --version 3.7.0 --untar
 
 ### Document
 
+- [Home](https://docs.opensearch.org/latest/)
 - [Github](https://github.com/opensearch-project/OpenSearch)
 - [Install](https://docs.opensearch.org/latest/install-and-configure/install-opensearch/helm/#install-opensearch-using-helm)

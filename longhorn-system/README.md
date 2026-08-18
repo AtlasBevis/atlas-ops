@@ -2,16 +2,37 @@
 
 version: 1.12.0
 
-Thư mục này chứa file values cho [Longhorn](https://longhorn.io/) — CSI storage phân tán trên Kubernetes, cung cấp `StorageClass` (mặc định thường là `longhorn`) dùng bởi các workload khác trong repo (ví dụ Vault dùng `storageClass: longhorn`).
+## Installation Requirements
 
-## Điều kiện cluster (tóm tắt)
+Each node in the Kubernetes cluster where Longhorn is installed must fullfill the following requirements:
+    1. Some tools package need to install
+```sh
+sudo apt update
+sudo apt install -y open-iscsi nfs-common curl gawk util-linux
+sudo systemctl enable --now iscsid
+sudo systemctl status iscsid
+```
 
-- Cài **open-iscsi** (và dịch vụ `iscsid` chạy) trên **mọi node** sẽ chạy replica/engine.
-- Mount helper: `nfs-common` / `nfs-utils` tùy distro (cần cho RWX qua share manager).
-- Kiểm tra thêm theo [installation requirements](https://longhorn.io/docs/latest/deploy/install/#installation-requirements) của phiên bản bạn chọn.
+> util-linux contains findmnt, blkid; gawk for awk.
+
+## Install Helm
+
+1. Add the respository
+
+```sh
+helm repo add longhorn https://charts.longhorn.io
+helm repo update
+```
+
+2. Install Longhorn in the `longhorn-system` namespace.
+
+```sh
+helm install longhorn longhorn/longhorn --namespace longhorn-system --create-namespace --version 1.12.1
+```
 
 ## Tài liệu tham khảo
 
+- [Install Requirements](https://longhorn.io/docs/1.12.1/deploy/install/#installation-requirements)
 - [Chart](http://artifacthub.io/packages/helm/longhorn/longhorn)
 - [Longhorn — Install với Helm](https://longhorn.io/docs/latest/deploy/install/install-with-helm/)
 - [Chart longhorn (charts.longhorn.io)](https://github.com/longhorn/longhorn/tree/master/chart)
