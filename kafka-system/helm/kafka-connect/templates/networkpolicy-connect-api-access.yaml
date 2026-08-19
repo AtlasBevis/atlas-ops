@@ -1,0 +1,41 @@
+{{- $cfg := .Values.connectApiAccessPolicy -}}
+{{- if and .Values.connect.enabled $cfg.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "connect.clusterName" . }}-connect-api-access
+  labels:
+    {{- include "connect.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      strimzi.io/cluster: {{ include "connect.clusterName" . }}
+      strimzi.io/kind: KafkaConnect
+      strimzi.io/name: {{ printf "%s-connect" (include "connect.clusterName" .) }}
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+      {{- if $cfg.namespaceSelector }}
+        - namespaceSelector:
+            {{- toYaml $cfg.namespaceSelector | nindent 12 }}
+          {{- with $cfg.podSelector }}
+          podSelector:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      {{- else }}
+      {{- $allowed := default (list "kafka") $cfg.allowedNamespaces }}
+      {{- range $ns := $allowed }}
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ $ns | quote }}
+          {{- with $cfg.podSelector }}
+          podSelector:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      {{- end }}
+      {{- end }}
+      ports:
+        - protocol: TCP
+          port: {{ default 8083 $cfg.port }}
+{{- end }}

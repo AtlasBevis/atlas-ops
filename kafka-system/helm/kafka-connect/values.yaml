@@ -113,12 +113,6 @@ connect:
     config.providers.secrets.class: io.strimzi.kafka.KubernetesSecretConfigProvider
     config.providers.configmaps.class: io.strimzi.kafka.KubernetesConfigMapConfigProvider
 
-    # Worker-level default converters = the shared Apicurio contract.
-    # Connectors that do not override converters inherit exactly this.
-    # (`schemas.enable` was removed: it is a JsonConverter-only option,
-    # it has no effect on the Avro converter.)
-    <<: *apicurioConverter
-
     # The value must be set lower than session.timeout.ms
     heartbeat.interval.ms: 5000
 
@@ -148,7 +142,7 @@ connect:
     # only: inline | external
     type: inline 
     loggers:
-       rootLogger.level: INFO
+      rootLogger.level: INFO
 
   # Build a custom image with connector plugins (Debezium, JDBC, S3, ...).
   # Requires Strimzi Cluster Operator with Kaniko/Buildah support.
@@ -251,6 +245,20 @@ rbac:
   configmapProvider:
     enabled: true
 
+# Additional ingress policy for Kafka Connect REST API (:8083).
+# Use this when clients (e.g. Kafbat in namespace `kafka`) need access,
+# while keeping Strimzi-managed policy untouched.
+connectApiAccessPolicy:
+  enabled: true
+  allowedNamespaces:
+    - kafka
+  # Optional namespace labels selector (advanced). If set, this overrides
+  # allowedNamespaces for namespace-based matching.
+  namespaceSelector: {}
+  # Optional pod label selector (advanced). Usually not required.
+  podSelector: {}
+  port: 8083
+  
 # ---
 # KafkaConnector - S3 Sink
 # we use class `io.confluent.connect.s3.S3SinkConnector`
