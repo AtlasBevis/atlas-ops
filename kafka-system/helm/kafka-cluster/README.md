@@ -52,8 +52,15 @@ some configs often use
 | `retention.ms` | `604800000` | time keep message (ms) |
 | `max.message.bytes` | `1048576` | max message size |
 
+## Kafka Exporter 
+Kafka Exporter provides only metrics related to consumer groups and lag.
+
+
+## Setting up Prometheus
+
 ## Document
 
+- [Prometheus](https://strimzi.io/docs/operators/latest/deploying#assembly-metrics-prometheus-str)
 - [KafkaTopic Config](https://kafka.apache.org/43/configuration/topic-configs/)
 - [Strimzi Kafka CR](https://strimzi.io/docs/operators/latest/configuring.html#type-Kafka-reference)
 - [KafkaNodePool](https://strimzi.io/docs/operators/latest/configuring.html#type-KafkaNodePool-reference)
