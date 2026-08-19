@@ -39,12 +39,8 @@ kafka:
 
       # Kafka Connect REST endpoint and optional authentication
       kafka-connect:
-        - name: cdc-connect  # Identifier for the Connect cluster
-          address: http://kafka-connect-host:8083
-          username: Auth username
-          password: Auth password
-          keystore-location: path/to/keystore/file.jks
-          keystore-password: keystore password
+        - name: connect-prod
+          address: http://kafka-connect-host.connect.svc:8083
 
       # Global Kafka client properties
       properties:
@@ -105,7 +101,7 @@ rbac:
         #   actions: all
         - resource: connect
           value: ".*"
-          actions: all
+          actions: [view, operate, edit, create, reset_offsets]
         - resource: ksql
           actions: all
         - resource: acl
