@@ -125,6 +125,41 @@ kafkaExporter:
         imagePullSecrets:
           - name: dockerhub-regcred
 
+    # Expose Kafka Exporter metrics to Prometheus Operator.
+  monitoring:
+    enabled: true
+    
+    # Supported: Service, PodMonitor, ServiceMonitor
+    kind: PodMonitor
+    
+    namespace: monitoring
+    
+    labels:
+      release: prometheus-stack
+    
+    interval: 30s
+    
+    path: /metrics
+    
+    scrapeTimeout: ""
+    
+    # Metrics endpoint on Kafka Exporter pod/service.
+    port: 9404
+
+    # Optional overrides for Strimzi selector labels.
+    # selectorLabels:
+    #   strimzi.io/cluster: dp-kafka
+    #   strimzi.io/name: dp-kafka-kafka-exporter
+    selectorLabels: {}
+
+    service:
+      # Set true when you want to use ServiceMonitor but exporter Service is missing.
+      create: false
+      name: ""
+      labels: {}
+      annotations: {}
+      portName: tcp-prometheus
+
 # 50. CruiseControlSpec schema reference
 # doc: https://strimzi.io/docs/operators/latest/configuring.html#type-CruiseControlSpec-reference
 cruiseControl:

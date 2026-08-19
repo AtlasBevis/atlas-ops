@@ -1,0 +1,94 @@
+{{- $hasPodMonitor := eq (include "kafkaExporter.hasPodMonitor" .) "true" -}}
+{{- $hasServiceMonitor := eq (include "kafkaExporter.hasServiceMonitor" .) "true" -}}
+{{- $cfg := .Values.kafkaExporter.monitoring -}}
+{{- if and .Values.kafkaExporter.enabled $cfg.enabled $cfg.service.create }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "kafkaExporter.name" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "kafka.labels" . | nindent 4 }}
+    {{- with $cfg.service.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- with $cfg.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  selector:
+    {{- if $cfg.selectorLabels }}
+    {{- toYaml $cfg.selectorLabels | nindent 4 }}
+    {{- else }}
+    strimzi.io/cluster: {{ include "kafka.clusterName" . }}
+    strimzi.io/name: {{ include "kafkaExporter.name" . }}
+    {{- end }}
+  ports:
+    - name: {{ default "tcp-prometheus" $cfg.service.portName }}
+      port: {{ $cfg.port }}
+      targetPort: {{ $cfg.port }}
+---
+{{- end }}
+{{- if and .Values.kafkaExporter.enabled $cfg.enabled (eq $cfg.kind "PodMonitor") $hasPodMonitor }}
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: {{ include "kafkaExporter.name" . }}
+  namespace: {{ default .Release.Namespace $cfg.namespace }}
+  labels:
+    {{- include "kafka.labels" . | nindent 4 }}
+    {{- with $cfg.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  namespaceSelector:
+    matchNames:
+      - {{ .Release.Namespace }}
+  selector:
+    matchLabels:
+      {{- if $cfg.selectorLabels }}
+      {{- toYaml $cfg.selectorLabels | nindent 6 }}
+      {{- else }}
+      strimzi.io/cluster: {{ include "kafka.clusterName" . }}
+      strimzi.io/name: {{ include "kafkaExporter.name" . }}
+      {{- end }}
+  podMetricsEndpoints:
+    - targetPort: {{ $cfg.port }}
+      path: {{ default "/metrics" $cfg.path }}
+      interval: {{ default "30s" $cfg.interval }}
+      {{- if $cfg.scrapeTimeout }}
+      scrapeTimeout: {{ $cfg.scrapeTimeout }}
+      {{- end }}
+{{- end }}
+{{- if and .Values.kafkaExporter.enabled $cfg.enabled (eq $cfg.kind "ServiceMonitor") $hasServiceMonitor }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "kafkaExporter.name" . }}
+  namespace: {{ default .Release.Namespace $cfg.namespace }}
+  labels:
+    {{- include "kafka.labels" . | nindent 4 }}
+    {{- with $cfg.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  namespaceSelector:
+    matchNames:
+      - {{ .Release.Namespace }}
+  selector:
+    matchLabels:
+      {{- if $cfg.selectorLabels }}
+      {{- toYaml $cfg.selectorLabels | nindent 6 }}
+      {{- else }}
+      strimzi.io/cluster: {{ include "kafka.clusterName" . }}
+      strimzi.io/name: {{ include "kafkaExporter.name" . }}
+      {{- end }}
+  endpoints:
+    - port: {{ default "tcp-prometheus" $cfg.service.portName }}
+      path: {{ default "/metrics" $cfg.path }}
+      interval: {{ default "30s" $cfg.interval }}
+      {{- if $cfg.scrapeTimeout }}
+      scrapeTimeout: {{ $cfg.scrapeTimeout }}
+      {{- end }}
+{{- end }}

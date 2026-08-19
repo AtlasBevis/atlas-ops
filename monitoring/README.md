@@ -18,6 +18,7 @@ helm pull prometheus-community/kube-prometheus-stack --version 88.5.0 --untar
 
 ## References
 
+- [CRD API Refereces](https://prometheus-operator.dev/docs/api-reference/api/)
 - [Kube-prometheus-stack](https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack)
 - [Helm chart](https://artifacthub.io/packages/helm/prometheus-community/kube-prometheus-stack)
 - [Prometheus.io](https://prometheus.io/)

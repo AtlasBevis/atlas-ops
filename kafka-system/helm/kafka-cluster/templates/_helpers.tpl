@@ -33,3 +33,32 @@ app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 {{- end }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- end }}
+
+{{/*
+Kafka Exporter Service name
+Usage:
+  {{ include "kafkaExporter.name" (dict "clusterName" $clusterName "cfg" $cfg) }}
+*/}}
+{{- define "kafkaExporter.name" -}}
+{{- $root := .root | default . -}}
+{{- $cfg := .cfg | default (dict) -}}
+{{- $svc := get $cfg "service" | default (dict) -}}
+{{- $override := get $svc "name" | default "" -}}
+{{- $clusterName := .clusterName | default (include "kafka.clusterName" $root) -}}
+{{- $name := default (printf "%s-kafka-exporter" $clusterName) $override -}}
+{{- $name | lower | trunc 63 | trimSuffix "-" -}}
+{{- end -}}
+
+{{/*
+Return true if PodMonitor CRD is available.
+*/}}
+{{- define "kafkaExporter.hasPodMonitor" -}}
+{{- .Capabilities.APIVersions.Has "monitoring.coreos.com/v1/PodMonitor" -}}
+{{- end -}}
+
+{{/*
+Return true if ServiceMonitor CRD is available.
+*/}}
+{{- define "kafkaExporter.hasServiceMonitor" -}}
+{{- .Capabilities.APIVersions.Has "monitoring.coreos.com/v1/ServiceMonitor" -}}
+{{- end -}}
