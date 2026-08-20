@@ -1,11 +1,6 @@
-# Postgres 
+# Postgres Helm
 
-We use charts `cnpg/cloudnative-pg` for operator
-
-The chart installs only the operator (controller manager, webhooks, RBAC and CRDs). To provision a PostgreSQL
-`Cluster` resource, use the companion [`cluster`](https://github.com/cloudnative-pg/charts/tree/main/charts/cluster) chart
-(see the [Cluster chart README](https://github.com/cloudnative-pg/charts/blob/main/charts/cluster/README.md) for details)
-or apply your own `Cluster` manifest.
+We use charts `cnpg/cloudnative-pg` for operator and `cnpg/cluster` for PostgreSQL cluster.
 
 Getting Started
 ---------------
@@ -21,15 +16,25 @@ helm repo update cnpg
 
 ```sh
 helm pull cnpg/cloudnative-pg --version 0.29.0 --untar
+helm pull cnpg/cluster --version 0.8.1 --untar
 ```
-
 
 ### Images
 
+
 ```sh
+# Operator
 docker pull ghcr.io/cloudnative-pg/cloudnative-pg:1.30.0
+
+# Postgres
+docker pull ghcr.io/cloudnative-pg/postgresql:16
 ```
 
+### Postgres Operator
+
+1. Opeartor configuration
+
+[`configuration`](https://cloudnative-pg.io/docs/devel/operator_conf/)
 
 ### Document
 

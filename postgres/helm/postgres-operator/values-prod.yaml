@@ -83,10 +83,13 @@ config:
   # -- The content of the configmap/secret, see
   # https://cloudnative-pg.io/documentation/current/operator_conf/#available-options
   # for all the available options.
-  data: {}
+  data:
   # INHERITED_ANNOTATIONS: categories
   # INHERITED_LABELS: environment, workload, app
-  # WATCH_NAMESPACE: namespace-a,namespace-b
+    OPERATOR_IMAGE_NAME:
+    POSTGRES_IMAGE_NAME:
+    PULL_SECRET_NAME: dockerhub-regcred
+    WATCH_NAMESPACE: postgres
 
   # -- The maximum number of concurrent reconciles. Defaults to 10.
   maxConcurrentReconciles: 10
@@ -158,16 +161,13 @@ service:
   # -- Sets the families that should be supported and the order in which they should be applied to ClusterIP as well. Can be IPv4 and/or IPv6.
   ipFamilies: []
 
-resources: {}
-  # If you want to specify resources, uncomment the following
-  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
-  #
-  # limits:
-  #   cpu: 100m
-  #   memory: 200Mi
-  # requests:
-  #   cpu: 100m
-  #   memory: 100Mi
+resources:
+  requests:
+    cpu: 250m
+    memory: 512Mi
+  limits:
+    cpu: 500m
+    memory: 1Gi
 
 # -- Nodeselector for the operator to be installed.
 nodeSelector: {}
