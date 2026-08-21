@@ -47,7 +47,7 @@ crds:
 commonLabels: {}
 
 podDisruptionBudget:
-  minAvailable: 0
+  minAvailable: 1
   # maxUnavailable: 1
   # unhealthyPodEvictionPolicy: IfHealthyBudget
 
@@ -64,10 +64,11 @@ deployment:
     extraEnv: []
     resources:
       limits:
-        memory: 1024Mi
+        cpu: "2"
+        memory: 2Gi
       requests:
-        cpu: 100m
-        memory: 256Mi
+        cpu: 500m
+        memory: 512Mi
     securityContext:
       allowPrivilegeEscalation: false
       capabilities:
@@ -85,7 +86,12 @@ deployment:
     #   wasmCacheVolume:
     #     persistentVolumeClaim:
     #       claimName: envoy-gateway-wasm-cache
-    strategy: {}
+    strategy:
+      type: RollingUpdate
+      rollingUpdate:
+        maxUnavailable: 0
+        maxSurge: 1
+        
     wasmCacheVolume: {}
     # Kubernetes best practice for controllers: use a startupProbe with a generous
     # failure threshold to avoid premature liveness/readiness failures during initialization.
@@ -126,14 +132,28 @@ deployment:
       port: 19001
       targetPort: 19001
   priorityClassName: null
-  replicas: 1
+  replicas: 2
   pod:
-    affinity: {}
+    affinity:
+      podAntiAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+                - key: app.kubernetes.io/name
+                  operator: In
+                  values: ["gateway-helm"]
+            topologyKey: kubernetes.io/hostname
     annotations:
       prometheus.io/scrape: 'true'
       prometheus.io/port: '19001'
     labels: {}
-    topologySpreadConstraints: []
+    topologySpreadConstraints:
+      - maxSkew: 1
+        topologyKey: topology.kubernetes.io/zone
+        whenUnsatisfiable: DoNotSchedule
+        labelSelector:
+          matchLabels:
+            app.kubernetes.io/name: gateway-helm
     tolerations: []
     nodeSelector: {}
     # Additional volumeMounts on the deployment definition.
@@ -164,10 +184,22 @@ service:
   type: "ClusterIP"
 
 hpa:
-  enabled: false
-  minReplicas: 1
-  maxReplicas: 1
-  metrics: []
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 5
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 75
   behavior: {}
 
 config:
