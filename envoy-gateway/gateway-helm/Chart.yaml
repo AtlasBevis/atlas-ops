@@ -3,7 +3,7 @@ appVersion: v1.9.0
 dependencies:
 - condition: crds.enabled
   name: crds
-  repository: ""
+  repository: "file://./charts/crds"
   version: 0.0.0
 description: The Helm chart for Envoy Gateway
 home: https://gateway.envoyproxy.io/
