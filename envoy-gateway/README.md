@@ -10,7 +10,13 @@ kubectl apply --server-side -f https://github.com/kubernetes-sigs/gateway-api/re
 
 2. Installment Envoy Gateway with Helm
 
-1. Download helm
+1. Pull chart Envoy Gateway CRDs
+
+```sh
+helm pull oci://docker.io/envoyproxy/gateway-crds-helm --version v1.9.0 --untar
+```
+
+2. Pull controller
 ```sh
 helm pull oci://docker.io/envoyproxy/gateway-helm --version v1.9.0 --untar
 ```
