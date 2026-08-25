@@ -1,52 +1,6 @@
-clusterName: kafka-connect-cdc
+clusterName: kafka-connect
 
-nameOverride: connect-cdc
-
-# =====================================================================
-# Apicurio Avro converter - WIRE FORMAT CONTRACT (YAML anchor)
-# =====================================================================
-# This block MUST be identical on the Debezium source and on EVERY sink
-# that reads the same topics (S3, Iceberg, JDBC...). A mismatch causes
-# deserialize errors like "artifact reference cannot be null".
-#
-# IMPORTANT: Kafka Connect does NOT merge converter config between
-# worker and connector. If a connector sets `value.converter`, it must
-# redefine ALL `value.converter.*` keys. That is why this anchor exists:
-# merge it into each connector config with `<<: *apicurioConverter`.
-#
-# Keys explained:
-# - as-confluent=true    : payload = magic byte 0x0 + 4-byte contentId
-#                          (Confluent-compatible encoding)
-# - headers.enabled=false: schema ID lives in the payload, NOT in Kafka
-#                          record headers
-# - use-id=contentId     : required together with as-confluent
-#                          (NOTE: key is `apicurio.registry.use-id`,
-#                          not `apicurio.use-id`)
-# - auto-register=false  : registry storage is GitOps (read-only);
-#                          schemas are managed in the dp-schemas repo
-# - find-latest=true     : serializer looks up the latest version of
-#                          artifact "<topic>-key" / "<topic>-value"
-#                          (TopicIdStrategy) in the configured group
-#
-# Per-connector: set `*.apicurio.registry.artifact.group-id` to the
-# group defined in dp-schemas (see connectors below).
-_apicurioConverter: &apicurioConverter
-  key.converter: io.apicurio.registry.utils.converter.AvroConverter
-  value.converter: io.apicurio.registry.utils.converter.AvroConverter
-  key.converter.apicurio.registry.url: http://schema-registry-app-service.kafka.svc:8080/apis/registry/v3
-  value.converter.apicurio.registry.url: http://schema-registry-app-service.kafka.svc:8080/apis/registry/v3
-  key.converter.apicurio.registry.artifact-resolver-strategy: io.apicurio.registry.serde.strategy.TopicIdStrategy
-  value.converter.apicurio.registry.artifact-resolver-strategy: io.apicurio.registry.serde.strategy.TopicIdStrategy
-  key.converter.apicurio.registry.auto-register: "false"
-  value.converter.apicurio.registry.auto-register: "false"
-  key.converter.apicurio.registry.find-latest: "true"
-  value.converter.apicurio.registry.find-latest: "true"
-  key.converter.apicurio.registry.as-confluent: "true"
-  value.converter.apicurio.registry.as-confluent: "true"
-  key.converter.apicurio.registry.headers.enabled: "false"
-  value.converter.apicurio.registry.headers.enabled: "false"
-  key.converter.apicurio.registry.use-id: contentId
-  value.converter.apicurio.registry.use-id: contentId
+nameOverride: connect
 
 # Upstream Kafka cluster that Connect attaches to.
 kafka:
@@ -59,27 +13,13 @@ kafka:
 # 67. KafkaConnect schema reference
 # docs: https://strimzi.io/docs/operators/latest/configuring.html#type-KafkaConnect-reference
 connect:
-  name: cdc
+  name: prod
   enabled: true
   version: "4.2.0"
   replicas: 3
   image: dockerhub.company.com.vn/bevisdev/kafka:4.2.0
   # to init connectors below
   useConnectorResources: true
-  
-  # groupId defaults to connect-cluster
-  # groupId: connect-cdc
-  
-  # The name of the Kafka topic where connector configurations are stored.
-  # default: connect-cluster-configs
-  # configStorageTopic: connect-cdc-configs
-
-  # default: connect-cluster-offsets
-  # offsetStorageTopic: connect-cdc-offsets
-  
-  # default: connect-cluster-status
-  # statusStorageTopic: connect-cdc-status
-
   metadata:
     labels: {}
     annotations: {}
@@ -88,9 +28,9 @@ connect:
   # https://strimzi.io/docs/operators/latest/configuring.html#type-KafkaClientAuthenticationScramSha512-reference
   authentication:
     type: scram-sha-512
-    username: cdc
+    username: connect
     passwordSecret:
-      secretName: cdc
+      secretName: connect
       password: password
 
   tls:
@@ -115,16 +55,14 @@ connect:
 
     # The value must be set lower than session.timeout.ms
     heartbeat.interval.ms: 5000
-
     rebalance.timeout.ms: 60000
-
     session.timeout.ms: 10000
 
   resources:
     requests:
       cpu: 2
       memory: 6Gi
-      ephemeral-storage: 20Gi
+      ephemeral-storage: 25Gi
     limits:
       cpu: 4
       memory: 8Gi
@@ -211,7 +149,7 @@ connect:
       volumes:
         - name: connect-tmp
           emptyDir:
-            sizeLimit: 20Gi
+            sizeLimit: 30Gi
       imagePullSecrets:
         - name: dockerhub-regcred
       affinity:
@@ -347,21 +285,23 @@ icebergs:
       iceberg.catalog.s3.path-style-access: true
 
       # Inject Kafka topic into record so route-field can map topic → Iceberg table
-      transforms: insertTopic
-      transforms.insertTopic.type: org.apache.kafka.connect.transforms.InsertField$Value
-      transforms.insertTopic.topic.field: topic
+      transforms: debezium,kafkaMetadata
+      transforms.debezium.type: org.apache.iceberg.connect.transforms.DebeziumTransform
+      transforms.kafkaMetadata.type: org.apache.iceberg.connect.transforms.KafkaMetadataTransform
+      transforms.kafkaMetadata.field_name: _kafka_metadata
+      transforms.kafkaMetadata.nested: false
 
       iceberg.tables.dynamic-enabled: false
       iceberg.tables: >-
         raw.schema.tbl1,
         raw.schema.tbl2
       
-      iceberg.tables.route-field: topic
+      iceberg.tables.route-field: _kafka_metadata_topic
       iceberg.table.raw.schema.tbl1.route-regex: .*TBL1$
-      iceberg.table.raw.schema.tbl1.partition-by: truncate(ts_ms, 86400000)
+      iceberg.table.raw.schema.tbl1.partition-by: days(_cdc.ts)
 
       iceberg.table.raw.schema.tbl2.route-regex: .*TBL2$
-      iceberg.table.raw.schema.tbl2.partition-by: truncate(ts_ms, 86400000)
+      iceberg.table.raw.schema.tbl2.partition-by: days(_cdc.ts)
 
       iceberg.tables.auto-create-enabled: true
       iceberg.tables.evolve-schema-enabled: true
@@ -402,16 +342,6 @@ connectors:
       enabled: true
       maxRestarts: 10
     config:
-      # Serializer side of the wire-format contract. Every sink reading
-      # cdc.oracle.* topics must use the exact same converter block.
-      <<: *apicurioConverter
-      # Group in Apicurio where dp-schemas defines the artifacts
-      # `<topic>-key` / `<topic>-value` (TopicIdStrategy).
-      # auto-register=false (GitOps registry is read-only), so the
-      # schemas MUST exist in dp-schemas BEFORE this connector starts.
-      key.converter.apicurio.registry.artifact.group-id: oracle
-      value.converter.apicurio.registry.artifact.group-id: oracle
-
       database.hostname: ${secrets:oracle/host}
       database.port: 1521
       database.user: ${secrets:oracle/username}
@@ -425,14 +355,41 @@ connectors:
       # prefix append for tables
       topic.prefix: cdc.oracle
       schema.include.list: CORE,AUTH
-      table.include.list: CORE.CUSTOMERS,CORE.ORDERS,AUTH.USERS
+      table.include.list: >-
+        CORE.CUSTOMERS,
+        CORE.ORDERS,
+        AUTH.USERS
 
       log.mining.strategy: online_catalog
       
       # snapshot mode
       # default: initial
-      snapshot.mode: when_needed
+      snapshot.mode: initial
       snapshot.database.errors.max.retries: "3"
+
+      heartbeat.interval.ms: "60000"
+      topic.heartbeat.prefix: __heartbeat.prod
+
+      schema.name.adjustment.mode: avro
+      key.converter: io.apicurio.registry.utils.converter.AvroConverter
+      key.converter.schemas.enable: "false"
+      key.converter.apicurio.registry.artifact.group-id: groupdId
+      key.converter.apicurio.registry.url: http://schema-registry-app-service.kafka.svc:8080/apis/registry/v3
+      key.converter.apicurio.registry.auto-register: "true"
+      key.converter.apicurio.registry.find-latest: "true"
+      key.converter.apicurio.registry.as-confluent: "true"
+      key.converter.apicurio.registry.headers.enabled: "false"
+      key.converter.apicurio.use-id: contentId
+
+      value.converter.apicurio.registry.artifact.group-id: groupdId
+      value.converter: io.apicurio.registry.utils.converter.AvroConverter
+      value.converter.schemas.enable: "false"
+      value.converter.apicurio.registry.url: http://schema-registry-app-service.kafka.svc:8080/apis/registry/v3
+      value.converter.apicurio.registry.auto-register: "true"
+      value.converter.apicurio.registry.find-latest: "true"
+      value.converter.apicurio.registry.as-confluent: "true"
+      value.converter.apicurio.registry.headers.enabled: "false"
+      value.converter.apicurio.use-id: contentId
 
       # watch signal from signal kafka topic
       # purpose: ad-hoc snapshot table
@@ -448,15 +405,20 @@ connectors:
       # data.data-collections: specify table names by using the format database.schema.table.
       # ---
       # channels: source | kafka | file | jmx (optional)
-      signal.enabled.channels: kafka
-      signal.kafka.groupId: kafka-signal
-      signal.kafka.topic: __cdc.signal.oracle
+      signal.enabled.channels: source,kafka
+      signal.data.collection: DB.SCHEMA.TABLE1
+      signal.kafka.groupId: signal-prod-domain
+      signal.kafka.topic: __signal.prod.domain
+      signal.kafka.poll.timeout.ms: "500"
       signal.kafka.bootstrap.servers: kafka-cluster-kafka-bootstrap.kafka.svc:9092
       signal.consumer.security.protocol: SASL_SSL
       signal.consumer.sasl.mechanism: SCRAM-SHA-512
-      signal.consumer.sasl.jaas.config: ${secrets:cdc:sasl.jaas.config}
+      signal.consumer.sasl.jaas.config: ${secrets:connect:sasl.jaas.config}
       signal.consumer.ssl.truststore.type: PEM
-      signal.consumer.ssl.truststore.certificates: ${secrets:kafka-cluster-ca-cert:ca_cert}
+      signal.consumer.ssl.truststore.certificates: ${secrets:dp-kafka-cluster-ca-cert:ca_cert}
+      signal.consumer.request.timeout.ms: "60000"
+      signal.consumer.default.api.timeout.ms: "120000"
+      signal.consumer.connections.max.idle.ms: "540000"
 
       # schema history internal
       schema.history.internal.kafka.topic: __history.oracle
@@ -467,17 +429,23 @@ connectors:
       # schema history internal producer using SASL
       schema.history.internal.producer.security.protocol: SASL_SSL
       schema.history.internal.producer.sasl.mechanism: SCRAM-SHA-512
-      schema.history.internal.producer.sasl.jaas.config: ${secrets:cdc:sasl.jaas.config}
+      schema.history.internal.producer.sasl.jaas.config: ${secrets:connect:sasl.jaas.config}
       schema.history.internal.producer.ssl.truststore.type: PEM
-      schema.history.internal.producer.ssl.truststore.certificates: ${secrets:kafka-cluster-ca-cert:ca_cert}
+      schema.history.internal.producer.ssl.truststore.certificates: ${secrets:dp-kafka-cluster-ca-cert:ca_cert}
 
       # ====== CONSUMER
       # schema history internal consumer using SASL
       schema.history.internal.consumer.security.protocol: SASL_SSL
       schema.history.internal.consumer.sasl.mechanism: SCRAM-SHA-512
-      schema.history.internal.consumer.sasl.jaas.config: ${secrets:cdc:sasl.jaas.config}
+      schema.history.internal.consumer.sasl.jaas.config: ${secrets:connect:sasl.jaas.config}
       schema.history.internal.consumer.ssl.truststore.type: PEM
-      schema.history.internal.consumer.ssl.truststore.certificates: ${secrets:kafka-cluster-ca-cert:ca_cert}
+      schema.history.internal.consumer.ssl.truststore.certificates: ${secrets:dp-kafka-cluster-ca-cert:ca_cert}
+
+      errors.tolerance: none
+      errors.log.enable: true
+      errors.log.include.messages: false
+      errors.retry.timeout: "-1"
+      errors.retry.delay.max.ms: "60000"
 
       # event format
       # decimal handling mode
@@ -489,4 +457,62 @@ connectors:
       # format
       decimal.handling.mode: precise
       time.precision.mode: adaptive
-  
+
+  - name: jdbc-oracle-to-oracle
+    enabled: false
+    class: io.debezium.connector.jdbc.JdbcSinkConnector
+    tasksMax: 2
+    autoRestart:
+      enabled: true
+      maxRestarts: 10
+    config:
+      consumer.override.partition.assignment.strategy: org.apache.kafka.clients.consumer.StickyAssignor
+      topics.regex: >-
+        ^cdc\.prod\.domain\.SCHEMA\.(TBL1|TBL2)$
+      
+      connection.url: >-
+        jdbc:oracle:thin:@//${secrets:user:host}:${secrets:user:port}/${secrets:user:service}
+      connection.username: ${secrets:user:username}
+      connection.password: ${secrets:user:password}
+      connection.pool.min_size: "8"
+      connection.pool.max_size: "32"
+      connection.restart.on.errors: "true"
+      
+      insert.mode: upsert
+      delete.enabled: "true"
+      truncate.enabled: "false"
+      
+      primary.key.mode: record_key
+      schema.evolution: none
+      quote.identifiers: "false"
+      use.time.zone: Asia/Ho_Chi_Minh
+      collection.name.format: "${source.schema}.${source.table}"
+      batch.size: "1000"
+
+      key.converter: io.apicurio.registry.utils.converter.AvroConverter
+      key.converter.schemas.enable: "false"
+      key.converter.apicurio.registry.artifact.group-id: groupId
+      key.converter.apicurio.registry.url: http://schema-registry-app-service.kafka.svc:8080/apis/registry/v3
+      key.converter.apicurio.registry.auto-register: "false"
+      key.converter.apicurio.registry.find-latest: "true"
+      key.converter.apicurio.registry.as-confluent: "true"
+      key.converter.apicurio.registry.headers.enabled: "false"
+      key.converter.apicurio.use-id: contentId
+
+      value.converter.apicurio.registry.artifact.group-id: groupId
+      value.converter: io.apicurio.registry.utils.converter.AvroConverter
+      value.converter.schemas.enable: "false"
+      value.converter.apicurio.registry.url: http://schema-registry-app-service.kafka.svc:8080/apis/registry/v3
+      value.converter.apicurio.registry.auto-register: "false"
+      value.converter.apicurio.registry.find-latest: "true"
+      value.converter.apicurio.registry.as-confluent: "true"
+      value.converter.apicurio.registry.headers.enabled: "false"
+      value.converter.apicurio.use-id: contentId
+
+      errors.tolerance: none
+      errors.log.enable: true
+      errors.log.include.messages: false
+      errors.retry.timeout: "-1"
+      errors.retry.delay.max.ms: "60000"
+
+      hibernate.connection.driver_class: oracle.jdbc.OracleDriver
