@@ -84,3 +84,21 @@ Iceberg sink connector class
 {{- define "connect.iceberg.class" -}}
 org.apache.iceberg.connect.IcebergSinkConnector
 {{- end -}}
+
+{{/*
+Logging type: inline or external (Strimzi KafkaConnect spec.logging.type).
+*/}}
+{{- define "connect.logging.type" -}}
+{{- $type := default "external" .Values.connect.logging.type -}}
+{{- if not (has $type (list "inline" "external")) -}}
+{{- fail (printf "connect.logging.type must be inline or external, got %q" $type) -}}
+{{- end -}}
+{{- $type -}}
+{{- end -}}
+
+{{/*
+Managed log4j2 ConfigMap name (chart-created when type=external).
+*/}}
+{{- define "connect.logging.configMapName" -}}
+{{- printf "%s-log4j2" (include "connect.clusterName" .) -}}
+{{- end -}}

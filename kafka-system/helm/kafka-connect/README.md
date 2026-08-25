@@ -6,7 +6,9 @@
 - Kafka Connect clusters deployed using the `KafkaConnect` resource
 - Connectors created using the `KafkaConnector` resource.
 
-# 1. Kafka Connect
+## 1. Kafka Connect
+
+references:
 
 - [Strimzi Provider](https://strimzi.io/docs/operators/latest/full/deploying.html#assembly-loading-config-with-providers-str)
 - [Config Provider](https://kafka.apache.org/41/configuration/configuration-providers/)
@@ -155,7 +157,6 @@ Summary:
 | Postgres | `org.postgresql:postgresql`  | `jdbc:postgresql://host:5432/db` |
 | MySQL | `com.mysql:mysql-connector-j` | `jdbc:mysql://host:3306/db` |
 | SQL Server | `com.microsoft.sqlserver:mssql-jdbc` | `jdbc:sqlserver://host:1433;databaseName=db` |
-
 
 ## Document
 

@@ -1,0 +1,11 @@
+{{- if and .Values.connect.enabled (eq (include "connect.logging.type" .) "external") }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "connect.logging.configMapName" . }}
+  labels:
+    {{- include "connect.labels" . | nindent 4 }}
+data:
+  log4j2.properties: |
+{{ include "connect.logging.log4j2Content" . | nindent 4 }}
+{{- end }}

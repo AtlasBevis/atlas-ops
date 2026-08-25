@@ -333,6 +333,68 @@ ingress:
     # The Ingress Class for the PgBouncer Ingress
     ingressClassName: ""
 
+# Gateway API configuration (HTTPRoute)
+gatewayApi:
+  # Master switch for Gateway API resources in this chart
+  enabled: false
+
+  # Default parentRefs used by all routes unless overridden at component level
+  parentRefs: []
+  # - name: envoy-gateway
+  #   namespace: envoy-gateway-system
+  #   sectionName: https
+
+  apiServer:
+    enabled: false
+    annotations: {}
+    labels: {}
+    parentRefs: []
+    # Optional override. If empty, hostnames/path/pathType fallback to ingress.apiServer.*
+    hostnames: []
+    path: ""
+    pathType: ""
+    filters: []
+
+  web:
+    enabled: false
+    annotations: {}
+    labels: {}
+    parentRefs: []
+    hostnames: []
+    path: ""
+    pathType: ""
+    filters: []
+
+  flower:
+    enabled: false
+    annotations: {}
+    labels: {}
+    parentRefs: []
+    hostnames: []
+    path: ""
+    pathType: ""
+    filters: []
+
+  statsd:
+    enabled: false
+    annotations: {}
+    labels: {}
+    parentRefs: []
+    hostnames: []
+    path: ""
+    pathType: ""
+    filters: []
+
+  pgbouncer:
+    enabled: false
+    annotations: {}
+    labels: {}
+    parentRefs: []
+    hostnames: []
+    path: ""
+    pathType: ""
+    filters: []
+
 # Network policy configuration
 networkPolicies:
   # Enabled network policies

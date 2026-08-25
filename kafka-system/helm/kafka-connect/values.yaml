@@ -76,11 +76,51 @@ connect:
       - name: java.io.tmpdir
         value: /mnt/connect-tmp
 
+  # 11.13.3. Configuring external logging
+  # refer: https://strimzi.io/docs/operators/latest/deploying.html#con-external-logging-option_str
+  # 1. Create a ConfigMap that contains a complete log4j2.properties file.
+  # 2. Reference the ConfigMap in the spec.logging property of the custom resource.
+  # Strimzi logging:
+  # - type: inline -> text PatternLayout, only change root Level + loggers
+  # - type: external (no valueFrom) -> automatic created ConfigMap JSON with config in `loggers` key
   logging:
-    # only: inline | external
-    type: inline 
+    type: external
+    timezone: Asia/Ho_Chi_Minh
     loggers:
       rootLogger.level: INFO
+
+      # CDC / Connect
+      io.debezium: INFO
+      org.apache.kafka.connect.runtime: INFO
+      org.apache.kafka.connect.runtime.errors: WARN
+      org.apache.kafka.connect.runtime.rest: WARN
+      org.apache.kafka.connect.storage: WARN
+      org.apache.kafka.connect.transforms: WARN
+      org.apache.iceberg: INFO
+
+      # Kafka client
+      org.apache.kafka: WARN
+      org.apache.kafka.clients.NetworkClient: WARN
+      org.apache.kafka.clients.consumer.internals: WARN
+      org.apache.kafka.clients.producer.internals: WARN
+      org.apache.kafka.common.network: WARN
+
+      # HTTP / health probe
+      org.eclipse.jetty: WARN
+      org.eclipse.jetty.server: WARN
+      org.apache.http: WARN
+
+      # JDBC sink
+      io.debezium.connector.jdbc: INFO
+      com.zaxxer.hikari: WARN
+      org.hibernate: WARN
+      org.hibernate.SQL: WARN
+
+      # misc
+      io.netty: WARN
+      org.reflections: ERROR
+      org.apache.zookeeper: WARN
+
 
   # Build a custom image with connector plugins (Debezium, JDBC, S3, ...).
   # Requires Strimzi Cluster Operator with Kaniko/Buildah support.

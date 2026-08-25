@@ -1,0 +1,430 @@
+{{/*
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+*/}}
+{{- if .Values.gatewayApi.enabled }}
+{{- $fullName := include "airflow.fullname" . }}
+{{- $apiVersion := "gateway.networking.k8s.io/v1" }}
+{{- if not (.Capabilities.APIVersions.Has "gateway.networking.k8s.io/v1") }}
+  {{- if .Capabilities.APIVersions.Has "gateway.networking.k8s.io/v1beta1" }}
+    {{- $apiVersion = "gateway.networking.k8s.io/v1beta1" }}
+  {{- else }}
+    {{- fail "gatewayApi.enabled is true but neither gateway.networking.k8s.io/v1 nor v1beta1 APIs are available in the target cluster" }}
+  {{- end }}
+{{- end }}
+{{- $globalParentRefs := .Values.gatewayApi.parentRefs | default (list) }}
+
+{{- if and .Values.apiServer.enabled (semverCompare ">=3.0.0" .Values.airflowVersion) .Values.gatewayApi.apiServer.enabled }}
+{{- $parentRefs := .Values.gatewayApi.apiServer.parentRefs | default $globalParentRefs }}
+{{- if not $parentRefs }}
+  {{- fail "gatewayApi.apiServer.parentRefs or gatewayApi.parentRefs must be configured when gatewayApi.apiServer.enabled=true" }}
+{{- end }}
+{{- $pathType := .Values.gatewayApi.apiServer.pathType | default .Values.ingress.apiServer.pathType | default "PathPrefix" }}
+---
+apiVersion: {{ $apiVersion }}
+kind: HTTPRoute
+metadata:
+  name: {{ $fullName }}-api-server
+  labels:
+    tier: airflow
+    component: airflow-api-server-httproute
+    release: {{ .Release.Name }}
+    chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+    heritage: {{ .Release.Service }}
+    {{- with .Values.gatewayApi.apiServer.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- with .Values.gatewayApi.apiServer.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  parentRefs:
+    {{- range $parentRefs }}
+    - name: {{ .name | quote }}
+      {{- with .group }}
+      group: {{ . | quote }}
+      {{- end }}
+      {{- with .kind }}
+      kind: {{ . | quote }}
+      {{- end }}
+      {{- with .namespace }}
+      namespace: {{ . | quote }}
+      {{- end }}
+      {{- with .sectionName }}
+      sectionName: {{ . | quote }}
+      {{- end }}
+      {{- with .port }}
+      port: {{ . }}
+      {{- end }}
+    {{- end }}
+  {{- if .Values.gatewayApi.apiServer.hostnames }}
+  hostnames:
+    {{- range .Values.gatewayApi.apiServer.hostnames }}
+    {{- if kindIs "string" . }}
+    - {{ tpl . $ | quote }}
+    {{- else if .name }}
+    - {{ tpl .name $ | quote }}
+    {{- end }}
+    {{- end }}
+  {{- else if .Values.ingress.apiServer.hosts }}
+  hostnames:
+    {{- range .Values.ingress.apiServer.hosts }}
+    {{- if kindIs "string" . }}
+    - {{ tpl . $ | quote }}
+    {{- else if .name }}
+    - {{ tpl .name $ | quote }}
+    {{- end }}
+    {{- end }}
+  {{- else if .Values.ingress.apiServer.host }}
+  hostnames:
+    - {{ tpl .Values.ingress.apiServer.host $ | quote }}
+  {{- end }}
+  rules:
+    - matches:
+        - path:
+            type: {{ if eq $pathType "ImplementationSpecific" }}PathPrefix{{ else }}{{ $pathType }}{{ end }}
+            value: {{ (.Values.gatewayApi.apiServer.path | default .Values.ingress.apiServer.path | default "/") | quote }}
+      {{- with .Values.gatewayApi.apiServer.filters }}
+      filters:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      backendRefs:
+        - name: {{ $fullName }}-api-server
+          port: 8080
+{{- end }}
+
+{{- if and .Values.webserver.enabled (semverCompare "<3.0.0" .Values.airflowVersion) .Values.gatewayApi.web.enabled }}
+{{- $parentRefs := .Values.gatewayApi.web.parentRefs | default $globalParentRefs }}
+{{- if not $parentRefs }}
+  {{- fail "gatewayApi.web.parentRefs or gatewayApi.parentRefs must be configured when gatewayApi.web.enabled=true" }}
+{{- end }}
+{{- $pathType := .Values.gatewayApi.web.pathType | default .Values.ingress.web.pathType | default "PathPrefix" }}
+---
+apiVersion: {{ $apiVersion }}
+kind: HTTPRoute
+metadata:
+  name: {{ $fullName }}-webserver
+  labels:
+    tier: airflow
+    component: airflow-webserver-httproute
+    release: {{ .Release.Name }}
+    chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+    heritage: {{ .Release.Service }}
+    {{- with .Values.gatewayApi.web.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- with .Values.gatewayApi.web.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  parentRefs:
+    {{- range $parentRefs }}
+    - name: {{ .name | quote }}
+      {{- with .group }}
+      group: {{ . | quote }}
+      {{- end }}
+      {{- with .kind }}
+      kind: {{ . | quote }}
+      {{- end }}
+      {{- with .namespace }}
+      namespace: {{ . | quote }}
+      {{- end }}
+      {{- with .sectionName }}
+      sectionName: {{ . | quote }}
+      {{- end }}
+      {{- with .port }}
+      port: {{ . }}
+      {{- end }}
+    {{- end }}
+  {{- if .Values.gatewayApi.web.hostnames }}
+  hostnames:
+    {{- range .Values.gatewayApi.web.hostnames }}
+    {{- if kindIs "string" . }}
+    - {{ tpl . $ | quote }}
+    {{- else if .name }}
+    - {{ tpl .name $ | quote }}
+    {{- end }}
+    {{- end }}
+  {{- else if .Values.ingress.web.hosts }}
+  hostnames:
+    {{- range .Values.ingress.web.hosts }}
+    {{- if kindIs "string" . }}
+    - {{ tpl . $ | quote }}
+    {{- else if .name }}
+    - {{ tpl .name $ | quote }}
+    {{- end }}
+    {{- end }}
+  {{- else if .Values.ingress.web.host }}
+  hostnames:
+    - {{ tpl .Values.ingress.web.host $ | quote }}
+  {{- end }}
+  rules:
+    - matches:
+        - path:
+            type: {{ if eq $pathType "ImplementationSpecific" }}PathPrefix{{ else }}{{ $pathType }}{{ end }}
+            value: {{ (.Values.gatewayApi.web.path | default .Values.ingress.web.path | default "/") | quote }}
+      {{- with .Values.gatewayApi.web.filters }}
+      filters:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      backendRefs:
+        - name: {{ $fullName }}-webserver
+          port: 8080
+{{- end }}
+
+{{- if and .Values.flower.enabled (or (contains "CeleryExecutor" .Values.executor) (contains "CeleryKubernetesExecutor" .Values.executor)) .Values.gatewayApi.flower.enabled }}
+{{- $parentRefs := .Values.gatewayApi.flower.parentRefs | default $globalParentRefs }}
+{{- if not $parentRefs }}
+  {{- fail "gatewayApi.flower.parentRefs or gatewayApi.parentRefs must be configured when gatewayApi.flower.enabled=true" }}
+{{- end }}
+{{- $pathType := .Values.gatewayApi.flower.pathType | default .Values.ingress.flower.pathType | default "PathPrefix" }}
+---
+apiVersion: {{ $apiVersion }}
+kind: HTTPRoute
+metadata:
+  name: {{ $fullName }}-flower
+  labels:
+    tier: airflow
+    component: airflow-flower-httproute
+    release: {{ .Release.Name }}
+    chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+    heritage: {{ .Release.Service }}
+    {{- with .Values.gatewayApi.flower.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- with .Values.gatewayApi.flower.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  parentRefs:
+    {{- range $parentRefs }}
+    - name: {{ .name | quote }}
+      {{- with .group }}
+      group: {{ . | quote }}
+      {{- end }}
+      {{- with .kind }}
+      kind: {{ . | quote }}
+      {{- end }}
+      {{- with .namespace }}
+      namespace: {{ . | quote }}
+      {{- end }}
+      {{- with .sectionName }}
+      sectionName: {{ . | quote }}
+      {{- end }}
+      {{- with .port }}
+      port: {{ . }}
+      {{- end }}
+    {{- end }}
+  {{- if .Values.gatewayApi.flower.hostnames }}
+  hostnames:
+    {{- range .Values.gatewayApi.flower.hostnames }}
+    {{- if kindIs "string" . }}
+    - {{ tpl . $ | quote }}
+    {{- else if .name }}
+    - {{ tpl .name $ | quote }}
+    {{- end }}
+    {{- end }}
+  {{- else if .Values.ingress.flower.hosts }}
+  hostnames:
+    {{- range .Values.ingress.flower.hosts }}
+    {{- if kindIs "string" . }}
+    - {{ tpl . $ | quote }}
+    {{- else if .name }}
+    - {{ tpl .name $ | quote }}
+    {{- end }}
+    {{- end }}
+  {{- else if .Values.ingress.flower.host }}
+  hostnames:
+    - {{ tpl .Values.ingress.flower.host $ | quote }}
+  {{- end }}
+  rules:
+    - matches:
+        - path:
+            type: {{ if eq $pathType "ImplementationSpecific" }}PathPrefix{{ else }}{{ $pathType }}{{ end }}
+            value: {{ (.Values.gatewayApi.flower.path | default .Values.ingress.flower.path | default "/") | quote }}
+      {{- with .Values.gatewayApi.flower.filters }}
+      filters:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      backendRefs:
+        - name: {{ $fullName }}-flower
+          port: 5555
+{{- end }}
+
+{{- if and .Values.statsd.enabled .Values.gatewayApi.statsd.enabled }}
+{{- $parentRefs := .Values.gatewayApi.statsd.parentRefs | default $globalParentRefs }}
+{{- if not $parentRefs }}
+  {{- fail "gatewayApi.statsd.parentRefs or gatewayApi.parentRefs must be configured when gatewayApi.statsd.enabled=true" }}
+{{- end }}
+{{- $pathType := .Values.gatewayApi.statsd.pathType | default .Values.ingress.statsd.pathType | default "PathPrefix" }}
+---
+apiVersion: {{ $apiVersion }}
+kind: HTTPRoute
+metadata:
+  name: {{ $fullName }}-statsd
+  labels:
+    tier: airflow
+    component: airflow-statsd-httproute
+    release: {{ .Release.Name }}
+    chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+    heritage: {{ .Release.Service }}
+    {{- with .Values.gatewayApi.statsd.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- with .Values.gatewayApi.statsd.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  parentRefs:
+    {{- range $parentRefs }}
+    - name: {{ .name | quote }}
+      {{- with .group }}
+      group: {{ . | quote }}
+      {{- end }}
+      {{- with .kind }}
+      kind: {{ . | quote }}
+      {{- end }}
+      {{- with .namespace }}
+      namespace: {{ . | quote }}
+      {{- end }}
+      {{- with .sectionName }}
+      sectionName: {{ . | quote }}
+      {{- end }}
+      {{- with .port }}
+      port: {{ . }}
+      {{- end }}
+    {{- end }}
+  {{- if .Values.gatewayApi.statsd.hostnames }}
+  hostnames:
+    {{- range .Values.gatewayApi.statsd.hostnames }}
+    {{- if kindIs "string" . }}
+    - {{ tpl . $ | quote }}
+    {{- else if .name }}
+    - {{ tpl .name $ | quote }}
+    {{- end }}
+    {{- end }}
+  {{- else if .Values.ingress.statsd.hosts }}
+  hostnames:
+    {{- range .Values.ingress.statsd.hosts }}
+    {{- if kindIs "string" . }}
+    - {{ tpl . $ | quote }}
+    {{- else if .name }}
+    - {{ tpl .name $ | quote }}
+    {{- end }}
+    {{- end }}
+  {{- else if .Values.ingress.statsd.host }}
+  hostnames:
+    - {{ tpl .Values.ingress.statsd.host $ | quote }}
+  {{- end }}
+  rules:
+    - matches:
+        - path:
+            type: {{ if eq $pathType "ImplementationSpecific" }}PathPrefix{{ else }}{{ $pathType }}{{ end }}
+            value: {{ (.Values.gatewayApi.statsd.path | default .Values.ingress.statsd.path | default "/metrics") | quote }}
+      {{- with .Values.gatewayApi.statsd.filters }}
+      filters:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      backendRefs:
+        - name: {{ $fullName }}-statsd
+          port: 9102
+{{- end }}
+
+{{- if and .Values.pgbouncer.enabled .Values.gatewayApi.pgbouncer.enabled }}
+{{- $parentRefs := .Values.gatewayApi.pgbouncer.parentRefs | default $globalParentRefs }}
+{{- if not $parentRefs }}
+  {{- fail "gatewayApi.pgbouncer.parentRefs or gatewayApi.parentRefs must be configured when gatewayApi.pgbouncer.enabled=true" }}
+{{- end }}
+{{- $pathType := .Values.gatewayApi.pgbouncer.pathType | default .Values.ingress.pgbouncer.pathType | default "PathPrefix" }}
+---
+apiVersion: {{ $apiVersion }}
+kind: HTTPRoute
+metadata:
+  name: {{ $fullName }}-pgbouncer
+  labels:
+    tier: airflow
+    component: airflow-pgbouncer-httproute
+    release: {{ .Release.Name }}
+    chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+    heritage: {{ .Release.Service }}
+    {{- with .Values.gatewayApi.pgbouncer.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- with .Values.gatewayApi.pgbouncer.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  parentRefs:
+    {{- range $parentRefs }}
+    - name: {{ .name | quote }}
+      {{- with .group }}
+      group: {{ . | quote }}
+      {{- end }}
+      {{- with .kind }}
+      kind: {{ . | quote }}
+      {{- end }}
+      {{- with .namespace }}
+      namespace: {{ . | quote }}
+      {{- end }}
+      {{- with .sectionName }}
+      sectionName: {{ . | quote }}
+      {{- end }}
+      {{- with .port }}
+      port: {{ . }}
+      {{- end }}
+    {{- end }}
+  {{- if .Values.gatewayApi.pgbouncer.hostnames }}
+  hostnames:
+    {{- range .Values.gatewayApi.pgbouncer.hostnames }}
+    {{- if kindIs "string" . }}
+    - {{ tpl . $ | quote }}
+    {{- else if .name }}
+    - {{ tpl .name $ | quote }}
+    {{- end }}
+    {{- end }}
+  {{- else if .Values.ingress.pgbouncer.hosts }}
+  hostnames:
+    {{- range .Values.ingress.pgbouncer.hosts }}
+    {{- if kindIs "string" . }}
+    - {{ tpl . $ | quote }}
+    {{- else if .name }}
+    - {{ tpl .name $ | quote }}
+    {{- end }}
+    {{- end }}
+  {{- else if .Values.ingress.pgbouncer.host }}
+  hostnames:
+    - {{ tpl .Values.ingress.pgbouncer.host $ | quote }}
+  {{- end }}
+  rules:
+    - matches:
+        - path:
+            type: {{ if eq $pathType "ImplementationSpecific" }}PathPrefix{{ else }}{{ $pathType }}{{ end }}
+            value: {{ (.Values.gatewayApi.pgbouncer.path | default .Values.ingress.pgbouncer.path | default "/metrics") | quote }}
+      {{- with .Values.gatewayApi.pgbouncer.filters }}
+      filters:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      backendRefs:
+        - name: {{ $fullName }}-pgbouncer
+          port: 9127
+{{- end }}
+{{- end }}

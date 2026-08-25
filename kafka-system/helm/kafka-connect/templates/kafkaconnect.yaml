@@ -51,8 +51,29 @@ spec:
     {{- toYaml . | nindent 4 }}
   {{- end }}
   {{- with .logging }}
+  {{- $logType := include "connect.logging.type" $root }}
   logging:
-    {{- toYaml . | nindent 4 }}
+    type: {{ $logType }}
+    {{- if eq $logType "external" }}
+    valueFrom:
+      configMapKeyRef:
+        name: {{ include "connect.logging.configMapName" $root }}
+        key: log4j2.properties
+    {{- else }}
+    loggers:
+      {{- $loggers := .loggers | default dict }}
+      {{- if not (hasKey $loggers "rootLogger.level") }}
+      rootLogger.level: INFO
+      {{- end }}
+      {{- range $pkg, $level := $loggers }}
+      {{- if eq $pkg "rootLogger.level" }}
+      rootLogger.level: {{ $level }}
+      {{- else }}
+      logger.{{ $pkg | replace "." "_" }}.name: {{ $pkg | quote }}
+      logger.{{ $pkg | replace "." "_" }}.level: {{ $level | quote }}
+      {{- end }}
+      {{- end }}
+    {{- end }}
   {{- end }}
   {{- with .build }}
   build:
@@ -70,9 +91,17 @@ spec:
   rack:
     {{- toYaml . | nindent 4 }}
   {{- end }}
-  {{- with .template }}
-  template:
-    {{- tpl (toYaml .) $root | nindent 4 }}
+  {{- $template := deepCopy (default dict .template) }}
+  {{- if eq (include "connect.logging.type" $root) "external" }}
+  {{- $pod := default dict $template.pod }}
+  {{- $metadata := default dict $pod.metadata }}
+  {{- $annotations := default dict $metadata.annotations }}
+  {{- $_ := set $annotations "checksum/log4j2" (include "connect.logging.log4j2Checksum" $root) }}
+  {{- $_ := set $metadata "annotations" $annotations }}
+  {{- $_ := set $pod "metadata" $metadata }}
+  {{- $_ := set $template "pod" $pod }}
   {{- end }}
+  template:
+    {{- tpl (toYaml $template) $root | nindent 4 }}
 {{- end }}
 {{- end -}}
