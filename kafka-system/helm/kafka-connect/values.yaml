@@ -133,7 +133,7 @@ connect:
   #   output:
   #     # supports: docker | imagestream
   #     type: docker
-  #     image: dockerhub.vietcredit.com.vn/dwh/kafka-connect:4.2.0-debezium
+  #     image: dockerhub.company.com.vn/dwh/kafka-connect:4.2.0-debezium
   #     # use docker-registry k8s secrets with kubernetes.io/dockerconfigjson
   #     # docs: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/#registry-secret-existing-credentials
   #     pushSecret: dockerhub-regcred
@@ -245,17 +245,6 @@ s3:
   - name: domain
     enabled: false
     config:
-      # Same wire-format contract as the Debezium source (see anchor).
-      # DO NOT redefine only part of the value.converter.* keys here:
-      # worker/connector converter configs are NOT merged by Connect.
-      <<: *apicurioConverter
-      # Keys are not written into S3 Avro files, so a String key
-      # converter is acceptable here. Keep the Avro key converter from
-      # the anchor if you also plan to reuse this block for JDBC sinks.
-      key.converter: org.apache.kafka.connect.storage.StringConverter
-      # Must match the group defined in dp-schemas (governance repo).
-      value.converter.apicurio.registry.artifact.group-id: oracle
-
       topics.dir: cdc
       topics.regex: ^cdc\..*
       s3.bucket.name: prod-raw

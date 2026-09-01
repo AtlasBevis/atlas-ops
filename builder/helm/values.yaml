@@ -3,8 +3,11 @@ namespace: ""
 nameOverride: ""
 fullnameOverride: ""
 
+# BuildKit daemon image (privileged, not rootless).
+# Upstream:  moby/buildkit:v0.30.0
+# Mirror:    dockerhub.company.com.vn/dwh/docker:v0.30.0
 image:
-  repository: dockerhub.vietcredit.com.vn/dwh/docker
+  repository: moby/buildkit:v0.30.0
   tag: v0.30.0
   pullPolicy: IfNotPresent
 
