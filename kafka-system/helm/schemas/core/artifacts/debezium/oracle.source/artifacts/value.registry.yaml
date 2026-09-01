@@ -1,0 +1,10 @@
+$type: artifact-v0
+groupId: debezium
+artifactId: io.debezium.connector.oracle.Source
+artifactType: AVRO
+description: Shared Debezium Oracle Source (connect.name=io.debezium.connector.oracle.Source)
+versions:
+  - version: "1"
+    state: ENABLED
+    description: oracle.Source v1
+    content: ../schemas/v1/value.avsc

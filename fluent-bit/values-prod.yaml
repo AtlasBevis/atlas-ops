@@ -419,6 +419,16 @@ config:
 
     [INPUT]
       Name                          tail
+      Path                          /var/log/containers/*kafka-connect*connect*.log
+      Tag                           op.kafka_connect
+      multiline.parser              docker, cri
+      Mem_Buf_Limit                 20MB
+      Skip_Long_Lines               On
+      Storage.Type                  filesystem
+      Refresh_Interval              5
+
+    [INPUT]
+      Name                          tail
       Path                          /var/log/containers/*data-api-gw*.log
       Tag                           app.data_api_gw
       multiline.parser              docker, cri
@@ -438,7 +448,22 @@ config:
     #   K8S-Logging.Exclude         On
     #   Labels                      On
     #   Annotations                 Off
-      
+    
+    [FILTER]
+      Name                        kubernetes
+      Match                       op.kafka_connect
+      Merge_Log                   On
+      Keep_Log                    Off
+      K8S-Logging.Parser          On
+      K8S-Logging.Exclude         On
+
+    [FILTER]
+      Name                        parser
+      Match                       op.kafka_connect
+      Key_Name                    log
+      Parser                      connect_json
+      Reserve_Data                On
+
     [FILTER]
       Name                        kubernetes
       Match                       app.data_api_gw
@@ -473,6 +498,17 @@ config:
       Suppress_Type_Name          On
       Replace_Dots                On
 
+    [OUTPUT]
+      Name                        opensearch
+      Match                       op.kafka_connect
+      Host                        opensearch-cluster-master.opensearch
+      Port                        9200
+      Index                       logs-kafka-connect
+      Write_Operation             create
+      Retry_Limit                 False
+      Suppress_Type_Name          On
+      Replace_Dots                On
+
   ## https://docs.fluentbit.io/manual/administration/configuring-fluent-bit/classic-mode/upstream-servers
   ## This configuration is deprecated, please use `extraFiles` instead.
   upstream: {}
@@ -486,6 +522,13 @@ config:
       Time_Format                 %Y-%m-%dT%H:%M:%S.%L%z
       Time_Keep                   On
 
+    [PARSER]
+      Name                        connect_json
+      Format                      json
+      Time_Key                    @timestamp
+      Time_Format                 %Y-%m-%dT%H:%M:%S.%L%z
+      Time_Keep                   On
+      
   # This allows adding more files with arbitrary filenames to /fluent-bit/etc/conf by providing key/value pairs.
   # The key becomes the filename, the value becomes the file content.
   extraFiles: {}

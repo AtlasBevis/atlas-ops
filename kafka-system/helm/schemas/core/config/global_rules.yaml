@@ -1,0 +1,6 @@
+globalRules:
+  - ruleType: VALIDITY
+    config: FULL
+  - ruleType: COMPATIBILITY
+    config: BACKWARD
+properties: []

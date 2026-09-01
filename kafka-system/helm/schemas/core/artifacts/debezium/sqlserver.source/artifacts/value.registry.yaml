@@ -1,0 +1,10 @@
+$type: artifact-v0
+groupId: debezium
+artifactId: io.debezium.connector.sqlserver.Source
+artifactType: AVRO
+description: Shared Debezium SQL Server Source (connect.name=io.debezium.connector.sqlserver.Source)
+versions:
+  - version: "1"
+    state: ENABLED
+    description: sqlserver.Source v1
+    content: ../schemas/v1/value.avsc

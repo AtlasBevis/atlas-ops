@@ -1,0 +1,10 @@
+$type: artifact-v0
+groupId: heartbeat
+artifactId: event.heartbeat
+artifactType: AVRO
+description: Heartbeat event
+versions:
+  - version: "1"
+    state: ENABLED
+    description: event.block v1
+    content: ../schemas/v1/value.avsc

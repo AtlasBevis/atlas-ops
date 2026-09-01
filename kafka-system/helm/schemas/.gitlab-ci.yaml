@@ -1,0 +1,19 @@
+stages:
+  - register
+
+variables:
+  REGISTRY_URL: "https://domain.com.vn/apis/registry/v3"
+  PIP_DISABLE_PIP_VERSION_CHECK: "1"
+
+register_schemas:
+  stage: register
+  tags:
+    - build
+  before_script:
+    - pip install --quiet pyyaml
+  script:
+    - cd scripts
+    - python main.py
+  rules:
+    - if: $CI_COMMIT_BRANCH == "master"
+    - if: $CI_COMMIT_BRANCH == "main"

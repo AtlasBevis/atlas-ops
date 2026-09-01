@@ -212,7 +212,7 @@ brokers:
       memory: 4Gi
     limits:
       cpu: "4"
-      memory: 8Gi
+      memory: 10Gi
   jvmOptions:
     -Xms: 2g
     -Xmx: 2g

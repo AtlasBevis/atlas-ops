@@ -1,4 +1,4 @@
-FROM apache/airflow:3.2.2
+FROM apache/airflow:3.3.1
 
 RUN pip install --no-cache-dir \
     airflow-clickhouse-plugin==1.7.0 \

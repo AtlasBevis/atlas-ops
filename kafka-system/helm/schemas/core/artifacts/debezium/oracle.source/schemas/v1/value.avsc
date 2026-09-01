@@ -1,0 +1,49 @@
+{
+  "type": "record",
+  "name": "Source",
+  "namespace": "io.debezium.connector.oracle",
+  "fields": [
+    { "name": "version", "type": "string" },
+    { "name": "connector", "type": "string" },
+    { "name": "name", "type": "string" },
+    { "name": "ts_ms", "type": "long" },
+    {
+      "name": "snapshot",
+      "type": [
+        {
+          "type": "string",
+          "connect.version": 1,
+          "connect.parameters": {
+            "allowed": "true,first,first_in_data_collection,last_in_data_collection,last,false,incremental"
+          },
+          "connect.default": "false",
+          "connect.name": "io.debezium.data.Enum"
+        },
+        "null"
+      ],
+      "default": "false"
+    },
+    { "name": "db", "type": "string" },
+    { "name": "sequence", "type": ["null", "string"], "default": null },
+    { "name": "ts_us", "type": ["null", "long"], "default": null },
+    { "name": "ts_ns", "type": ["null", "long"], "default": null },
+    { "name": "schema", "type": "string" },
+    { "name": "table", "type": "string" },
+    { "name": "txId", "type": ["null", "string"], "default": null },
+    { "name": "scn", "type": ["null", "string"], "default": null },
+    { "name": "commit_scn", "type": ["null", "string"], "default": null },
+    { "name": "lcr_position", "type": ["null", "string"], "default": null },
+    { "name": "rs_id", "type": ["null", "string"], "default": null },
+    { "name": "ssn", "type": ["null", "long"], "default": null },
+    { "name": "redo_thread", "type": ["null", "int"], "default": null },
+    { "name": "user_name", "type": ["null", "string"], "default": null },
+    { "name": "redo_sql", "type": ["null", "string"], "default": null },
+    { "name": "row_id", "type": ["null", "string"], "default": null },
+    { "name": "commit_ts_ms", "type": ["null", "long"], "default": null },
+    { "name": "start_scn", "type": ["null", "string"], "default": null },
+    { "name": "start_ts_ms", "type": ["null", "long"], "default": null },
+    { "name": "txSeq", "type": ["null", "long"], "default": null }
+  ],
+  "connect.version": 1,
+  "connect.name": "io.debezium.connector.oracle.Source"
+}

@@ -158,7 +158,16 @@ Summary:
 | MySQL | `com.mysql:mysql-connector-j` | `jdbc:mysql://host:3306/db` |
 | SQL Server | `com.microsoft.sqlserver:mssql-jdbc` | `jdbc:sqlserver://host:1433;databaseName=db` |
 
-## Document
+### 2.3. Debizum Signal
+
+reference docs [Signal](https://debezium.io/documentation/reference/stable/configuration/signalling.html)
+
+> **NOTE**: The `source` channel is enabled by default, because it is required for incremental snapshot signals.
+
+> To use signaling to trigger ad hoc incremental snapshots for most connectors, you must first enable a `source` signaling channel in the connector configuration. The source channel implements a watermarking mechanism to deduplicate events.
+Exception: MySQL read-only
+
+## References
 
 - [Deploying Kafka Connect](https://strimzi.io/docs/operators/latest/deploying#kafka-connect-str)
 - [Exposing API](https://strimzi.io/docs/operators/latest/deploying#con-exposing-kafka-connect-api-str)

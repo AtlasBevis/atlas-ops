@@ -20,6 +20,10 @@ helm pull fluent/fluent-bit --version 0.58.0
 docker pull cr.fluentbit.io/fluent/fluent-bit:5.1.0
 ```
 
+## Create Discover
+
+1. Dashboard Management > Index Parttern > Create Parttern
+
 ## References
 
 - [Home](https://fluentbit.io/)

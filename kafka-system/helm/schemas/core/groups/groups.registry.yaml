@@ -1,0 +1,12 @@
+$type: groups-v0
+groups:
+  - groupId: debezium
+    description: Shared Debezium types
+  - groupId: domain1
+    description: group for domain1 (Oracle)
+  - groupId: domain2
+    description: group for domain2 (MSSQL)
+  - groupId: domain3
+    description: group for domain3 (MySQL)
+  - groupId: domain4
+    description: group for domain4 (PostgreSQL)

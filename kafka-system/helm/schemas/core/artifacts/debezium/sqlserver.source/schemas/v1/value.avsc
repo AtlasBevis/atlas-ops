@@ -1,0 +1,39 @@
+{
+  "type": "record",
+  "name": "Source",
+  "namespace": "io.debezium.connector.sqlserver",
+  "doc": "Debezium SQL Server connector source info block",
+  "fields": [
+    { "name": "version", "type": "string" },
+    { "name": "connector", "type": "string" },
+    { "name": "name", "type": "string" },
+    { "name": "ts_ms", "type": "long" },
+    {
+      "name": "snapshot",
+      "type": [
+        {
+          "type": "string",
+          "connect.version": 1,
+          "connect.parameters": {
+            "allowed": "true,first,first_in_data_collection,last_in_data_collection,last,false,incremental"
+          },
+          "connect.default": "false",
+          "connect.name": "io.debezium.data.Enum"
+        },
+        "null"
+      ],
+      "default": "false"
+    },
+    { "name": "db", "type": "string" },
+    { "name": "sequence", "type": ["null", "string"], "default": null },
+    { "name": "ts_us", "type": ["null", "long"], "default": null },
+    { "name": "ts_ns", "type": ["null", "long"], "default": null },
+    { "name": "schema", "type": "string" },
+    { "name": "table", "type": "string" },
+    { "name": "change_lsn", "type": ["null", "string"], "default": null },
+    { "name": "commit_lsn", "type": ["null", "string"], "default": null },
+    { "name": "event_serial_no", "type": ["null", "long"], "default": null }
+  ],
+  "connect.version": 1,
+  "connect.name": "io.debezium.connector.sqlserver.Source"
+}

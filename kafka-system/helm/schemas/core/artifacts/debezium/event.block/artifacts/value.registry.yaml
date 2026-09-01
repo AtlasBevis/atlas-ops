@@ -1,0 +1,10 @@
+$type: artifact-v0
+groupId: debezium
+artifactId: event.block
+artifactType: AVRO
+description: Debezium transaction
+versions:
+  - version: "1"
+    state: ENABLED
+    description: event.block v1
+    content: ../schemas/v1/value.avsc

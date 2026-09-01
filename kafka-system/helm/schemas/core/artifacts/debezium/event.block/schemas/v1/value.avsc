@@ -1,0 +1,13 @@
+{
+  "type": "record",
+  "name": "block",
+  "namespace": "event",
+  "doc": "Debezium transaction block metadata (shared across connectors)",
+  "fields": [
+    { "name": "id", "type": "string" },
+    { "name": "total_order", "type": "long" },
+    { "name": "data_collection_order", "type": "long" }
+  ],
+  "connect.version": 1,
+  "connect.name": "event.block"
+}
