@@ -19,10 +19,10 @@ kafka:
   # 6.2 Specifying listener types
   # https://strimzi.io/docs/operators/latest/configuring.html#specifying_listener_types
   listeners:
-    # - name: plain
-    #   port: 9092
-    #   type: internal
-    #   tls: false
+    - name: plain
+      port: 9092
+      type: internal
+      tls: false
     - name: tls
       port: 9092
       type: internal
