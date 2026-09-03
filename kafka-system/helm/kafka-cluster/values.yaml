@@ -19,10 +19,6 @@ kafka:
   # 6.2 Specifying listener types
   # https://strimzi.io/docs/operators/latest/configuring.html#specifying_listener_types
   listeners:
-    - name: plain
-      port: 9092
-      type: internal
-      tls: false
     - name: tls
       port: 9092
       type: internal
@@ -30,7 +26,14 @@ kafka:
       # supported: tls | scram-sha-512 | custom
       authentication:
         type: scram-sha-512
-    
+
+    - name: sasl
+      port: 9093
+      type: internal
+      tls: false
+      authentication:
+        type: scram-sha-512
+
   # 14. KafkaAuthorizationSimple schema reference
   # https://strimzi.io/docs/operators/latest/configuring.html#type-KafkaAuthorizationSimple-reference
   authorization:
