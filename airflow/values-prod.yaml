@@ -4138,11 +4138,11 @@ cleanup:
 
   resources:
     limits:
-      cpu: 0.5
-      memory: 512Mi
+      cpu: 820m
+      memory: 300Mi
     requests:
       cpu: 100m
-      memory: 256Mi
+      memory: 100Mi
 
   # Create Service Account
   serviceAccount:
