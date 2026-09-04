@@ -1,6 +1,6 @@
 # Apache Airflow
 
-- version: airflow 3.2.2
+- version: airflow 3.3.1
 - redirect_uri: https://domain/auth/oauth-authorized/azure
 
 ## 1. Docker Images
@@ -156,4 +156,4 @@ Custom Authen team login Azure (files/auth)
 
 ## Document
 
-[K8sExecutor](https://airflow.apache.org/docs/apache-airflow-providers-cncf-kubernetes/stable/kubernetes_executor.html)
+- [K8sExecutor](https://airflow.apache.org/docs/apache-airflow-providers-cncf-kubernetes/stable/kubernetes_executor.html)
