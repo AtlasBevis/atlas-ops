@@ -4,31 +4,20 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from common import ROOT, get_json, load_yaml, post_json, require
 
-GROUPS_FILE = ROOT / "groups" / "groups.registry.yaml"
-
+from common import (
+    GROUPS_FILE, get_json, 
+    load_yaml, post_json, require
+)
 
 @dataclass(frozen=True, slots=True)
-class GroupSpec:
+class Group:
     group_id: str
-    description: str
-    connector: Connector | None = None
-    debezium: DebeziumInfraSpec | None = None
-
-    @property
-    def is_debezium_infra(self) -> bool:
-        return self.debezium is not None
-
-    @property
-    def is_cdc_domain(self) -> bool:
-        return self.connector is not None
-
+    description: str | None = None
 
 def list_groups(base: str) -> set[str]:
     data = get_json(f"{base}/groups")
     return {g["groupId"] for g in data.get("groups") or [] if g.get("groupId")}
-
 
 def create_group(base: str, group_id: str, description: str | None = None) -> bool:
     body: dict = {"groupId": group_id}
@@ -36,32 +25,32 @@ def create_group(base: str, group_id: str, description: str | None = None) -> bo
         body["description"] = description
     return post_json(f"{base}/groups", body) == 200
 
-def validate_group_files() -> None: {
-    
-}
-
-def sync_groups(base: str) -> set[str]:
+def load_groups() -> list[Group]:
     if not GROUPS_FILE.is_file():
         raise FileNotFoundError(f"Groups file not found: {GROUPS_FILE}")
-
+    
     data = load_yaml(GROUPS_FILE)
-    if data.get("$type") != "groups-v0":
-        raise ValueError(f"Expected $type groups-v0 in {GROUPS_FILE}")
-    desired = require(data, "groups", GROUPS_FILE)
-    if not isinstance(desired, list):
-        raise ValueError(f"'groups' must be a list in {GROUPS_FILE}")
+    rows = require(data, "groups", GROUPS_FILE)
+    groups: list[Group] = []
+    for i, entry in enumerate(rows):
+        if not isinstance(entry, dict) or not entry.get("groupId"):
+            raise ValueError(f"Invalid group entry at index {i} in {GROUPS_FILE}")
+        groups.append(Group(
+            group_id=entry["groupId"], 
+            description=entry.get("description"),
+        ))
+    return groups
 
+def sync_groups(base: str) -> set[str]:
+    desired = load_groups()
     existing = list_groups(base)
     created = 0
-    for i, entry in enumerate(desired):
-        if not isinstance(entry, dict) or not entry.get("groupId"):
-            raise ValueError(f"groups[{i}] missing groupId in {GROUPS_FILE}")
-        gid = entry["groupId"]
-        if gid in existing:
+    for i, g in desired:
+        if g.group_id in existing:
             continue
-        if create_group(base, gid, entry.get("description")):
+        if create_group(base, g.group_id, g.description):
             created += 1
-        existing.add(gid)
+        existing.add(g.group_id)
 
-    print(f"[groups] listed={len(existing)} created={created} file={GROUPS_FILE.name}")
+    print(f"[groups] listed={len(existing)} created={created}")
     return existing

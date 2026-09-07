@@ -10,6 +10,10 @@ import urllib.request
 from pathlib import Path
 from typing import Any
 
+try:
+    import yaml
+except ImportError as exc:  # pragma: no cover
+    raise SystemExit("PyYAML is required: pip install pyyaml") from exc
 
 def path_seg(value: str) -> str:
     return urllib.parse.quote(str(value), safe="")
@@ -40,13 +44,31 @@ def get_json(url: str, *, allow_404: bool = False) -> dict[str, Any]:
         raise RuntimeError(f"GET {url} failed ({code}): {text}")
     return json.loads(text) if text else {}
 
+def get_json_list(url: str, *, allow_404: bool = False) -> list[Any]:
+    code, text = api_request("GET", url)
+    if allow_404 and code == 404:
+        return []
+    if code != 200:
+        raise RuntimeError(f"GET {url} failed ({code}): {text}")
+    data = json.loads(text) if text else []
+    if not isinstance(data, list):
+        raise TypeError(f"GET {url} expected array, got {type(data).__name__}")
+    return data
 
 def post_json(url: str, body: dict) -> int:
     """POST JSON. Returns 200 or 409; other codes raise."""
     code, text = api_request("POST", url, body=body)
-    if code in (200, 409):
+    if code in (200, 204, 409):
         return code
     raise RuntimeError(f"POST {url} failed ({code}): {text}")
+
+
+def put_json(url: str, body: dict) -> int:
+    """PUT JSON. Returns 200 or 204; other codes raise."""
+    code, text = api_request("PUT", url, body=body)
+    if code in (200, 204):
+        return code
+    raise RuntimeError(f"PUT {url} failed ({code}): {text}")
 
 
 def load_yaml(path: Path) -> dict:

@@ -7,24 +7,29 @@ https://www.apicur.io/registry/docs/apicurio-registry/3.3.x/getting-started/asse
 """
 
 from __future__ import annotations
-from enum import Enum
-import os
 
+import os
 from dataclasses import dataclass
+from enum import Enum
 
 from common import (
-    ROOT, 
-    get_json, 
-    load_yaml, 
-    path_seg, 
-    put_json, 
-    require
+    CONFIG_FILE,
+    get_json,
+    get_json_list,
+    post_json,
+    load_yaml,
+    path_seg,
+    put_json,
+    require,
 )
+
+SKIP_CONFIG_SYNC = "SKIP_CONFIG_SYNC"
 
 class RuleType(str, Enum):
     VALIDITY = "VALIDITY"
     COMPATIBILITY = "COMPATIBILITY"
     INTEGRITY = "INTEGRITY"
+
 
 RULE_CONFIGS: dict[RuleType, frozenset[str]] = {
     RuleType.VALIDITY: frozenset({
@@ -65,18 +70,34 @@ class RuleConfig:
                 f"Allowed values: {allowed}"
             )
 
-def _get_global_rule(base: str, rule_type: RuleType) -> str | None:
-    data = get_json(f"{base}/admin/rules/{path_seg(rule_type.value)}", allow_404=True)
-    if not data:
-        return None
-    return data.get("config")
+def list_global_rule(base: str) -> dict[RuleType, str]:
+    types = get_json_list(f"{base}/admin/rules")
+    rules: dict[RuleType, str] = {}
+    for raw in types:
+        rule_type = RuleType(raw)
+        body = get_json(f"{base}/admin/rules/{path_seg(rule_type)}")
+        cfg = body.get("config")
+        if not cfg:
+            raise ValueError(f"missing config for rule {rule_type.value}")
+        rules[rule_type] = str(cfg)
+    return rules
 
+def create_global_rule(base: str, rule: RuleConfig) -> None:
+    post_json(
+        f"{base}/admin/rules",
+        {
+            "ruleType": rule.rule_type.value,
+            "config": rule.config,
+        },
+    )
 
-def sync_config(base: str) -> None:
-    if os.environ.get("SKIP_CONFIG_SYNC"):
-        print("[config] skipping config sync")
-        return
-    
+def update_global_rule(base: str, rule: RuleConfig) -> None:
+    put_json(
+        f"{base}/admin/rules/{path_seg(rule.rule_type.value)}",
+        {"config": rule.config},
+    )
+
+def load_config() -> list[RuleConfig]:
     if not CONFIG_FILE.is_file():
         raise FileNotFoundError(f"Config file not found: {CONFIG_FILE}")
 
@@ -85,20 +106,41 @@ def sync_config(base: str) -> None:
     if not isinstance(rules, list):
         raise ValueError(f"'globalRules' must be a list in {CONFIG_FILE}")
 
-    updated = 0
+    rule_configs: list[RuleConfig] = []
     for i, rule in enumerate(rules):
         if not isinstance(rule, dict):
             raise ValueError(f"globalRules[{i}] must be an object in {CONFIG_FILE}")
-        
+
         rule_type = require(rule, "ruleType", CONFIG_FILE)
         config = require(rule, "config", CONFIG_FILE)
-        rule_config = RuleConfig(rule_type=RuleType(rule_type), config=config)
-        current = _get_global_rule(base, rule_config.rule_type)
-        if current == config:
-            continue
-        put_json(
-            f"{base}/admin/rules/{path_seg(rule_config.rule_type.value)}",
-            {"config": rule_config.config},
+        rule_config = RuleConfig(
+            rule_type=RuleType(rule_type), 
+            config=config,
         )
-        updated += 1
-        print(f"[config] rule {rule_config.rule_type.value}={rule_config.config} (updated)")
+        rule_configs.append(rule_config)
+
+    return rule_configs
+
+def sync_config(base: str) -> None:
+    if os.environ.get(SKIP_CONFIG_SYNC):
+        print("[config] skipped config sync")
+        return
+    
+    desired = load_config()
+    existing = list_global_rule(base)
+    
+    created = 0
+    updated = 0
+    for rule in desired:
+        current = existing.get(rule.rule_type)
+        if current == rule.config:
+            continue
+
+        if current is None:
+            create_global_rule(base, rule)
+            created += 1
+        else:
+            update_global_rule(base, rule)
+            updated += 1
+
+    print(f"[config] listed={len(existing)} created={created} updated={updated}")

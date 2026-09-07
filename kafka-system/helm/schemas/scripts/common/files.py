@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
+"""Path constants for schema sources under helm/schemas."""
 
 from __future__ import annotations
 
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
+# schemas/scripts/common/files.py → schemas/
+ROOT = Path(__file__).resolve().parents[2]
 
-CONFIG_FILE = ROOT / "core" / "config" / "global_rules.yaml"
-
+CONFIG_FILE = ROOT / "core" / "configs" / "global_rules.yaml"
+GROUPS_FILE = ROOT / "core" / "groups" / "groups.yaml"

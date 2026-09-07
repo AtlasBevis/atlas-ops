@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """CI:
 Register schema
+API Spec: https://www.apicur.io/registry/docs/apicurio-registry/3.1.x/assets-attachments/registry-rest-api.htm
 author: Truong Thanh Binh
 """
 
@@ -9,10 +10,8 @@ from __future__ import annotations
 import os
 import sys
 
-from artifact import sync_artifacts
 from config import sync_config
-from domain_layout import validate_and_scaffold_groups
-from group import sync_groups
+from groups import sync_groups
 
 REGISTRY_URL = "REGISTRY_URL"
 
@@ -22,21 +21,17 @@ def get_registry_url() -> str:
         raise SystemExit("ERROR: REGISTRY_URL is required")
     return url.rstrip("/")
 
-def main() -> int:
-    try:
-        import yaml
-    except ImportError as exc:  # pragma: no cover
-        raise SystemExit("PyYAML is required: pip install pyyaml") from exc
 
+def main() -> int:
     url = get_registry_url()
     print(f">>> Registry: {url}")
 
+    # Sync config
     sync_config(url)
-    errs = validate_and_scaffold_groups(scaffold=False)
-    if errs:
-        raise SystemExit(f"domain validation failed: {errs[0]}")
+
+    # Sync groups
     groups = sync_groups(url)
-    sync_artifacts(url, groups)
+    print(f"[main] groups={len(groups)}")
     print("Done.")
     return 0
 
