@@ -1,0 +1,86 @@
+# First matching rule wins.
+# Column input: { type, precision, scale, fractional_seconds, length, nullable }
+# Defaults assume time.precision.mode=adaptive, decimal.handling.mode=precise.
+#
+# avro_ref → shared/catalog.yaml
+
+rules:
+  # --- boolean ---
+  - source_types: [BIT]
+    avro_ref: boolean
+
+  # --- integers ---
+  - source_types: [TINYINT]
+    avro_ref: int
+  - source_types: [SMALLINT]
+    avro_ref: int
+  - source_types: [INT, INTEGER]
+    avro_ref: int
+  - source_types: [BIGINT]
+    avro_ref: long
+
+  # --- floating ---
+  - source_types: [REAL]
+    avro_ref: float
+  - source_types: [FLOAT]
+    avro_ref: double
+
+  # --- decimal / money ---
+  - source_types: [NUMERIC, DECIMAL, DEC]
+    avro_ref: decimal
+  - source_types: [SMALLMONEY, MONEY]
+    avro_ref: decimal
+
+  # --- character / text ---
+  - source_types:
+      - CHAR
+      - VARCHAR
+      - TEXT
+      - NCHAR
+      - NVARCHAR
+      - NTEXT
+    avro_ref: string
+
+  # --- binary ---
+  - source_types: [BINARY, VARBINARY, IMAGE]
+    avro_ref: bytes
+
+  # --- xml / guid ---
+  - source_types: [XML]
+    avro_ref: xml
+  - source_types: [UNIQUEIDENTIFIER]
+    avro_ref: uuid
+
+  # --- temporal with timezone ---
+  - source_types: [DATETIMEOFFSET]
+    avro_ref: zoned_timestamp
+
+  # --- temporal adaptive ---
+  - source_types: [DATE]
+    avro_ref: date_days
+
+  - source_types: [TIME]
+    when: { fractional_seconds: { lte: 3 } }
+    avro_ref: time_ms
+  - source_types: [TIME]
+    when: { fractional_seconds: { lte: 6 } }
+    avro_ref: micro_time
+  - source_types: [TIME]
+    avro_ref: nano_time
+
+  - source_types: [DATETIME, SMALLDATETIME]
+    avro_ref: timestamp_ms
+
+  - source_types: [DATETIME2]
+    when: { fractional_seconds: { lte: 3 } }
+    avro_ref: timestamp_ms
+  - source_types: [DATETIME2]
+    when: { fractional_seconds: { lte: 6 } }
+    avro_ref: timestamp_us
+  - source_types: [DATETIME2]
+    avro_ref: timestamp_ns
+
+  # --- spatial / hierarchy (not mapped by default) ---
+  - source_types: [GEOGRAPHY, GEOMETRY, HIERARCHYID, SQL_VARIANT, ROWVERSION, TIMESTAMP]
+    supported: false
+    notes: TIMESTAMP in SQL Server is rowversion synonym, not a temporal type.

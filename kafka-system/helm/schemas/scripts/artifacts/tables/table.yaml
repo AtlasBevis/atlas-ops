@@ -1,0 +1,36 @@
+# Example table column metadata for schema generation.
+# Path convention (planned): domain/<groupId>/<table>/table.yaml
+#
+# Generator reads `connector` → loads core/types/<connector>.yaml
+# → applies mappings → emits Avro Value / Key / Envelope artifacts.
+
+connector: oracle
+groupId: domain1
+topic_prefix: cdc.oracle
+
+table:
+  schema: CORE
+  name: CUSTOMERS
+
+columns:
+  - name: ID
+    type: NUMBER
+    precision: 38
+    scale: 0
+    nullable: false
+    primary_key: true
+
+  - name: NAME
+    type: VARCHAR2
+    nullable: true
+
+  - name: AMOUNT
+    type: NUMBER
+    precision: 18
+    scale: 2
+    nullable: true
+
+  - name: CREATED_AT
+    type: TIMESTAMP
+    fractional_seconds: 6
+    nullable: true
