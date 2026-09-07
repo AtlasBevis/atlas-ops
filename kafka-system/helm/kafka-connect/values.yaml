@@ -6,9 +6,9 @@ nameOverride: connect
 kafka:
   name: kafka-cluster
   namespace: kafka
-  bootstrapPort: 9092
+  bootstrapPort: 9093
   # Cluster CA secret must exist in the Connect namespace when TLS is enabled.
-  caSecretName: kafka-cluster-ca-cert
+  # caSecretName: kafka-cluster-ca-cert
 
 # 67. KafkaConnect schema reference
 # docs: https://strimzi.io/docs/operators/latest/configuring.html#type-KafkaConnect-reference
@@ -33,10 +33,11 @@ connect:
       secretName: connect
       password: password
 
-  tls:
-    trustedCertificates:
-      - secretName: dp-kafka-cluster-ca-cert
-        certificate: ca.crt
+  # NOTE: Uncomment this if you are using TLS
+  # tls:
+  #   trustedCertificates:
+  #     - secretName: dp-kafka-cluster-ca-cert
+  #       certificate: ca.crt
 
   # docs: https://strimzi.io/docs/operators/latest/configuring.html#property-kafka-connect-additional-configuration-reference
   # additional: https://kafka.apache.org/41/configuration/kafka-connect-configs/
@@ -440,11 +441,12 @@ connectors:
       signal.kafka.topic: __signal.prod.domain
       signal.kafka.poll.timeout.ms: "500"
       signal.kafka.bootstrap.servers: kafka-cluster-kafka-bootstrap.kafka.svc:9092
-      signal.consumer.security.protocol: SASL_SSL
+      # if you are using TLS, please change to SASL_SSL
+      signal.consumer.security.protocol: SASL_PLAINTEXT
       signal.consumer.sasl.mechanism: SCRAM-SHA-512
       signal.consumer.sasl.jaas.config: ${secrets:connect:sasl.jaas.config}
-      signal.consumer.ssl.truststore.type: PEM
-      signal.consumer.ssl.truststore.certificates: ${secrets:dp-kafka-cluster-ca-cert:ca_cert}
+      # signal.consumer.ssl.truststore.type: PEM
+      # signal.consumer.ssl.truststore.certificates: ${secrets:dp-kafka-cluster-ca-cert:ca_cert}
       signal.consumer.request.timeout.ms: "60000"
       signal.consumer.default.api.timeout.ms: "120000"
       signal.consumer.connections.max.idle.ms: "540000"
@@ -456,19 +458,21 @@ connectors:
 
       # ====== PRODUCER
       # schema history internal producer using SASL
-      schema.history.internal.producer.security.protocol: SASL_SSL
+      # if you are using TLS, please change to SASL_SSL
+      schema.history.internal.producer.security.protocol: SASL_PLAINTEXT
       schema.history.internal.producer.sasl.mechanism: SCRAM-SHA-512
       schema.history.internal.producer.sasl.jaas.config: ${secrets:connect:sasl.jaas.config}
-      schema.history.internal.producer.ssl.truststore.type: PEM
-      schema.history.internal.producer.ssl.truststore.certificates: ${secrets:dp-kafka-cluster-ca-cert:ca_cert}
+      # schema.history.internal.producer.ssl.truststore.type: PEM
+      # schema.history.internal.producer.ssl.truststore.certificates: ${secrets:dp-kafka-cluster-ca-cert:ca_cert}
 
       # ====== CONSUMER
       # schema history internal consumer using SASL
-      schema.history.internal.consumer.security.protocol: SASL_SSL
+      # if you are using TLS, please change to SASL_SSL
+      schema.history.internal.consumer.security.protocol: SASL_PLAINTEXT
       schema.history.internal.consumer.sasl.mechanism: SCRAM-SHA-512
       schema.history.internal.consumer.sasl.jaas.config: ${secrets:connect:sasl.jaas.config}
-      schema.history.internal.consumer.ssl.truststore.type: PEM
-      schema.history.internal.consumer.ssl.truststore.certificates: ${secrets:dp-kafka-cluster-ca-cert:ca_cert}
+      # schema.history.internal.consumer.ssl.truststore.type: PEM
+      # schema.history.internal.consumer.ssl.truststore.certificates: ${secrets:dp-kafka-cluster-ca-cert:ca_cert}
 
       errors.tolerance: none
       errors.log.enable: true

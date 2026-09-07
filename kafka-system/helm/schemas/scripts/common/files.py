@@ -9,7 +9,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 
 CONFIG_FILE = ROOT / "core" / "configs" / "global_rules.yaml"
-GROUPS_FILE = ROOT / "core" / "groups" / "groups.yaml"
+GROUPS_FILE = ROOT / "groups" / "spec.yaml"
 
 # Oracle type mapping
 ORACLE_TYPES = ROOT / "core" / "types" / "oracle.yaml"

@@ -3,4 +3,3 @@ globalRules:
     config: FULL
   - ruleType: COMPATIBILITY
     config: BACKWARD
-properties: []
