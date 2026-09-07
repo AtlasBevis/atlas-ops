@@ -3,9 +3,26 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from common import ROOT, get_json, load_yaml, post_json, require
 
 GROUPS_FILE = ROOT / "groups" / "groups.registry.yaml"
+
+
+@dataclass(frozen=True, slots=True)
+class GroupSpec:
+    group_id: str
+    description: str
+    connector: Connector | None = None
+    debezium: DebeziumInfraSpec | None = None
+
+    @property
+    def is_debezium_infra(self) -> bool:
+        return self.debezium is not None
+
+    @property
+    def is_cdc_domain(self) -> bool:
+        return self.connector is not None
 
 
 def list_groups(base: str) -> set[str]:

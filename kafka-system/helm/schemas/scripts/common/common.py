@@ -10,17 +10,9 @@ import urllib.request
 from pathlib import Path
 from typing import Any
 
-try:
-    import yaml
-except ImportError as exc:  # pragma: no cover
-    raise SystemExit("PyYAML is required: pip install pyyaml") from exc
-
-ROOT = Path(__file__).resolve().parent.parent
-
 
 def path_seg(value: str) -> str:
     return urllib.parse.quote(str(value), safe="")
-
 
 def api_request(method: str, url: str, body: dict | None = None) -> tuple[int, str]:
     data = None
@@ -34,6 +26,10 @@ def api_request(method: str, url: str, body: dict | None = None) -> tuple[int, s
             return resp.status, resp.read().decode("utf-8")
     except urllib.error.HTTPError as e:
         return e.code, e.read().decode("utf-8", errors="replace")
+    except urllib.error.URLError as e:
+        raise RuntimeError(
+            f"API request failed: {method} {url}: {e}"
+        ) from e
 
 
 def get_json(url: str, *, allow_404: bool = False) -> dict[str, Any]:

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """CI:
 Register schema
+author: Truong Thanh Binh
 """
 
 from __future__ import annotations
@@ -13,15 +14,20 @@ from config import sync_config
 from domain_layout import validate_and_scaffold_groups
 from group import sync_groups
 
+REGISTRY_URL = "REGISTRY_URL"
 
 def get_registry_url() -> str:
-    url = (os.environ.get("REGISTRY_URL") or "").strip()
+    url = (os.environ.get(REGISTRY_URL) or "").strip()
     if not url:
         raise SystemExit("ERROR: REGISTRY_URL is required")
     return url.rstrip("/")
 
-
 def main() -> int:
+    try:
+        import yaml
+    except ImportError as exc:  # pragma: no cover
+        raise SystemExit("PyYAML is required: pip install pyyaml") from exc
+
     url = get_registry_url()
     print(f">>> Registry: {url}")
 
