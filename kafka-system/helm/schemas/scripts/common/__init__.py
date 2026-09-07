@@ -9,11 +9,21 @@ from .common import (
     put_json,
     require,
 )
-from .files import CONFIG_FILE, GROUPS_FILE, ROOT
+from .files import (
+    CONFIG_FILE,
+    GROUPS_FILE,
+    ORACLE_CATALOG,
+    ORACLE_MAPPINGS,
+    ORACLE_TYPES,
+    ROOT,
+)
 
 __all__ = [
     "CONFIG_FILE",
     "GROUPS_FILE",
+    "ORACLE_CATALOG",
+    "ORACLE_MAPPINGS",
+    "ORACLE_TYPES",
     "ROOT",
     "api_request",
     "content_payload",

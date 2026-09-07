@@ -1,0 +1,21 @@
+# Oracle → Debezium → Avro (Schema Registry)
+# Doc: https://debezium.io/documentation/reference/stable/connectors/oracle.html#oracle-data-type-mappings
+#
+# Generator:
+#   1. Load this file
+#   2. Match column against mappings.yaml (first rule wins)
+#   3. Resolve avro_ref from catalog.yaml
+#   4. If column.nullable: wrap ["null", <type>] with default null
+
+connector: oracle
+documentation: https://debezium.io/documentation/reference/stable/connectors/oracle.html#oracle-data-type-mappings
+
+defaults:
+  decimal.handling.mode: precise
+  time.precision.mode: adaptive
+  interval.handling.mode: numeric
+  binary.handling.mode: bytes
+
+files:
+  catalog: types/oracle/catalog.yaml
+  mappings: types/oracle/mappings.yaml
