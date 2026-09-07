@@ -11,6 +11,7 @@ from .common import (
 )
 from .files import (
     CONFIG_FILE,
+    DOMAIN_ROOT,
     GROUPS_FILE,
     ORACLE_CATALOG,
     ORACLE_MAPPINGS,
@@ -20,6 +21,7 @@ from .files import (
 
 __all__ = [
     "CONFIG_FILE",
+    "DOMAIN_ROOT",
     "GROUPS_FILE",
     "ORACLE_CATALOG",
     "ORACLE_MAPPINGS",

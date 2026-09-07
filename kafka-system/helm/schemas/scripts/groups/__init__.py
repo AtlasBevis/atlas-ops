@@ -1,5 +1,6 @@
-from .group import sync_groups
+from .group import load_groups, sync_groups
 
 __all__ = [
-    "sync_groups"
+    "load_groups",
+    "sync_groups",
 ]
