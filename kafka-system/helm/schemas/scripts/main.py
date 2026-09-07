@@ -31,7 +31,7 @@ def main() -> int:
 
     # Sync groups
     groups = sync_groups(url)
-    print(f"[main] groups={len(groups)}")
+    
     print("Done.")
     return 0
 
