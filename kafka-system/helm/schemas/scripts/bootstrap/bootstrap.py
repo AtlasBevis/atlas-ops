@@ -14,7 +14,6 @@ _DB_ALIASES = {
     "postgres": "postgres",
     "mysql": "mysql",
     "mssql": "mssql",
-    "sqlserver": "mssql",
 }
 
 _CONNECTOR_NS = {
