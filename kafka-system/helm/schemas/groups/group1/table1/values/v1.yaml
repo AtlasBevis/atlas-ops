@@ -1,0 +1,16 @@
+values:
+- name: ID
+  type: long
+  nullable: false
+- name: ACCOUNT_TYPE
+  type: string
+- name: ACCOUNT_NUMBER
+  type: string
+- name: CURRENCY
+  type: string
+- name: CUSTOMER_ID
+  type: long
+- name: CONTRACT_ID
+  type: long
+- name: STATUS
+  type: string

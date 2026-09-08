@@ -1,6 +1,4 @@
 groups:
-  - groupId: debezium
-    description: Shared Debezium types
   - groupId: domain1
     description: group for domain1 (Oracle)
   - groupId: domain2

@@ -41,7 +41,7 @@ def main() -> int:
     artifacts = load_artifacts(groups)
 
     # ordered = topo_order(artifacts)
-  
+
     print("Done.")
     return 0
 
