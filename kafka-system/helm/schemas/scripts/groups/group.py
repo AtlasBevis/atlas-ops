@@ -68,7 +68,7 @@ def create_group(base: str, group_id: str, description: str | None = None) -> bo
     return post_json(f"{base}/groups", body) == 200
 
 def load_groups() -> list[Group]:
-    """Load groups from groups/index.yaml, plus groupId from table indexes."""
+    """Load groups from groups/index.yaml."""
     if not GROUPS_FILE.is_file():
         raise FileNotFoundError(f"Groups file not found: {GROUPS_FILE}")
 

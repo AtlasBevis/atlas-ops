@@ -11,15 +11,16 @@ from typing import Any
 from bootstrap import (
     BOOTSTRAP_VERSION,
     DEBEZIUM_GROUP,
+    HEARTBEAT_KEY_ID,
+    HEARTBEAT_VALUE_ID,
     connector_source_artifact_id,
 )
 from common import content_payload, get_json, load_yaml, path_seg, post_json, require
-from references import ArtifactReference, parse_references, references_payload
+from references import ArtifactReference, merge_references, parse_references, references_payload
+
+from .mapping import map_column
 
 VERSION_STATES = frozenset({"ENABLED", "DISABLED", "DEPRECATED", "DRAFT"})
-AVRO_PRIMITIVES = frozenset(
-    {"null", "boolean", "int", "long", "float", "double", "bytes", "string"}
-)
 
 
 @dataclass(frozen=True, slots=True)
@@ -94,18 +95,22 @@ def parse_versions(
 ) -> tuple[Version, ...]:
     if not isinstance(raw, list) or not raw:
         raise ValueError(f"{loc} must be a non-empty list in {path}")
+    
     specs: list[Version] = []
     seen: set[str] = set()
     for i, entry in enumerate(raw):
         if not isinstance(entry, dict):
             raise ValueError(f"{loc}[{i}] must be an object in {path}")
+        
         version = str(require(entry, "version", path))
         if version in seen:
             raise ValueError(f"Duplicate version '{version}' in {loc} of {path}")
+        
         seen.add(version)
         resolved = None
         if content_dir is not None:
             resolved = (content_dir / version_filename(version)).resolve()
+            
         specs.append(
             parse_version(
                 entry,
@@ -117,27 +122,11 @@ def parse_versions(
     return tuple(specs)
 
 
-def _avro_field(entry: dict[str, Any], *, path: Path, default_nullable: bool) -> dict[str, Any]:
-    name = require(entry, "name", path)
-    avro_type = require(entry, "type", path)
-    if not isinstance(avro_type, str) or avro_type not in AVRO_PRIMITIVES:
-        allowed = ", ".join(sorted(AVRO_PRIMITIVES - {"null"}))
-        raise ValueError(
-            f"Unsupported Avro type '{avro_type}' for '{name}' in {path}. Allowed: {allowed}"
-        )
-    nullable = entry.get("nullable", default_nullable)
-    field: dict[str, Any] = {"name": name}
-    if nullable:
-        field["type"] = ["null", avro_type]
-        field["default"] = None if "default" not in entry else entry.get("default")
-    else:
-        field["type"] = avro_type
-        if "default" in entry:
-            field["default"] = entry["default"]
-    return field
-
-
-def load_fields(path: Path, kind: str) -> list[dict[str, Any]]:
+def load_fields(
+    path: Path,
+    kind: str,
+    connector: str,
+) -> tuple[list[dict[str, Any]], list[dict[str, str]]]:
     data = load_yaml(path)
     key = "keys" if kind == "key" else "values"
     rows = require(data, key, path)
@@ -145,16 +134,23 @@ def load_fields(path: Path, kind: str) -> list[dict[str, Any]]:
         raise ValueError(f"'{key}' must be a non-empty list in {path}")
     default_nullable = kind != "key"
     fields: list[dict[str, Any]] = []
+    refs: list[dict[str, str]] = []
     seen: set[str] = set()
     for i, entry in enumerate(rows):
         if not isinstance(entry, dict):
             raise ValueError(f"{key}[{i}] must be an object in {path}")
-        field = _avro_field(entry, path=path, default_nullable=default_nullable)
+        field, field_refs = map_column(
+            entry,
+            path=path,
+            connector=connector,
+            default_nullable=default_nullable,
+        )
         if field["name"] in seen:
             raise ValueError(f"Duplicate field '{field['name']}' in {path}")
         seen.add(field["name"])
         fields.append(field)
-    return fields
+        refs.extend(field_refs)
+    return fields, merge_references(refs)
 
 
 def key_schema(ns: str, fields: list[dict[str, Any]]) -> dict[str, Any]:
@@ -197,21 +193,19 @@ def envelope_schema(ns: str, source_type: str, value_fqn: str) -> dict[str, Any]
     }
 
 
+def bootstrap_reference(artifact_id: str) -> dict[str, str]:
+    return {
+        "name": artifact_id,
+        "groupId": DEBEZIUM_GROUP,
+        "artifactId": artifact_id,
+        "version": BOOTSTRAP_VERSION,
+    }
+
+
 def debezium_shared_references(connector: str) -> list[dict[str, str]]:
-    source_id = connector_source_artifact_id(connector)
     return [
-        {
-            "name": source_id,
-            "groupId": DEBEZIUM_GROUP,
-            "artifactId": source_id,
-            "version": BOOTSTRAP_VERSION,
-        },
-        {
-            "name": "event.block",
-            "groupId": DEBEZIUM_GROUP,
-            "artifactId": "event.block",
-            "version": BOOTSTRAP_VERSION,
-        },
+        bootstrap_reference(connector_source_artifact_id(connector)),
+        bootstrap_reference("event.block"),
     ]
 
 
@@ -220,6 +214,7 @@ def envelope_references(
     ns: str,
     value_version: str,
     connector: str,
+    extra: list[dict[str, str]] | None = None,
 ) -> list[dict[str, str]]:
     value_id = f"{ns}.Value"
     return [
@@ -230,6 +225,7 @@ def envelope_references(
             "version": value_version,
         },
         *debezium_shared_references(connector),
+        *(extra or []),
     ]
 
 
@@ -256,14 +252,14 @@ def plan_versions(
     envelope_jobs: list[dict[str, Any]] = []
 
     for ver in value_versions:
-        fields = load_fields(ver.content_path, "value")
+        fields, field_refs = load_fields(ver.content_path, "value", connector)
         value_jobs.append(
             {
                 "artifact_id": record_id,
                 "version": ver.version,
                 "content": value_record_schema(topic, fields),
                 "description": ver.description or value_description,
-                "references": None,
+                "references": field_refs or None,
             }
         )
         envelope_jobs.append(
@@ -282,17 +278,68 @@ def plan_versions(
         )
 
     for ver in key_versions:
-        fields = load_fields(ver.content_path, "key")
+        fields, field_refs = load_fields(ver.content_path, "key", connector)
         key_jobs.append(
             {
                 "artifact_id": key_id,
                 "version": ver.version,
                 "content": key_schema(topic, fields),
                 "description": ver.description or key_description,
-                "references": None,
+                "references": field_refs or None,
             }
         )
 
+    return value_jobs, key_jobs, envelope_jobs
+
+
+def plan_heartbeat_versions(
+    *,
+    group_id: str,
+    topic: str,
+    connector: str,
+    version: str = BOOTSTRAP_VERSION,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
+    """Debezium heartbeat: ServerNameKey + Heartbeat, wrapped as -key / .Value / Envelope."""
+    source_type = connector_source_artifact_id(connector)
+    key_id = f"{topic}-key"
+    record_id = f"{topic}.Value"
+    envelope_id = f"{topic}-value"
+    value_fqn = f"{topic}.Value"
+    heartbeat_ref = bootstrap_reference(HEARTBEAT_VALUE_ID)
+
+    value_jobs = [
+        {
+            "artifact_id": record_id,
+            "version": version,
+            "content": value_record_schema(topic, [{"name": "ts_ms", "type": "long"}]),
+            "description": f"Debezium Heartbeat Value for {topic}",
+            "references": [heartbeat_ref],
+        }
+    ]
+    key_jobs = [
+        {
+            "artifact_id": key_id,
+            "version": version,
+            "content": key_schema(topic, [{"name": "serverName", "type": "string"}]),
+            "description": f"Debezium Heartbeat Key for {topic}",
+            "references": [bootstrap_reference(HEARTBEAT_KEY_ID)],
+        }
+    ]
+    envelope_jobs = [
+        {
+            "artifact_id": envelope_id,
+            "version": version,
+            "content": envelope_schema(topic, source_type, value_fqn),
+            "description": f"Debezium Heartbeat Envelope for {topic}",
+            "references": envelope_references(
+                group_id,
+                topic,
+                version,
+                connector,
+                extra=[heartbeat_ref],
+            ),
+        }
+    ]
     return value_jobs, key_jobs, envelope_jobs
 
 

@@ -118,7 +118,13 @@ micro_duration:
   type: double
   connect.name: io.debezium.time.MicroDuration
   connect.version: 1
-  doc: Approximate microseconds for an interval.
+  doc: Oracle INTERVAL — approximate microseconds (FLOAT64).
+
+micro_duration_long:
+  type: long
+  connect.name: io.debezium.time.MicroDuration
+  connect.version: 1
+  doc: PostgreSQL INTERVAL — approximate microseconds (INT64).
 
 interval_string:
   type: string
@@ -168,6 +174,18 @@ ltree:
 tsvector:
   type: string
   connect.name: io.debezium.data.Tsvector
+  connect.version: 1
+
+double_vector:
+  type: array
+  items: double
+  connect.name: io.debezium.data.DoubleVector
+  connect.version: 1
+
+float_vector:
+  type: array
+  items: float
+  connect.name: io.debezium.data.FloatVector
   connect.version: 1
 
 # --- Named records registered once in group debezium ---
@@ -244,3 +262,23 @@ geography:
         default: null
       - name: wkb
         type: bytes
+
+sparse_vector:
+  register: true
+  group: debezium
+  artifact: SparseVector
+  connect.name: io.debezium.data.SparseVector
+  connect.version: 1
+  schema:
+    type: record
+    name: SparseVector
+    namespace: io.debezium.data
+    connect.name: io.debezium.data.SparseVector
+    connect.version: 1
+    fields:
+      - name: dimensions
+        type: int
+      - name: vector
+        type:
+          type: map
+          values: double

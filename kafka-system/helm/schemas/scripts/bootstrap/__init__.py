@@ -1,6 +1,9 @@
 from .bootstrap import (
     BOOTSTRAP_VERSION,
     DEBEZIUM_GROUP,
+    HEARTBEAT_KEY_ID,
+    HEARTBEAT_VALUE_ID,
+    canonical_db,
     connector_namespace,
     connector_source_artifact_id,
     sync_bootstrap,
@@ -9,6 +12,9 @@ from .bootstrap import (
 __all__ = [
     "BOOTSTRAP_VERSION",
     "DEBEZIUM_GROUP",
+    "HEARTBEAT_KEY_ID",
+    "HEARTBEAT_VALUE_ID",
+    "canonical_db",
     "connector_namespace",
     "connector_source_artifact_id",
     "sync_bootstrap",

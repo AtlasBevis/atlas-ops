@@ -1,8 +1,9 @@
-# First matching rule wins.
-# Column input: { type, precision, scale, fractional_seconds, length, nullable }
-# Defaults assume time.precision.mode=adaptive, decimal.handling.mode=precise.
+# PostgreSQL → Debezium 3.6 → Avro
+# https://debezium.io/documentation/reference/3.6/connectors/postgresql.html#postgresql-data-types
 #
-# avro_ref → shared/catalog.yaml
+# Defaults: decimal.handling.mode=precise, time.precision.mode=adaptive,
+# interval.handling.mode=numeric, binary.handling.mode=bytes, hstore.handling.mode=json
+# First matching rule wins. Avro has no INT16 → use int.
 
 rules:
   # --- boolean / bits ---
@@ -10,6 +11,9 @@ rules:
     avro_ref: boolean
   - source_types: [BIT]
     when: { length: { lte: 1 } }
+    avro_ref: boolean
+  - source_types: [BIT]
+    when: { length: { defined: false } }
     avro_ref: boolean
   - source_types: [BIT, "BIT VARYING", VARBIT]
     avro_ref: bits
@@ -36,6 +40,12 @@ rules:
     avro_ref: variable_scale_decimal
   - source_types: [MONEY]
     avro_ref: decimal
+    extra:
+      precision: 19
+      scale: 2
+      connect.parameters:
+        scale: "2"
+        connect.decimal.precision: "19"
 
   # --- character / text ---
   - source_types:
@@ -52,7 +62,7 @@ rules:
   - source_types: [BYTEA]
     avro_ref: bytes
 
-  # --- json / xml / uuid ---
+  # --- json / xml / uuid / enum ---
   - source_types: [JSON, JSONB]
     avro_ref: json
   - source_types: [XML]
@@ -67,21 +77,30 @@ rules:
     avro_ref: tsvector
   - source_types: [HSTORE]
     avro_ref: json
-    notes: Default hstore.handling.mode=json. Use map mode only with JSON converter consumers.
 
-  # --- network / ranges (stringified) ---
+  # --- network / ranges ---
   - source_types: [INET, CIDR, MACADDR, MACADDR8]
     avro_ref: string
   - source_types: [INT4RANGE, INT8RANGE, NUMRANGE, TSRANGE, TSTZRANGE, DATERANGE]
     avro_ref: string
 
-  # --- temporal with timezone (mode-independent) ---
+  # --- temporal with timezone ---
   - source_types: [TIMESTAMPTZ, "TIMESTAMP WITH TIME ZONE"]
     avro_ref: zoned_timestamp
   - source_types: [TIMETZ, "TIME WITH TIME ZONE"]
     avro_ref: zoned_time
+  - source_types: ["TIMESTAMP WITHOUT TIME ZONE"]
+    when: { fractional_seconds: { lte: 3 } }
+    avro_ref: timestamp_ms
+  - source_types: ["TIMESTAMP WITHOUT TIME ZONE"]
+    avro_ref: timestamp_us
+  - source_types: ["TIME WITHOUT TIME ZONE"]
+    when: { fractional_seconds: { lte: 3 } }
+    avro_ref: time_ms
+  - source_types: ["TIME WITHOUT TIME ZONE"]
+    avro_ref: micro_time
   - source_types: [INTERVAL]
-    avro_ref: micro_duration
+    avro_ref: micro_duration_long
 
   # --- temporal adaptive ---
   - source_types: [DATE]
@@ -99,15 +118,19 @@ rules:
   - source_types: [TIMESTAMP]
     avro_ref: timestamp_us
 
-  # --- geometry ---
+  # --- geometry / pgvector ---
   - source_types: [POINT]
     avro_ref: point
   - source_types: [GEOMETRY]
     avro_ref: geometry
   - source_types: [GEOGRAPHY]
     avro_ref: geography
+  - source_types: [VECTOR]
+    avro_ref: double_vector
+  - source_types: [HALFVEC]
+    avro_ref: float_vector
+  - source_types: [SPARSEVEC]
+    avro_ref: sparse_vector
 
-  # --- not mapped by default (require explicit converter / extension support) ---
-  - source_types: [VECTOR, HALFVEC, SPARSEVEC, ARRAY, COMPOSITE]
+  - source_types: [ARRAY, COMPOSITE]
     supported: false
-    notes: Enable explicitly when consumers understand Debezium vector/array schemas.

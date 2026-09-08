@@ -1,8 +1,10 @@
-# First matching rule wins.
-# Column input: { type, precision, scale, fractional_seconds, length, nullable }
-# Defaults assume time.precision.mode=adaptive, decimal.handling.mode=precise.
+# SQL Server → Debezium 3.6 → Avro
+# https://debezium.io/documentation/reference/3.6/connectors/sqlserver.html#sqlserver-data-types
 #
-# avro_ref → shared/catalog.yaml
+# Defaults: decimal.handling.mode=precise, time.precision.mode=adaptive,
+# binary.handling.mode=bytes
+# First matching rule wins. Avro has no INT16 → use int.
+# TIMESTAMP is a ROWVERSION synonym, not a temporal type.
 
 rules:
   # --- boolean ---
@@ -28,8 +30,22 @@ rules:
   # --- decimal / money ---
   - source_types: [NUMERIC, DECIMAL, DEC]
     avro_ref: decimal
-  - source_types: [SMALLMONEY, MONEY]
+  - source_types: [SMALLMONEY]
     avro_ref: decimal
+    extra:
+      precision: 10
+      scale: 4
+      connect.parameters:
+        scale: "4"
+        connect.decimal.precision: "10"
+  - source_types: [MONEY]
+    avro_ref: decimal
+    extra:
+      precision: 19
+      scale: 4
+      connect.parameters:
+        scale: "4"
+        connect.decimal.precision: "19"
 
   # --- character / text ---
   - source_types:
@@ -80,7 +96,6 @@ rules:
   - source_types: [DATETIME2]
     avro_ref: timestamp_ns
 
-  # --- spatial / hierarchy (not mapped by default) ---
+  # --- not supported ---
   - source_types: [GEOGRAPHY, GEOMETRY, HIERARCHYID, SQL_VARIANT, ROWVERSION, TIMESTAMP]
     supported: false
-    notes: TIMESTAMP in SQL Server is rowversion synonym, not a temporal type.

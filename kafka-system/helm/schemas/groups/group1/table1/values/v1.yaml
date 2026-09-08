@@ -1,16 +1,16 @@
 values:
 - name: ID
-  type: long
+  type: NUMBER(10)
   nullable: false
 - name: ACCOUNT_TYPE
-  type: string
+  type: VARCHAR2(32)
 - name: ACCOUNT_NUMBER
-  type: string
+  type: VARCHAR2(32)
 - name: CURRENCY
-  type: string
+  type: VARCHAR2(8)
 - name: CUSTOMER_ID
-  type: long
+  type: NUMBER(10)
 - name: CONTRACT_ID
-  type: long
+  type: NUMBER(10)
 - name: STATUS
-  type: string
+  type: VARCHAR2(16)

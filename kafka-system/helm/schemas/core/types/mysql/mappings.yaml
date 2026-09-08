@@ -1,9 +1,9 @@
-# First matching rule wins.
-# Column input: { type, precision, scale, fractional_seconds, length, unsigned, nullable }
-# Defaults assume time.precision.mode=adaptive_time_microseconds,
-# decimal.handling.mode=precise.
+# MySQL → Debezium 3.6 → Avro
+# https://debezium.io/documentation/reference/3.6/connectors/mysql.html#mysql-data-types
 #
-# avro_ref → shared/catalog.yaml
+# Defaults: decimal.handling.mode=precise, time.precision.mode=adaptive_time_microseconds,
+# binary.handling.mode=bytes
+# First matching rule wins. Avro has no INT16 → use int.
 
 rules:
   # --- boolean / bits ---
@@ -13,12 +13,14 @@ rules:
     when: { length: { lte: 1 } }
     avro_ref: boolean
   - source_types: [BIT]
+    when: { length: { defined: false } }
+    avro_ref: boolean
+  - source_types: [BIT]
     avro_ref: bits
 
   # --- integers ---
   - source_types: [TINYINT]
     avro_ref: int
-    notes: Snapshot may expose BOOLEAN as TINYINT(1). Prefer TinyIntOneToBooleanConverter when needed.
   - source_types: [SMALLINT]
     avro_ref: int
   - source_types: [MEDIUMINT]
@@ -33,7 +35,10 @@ rules:
     when: { precision: { lte: 23 } }
     avro_ref: float
   - source_types: [FLOAT]
+    when: { precision: { defined: true } }
     avro_ref: double
+  - source_types: [FLOAT]
+    avro_ref: float
   - source_types: [REAL]
     avro_ref: float
   - source_types: [DOUBLE, "DOUBLE PRECISION"]
@@ -68,7 +73,6 @@ rules:
     avro_ref: year
 
   # --- temporal ---
-  # TIMESTAMP is always zoned (server TZ → UTC string)
   - source_types: [TIMESTAMP]
     avro_ref: zoned_timestamp
 
@@ -82,9 +86,12 @@ rules:
     when: { fractional_seconds: { lte: 3 } }
     avro_ref: timestamp_ms
   - source_types: [DATETIME]
+    when: { fractional_seconds: { defined: true } }
     avro_ref: timestamp_us
+  - source_types: [DATETIME]
+    avro_ref: timestamp_ms
 
-  # --- spatial ---
+  # --- spatial / vector ---
   - source_types:
       - GEOMETRY
       - POINT
@@ -95,8 +102,5 @@ rules:
       - MULTIPOLYGON
       - GEOMETRYCOLLECTION
     avro_ref: geometry
-
-  # --- vector (optional) ---
   - source_types: [VECTOR]
-    supported: false
-    notes: Map to FloatVector only when consumers support io.debezium.data.FloatVector.
+    avro_ref: float_vector

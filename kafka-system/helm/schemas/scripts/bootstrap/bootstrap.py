@@ -2,16 +2,19 @@ from __future__ import annotations
 
 from typing import Any
 
+from common import SHARED_CATALOG, load_yaml
 from groups.group import create_group, list_groups
 
 DEBEZIUM_GROUP = "debezium"
 DEBEZIUM_GROUP_DESCRIPTION = "Shared Debezium types"
 BOOTSTRAP_VERSION = "1"
+HEARTBEAT_KEY_ID = "io.debezium.connector.common.ServerNameKey"
+HEARTBEAT_VALUE_ID = "io.debezium.connector.common.Heartbeat"
 
 _DBS = ("oracle", "postgres", "mysql", "mssql")
 
-# Debezium 3.6.2 — SnapshotRecord + SchemaFactory.sourceInfoSchemaBuilder()
-# https://debezium.io/documentation/reference/stable/connectors/oracle.html#oracle-schema-history-topic
+# Debezium 3.6.1 — SnapshotRecord + SchemaFactory.sourceInfoSchemaBuilder()
+# https://debezium.io/documentation/reference/3.6/connectors/oracle.html#oracle-schema-history-topic
 _SNAPSHOT_ALLOWED = (
     "true,first,first_in_data_collection,last_in_data_collection,"
     "last,false,incremental"
@@ -48,6 +51,10 @@ def _resolve_db(db: str) -> str:
         allowed = ", ".join(sorted(_DB_ALIASES))
         raise ValueError(f"Unknown db '{db}'. Allowed: {allowed}")
     return key
+
+
+def canonical_db(db: str) -> str:
+    return _resolve_db(db)
 
 
 def _opt(avro_type: str) -> list[Any]:
@@ -177,8 +184,8 @@ def signal_key_schema() -> dict[str, Any]:
 def db_source_schema(db: str) -> dict[str, Any]:
     """Debezium envelope / schema-change `source` record (Avro + Connect metadata).
 
-    Common fields: SchemaFactory.sourceInfoSchemaBuilder() (3.6.2).
-    Extra fields: connector SourceInfoStructMaker (3.6.2).
+    Common fields: SchemaFactory.sourceInfoSchemaBuilder() (3.6.1).
+    Extra fields: connector SourceInfoStructMaker (3.6.1).
     Canonical db keys: oracle, postgres, mysql, mssql.
     """
     key = _resolve_db(db)
@@ -334,7 +341,7 @@ def schema_change_key_schema(db: str) -> dict[str, Any]:
 def schema_change_value_schema(db: str) -> dict[str, Any]:
     """Schema change topic value: `{connector}.SchemaChangeValue`.
 
-    Matches SchemaFactory.schemaHistoryConnectorValueSchema() in Debezium 3.6.2.
+    Matches SchemaFactory.schemaHistoryConnectorValueSchema() in Debezium 3.6.1.
     `source` is the connector-specific Source record.
     """
     ns = _CONNECTOR_NS[_resolve_db(db)]
@@ -357,17 +364,35 @@ def schema_change_value_schema(db: str) -> dict[str, Any]:
         "connect.name": f"{ns}.SchemaChangeValue",
     }
 
+def catalog_named_artifacts() -> list[tuple[str, str, dict[str, Any]]]:
+    """Named Connect records from shared/catalog.yaml (VariableScaleDecimal, Geometry, …)."""
+    data = load_yaml(SHARED_CATALOG)
+    items: list[tuple[str, str, dict[str, Any]]] = []
+    for key, spec in data.items():
+        if not isinstance(spec, dict) or not spec.get("register"):
+            continue
+        schema = spec.get("schema")
+        if not isinstance(schema, dict):
+            raise ValueError(f"catalog '{key}' has register: true but no Avro schema")
+        artifact = spec.get("artifact") or spec.get("connect.name")
+        if not artifact:
+            raise ValueError(f"catalog '{key}' is missing artifact / connect.name")
+        items.append((str(artifact), f"Debezium {key}", schema))
+    return items
+
+
 def bootstrap_artifacts() -> list[tuple[str, str, dict[str, Any]]]:
     """(artifactId, description, avro schema) registered into group debezium."""
     items: list[tuple[str, str, dict[str, Any]]] = [
+        *catalog_named_artifacts(),
         ("event.block", "Debezium transaction block", event_block_schema()),
         (
-            "io.debezium.connector.common.ServerNameKey",
+            HEARTBEAT_KEY_ID,
             "Heartbeat key",
             heartbeat_key_schema(),
         ),
         (
-            "io.debezium.connector.common.Heartbeat",
+            HEARTBEAT_VALUE_ID,
             "Heartbeat value",
             heartbeat_value_schema(),
         ),

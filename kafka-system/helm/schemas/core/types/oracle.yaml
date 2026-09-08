@@ -1,5 +1,5 @@
 # Oracle → Debezium → Avro (Schema Registry)
-# Doc: https://debezium.io/documentation/reference/stable/connectors/oracle.html#oracle-data-type-mappings
+# Doc: https://debezium.io/documentation/reference/3.6/connectors/oracle.html#oracle-data-type-mappings
 #
 # Generator:
 #   1. Load this file
@@ -8,7 +8,7 @@
 #   4. If column.nullable: wrap ["null", <type>] with default null
 
 connector: oracle
-documentation: https://debezium.io/documentation/reference/stable/connectors/oracle.html#oracle-data-type-mappings
+documentation: https://debezium.io/documentation/reference/3.6/connectors/oracle.html#oracle-data-type-mappings
 
 defaults:
   decimal.handling.mode: precise

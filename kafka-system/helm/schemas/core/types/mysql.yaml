@@ -1,5 +1,5 @@
 # MySQL → Debezium → Avro (Schema Registry)
-# Doc: https://debezium.io/documentation/reference/stable/connectors/mysql.html#mysql-data-types
+# Doc: https://debezium.io/documentation/reference/3.6/connectors/mysql.html#mysql-data-types
 #
 # Generator:
 #   1. Load this file
@@ -8,7 +8,7 @@
 #   4. If column.nullable: wrap ["null", <type>] with default null
 
 connector: mysql
-documentation: https://debezium.io/documentation/reference/stable/connectors/mysql.html#mysql-data-types
+documentation: https://debezium.io/documentation/reference/3.6/connectors/mysql.html#mysql-data-types
 
 defaults:
   decimal.handling.mode: precise

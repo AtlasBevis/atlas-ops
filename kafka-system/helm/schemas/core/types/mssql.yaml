@@ -1,5 +1,5 @@
 # SQL Server (MSSQL) → Debezium → Avro (Schema Registry)
-# Doc: https://debezium.io/documentation/reference/stable/connectors/sqlserver.html#sqlserver-data-types
+# Doc: https://debezium.io/documentation/reference/3.6/connectors/sqlserver.html#sqlserver-data-types
 #
 # Generator:
 #   1. Load this file
@@ -8,7 +8,7 @@
 #   4. If column.nullable: wrap ["null", <type>] with default null
 
 connector: mssql
-documentation: https://debezium.io/documentation/reference/stable/connectors/sqlserver.html#sqlserver-data-types
+documentation: https://debezium.io/documentation/reference/3.6/connectors/sqlserver.html#sqlserver-data-types
 
 defaults:
   decimal.handling.mode: precise

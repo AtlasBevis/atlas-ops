@@ -84,6 +84,7 @@ Chúng được đăng ký **một lần** trong group `debezium`, rồi table s
 | `point` | `debezium` | `Point` |
 | `geometry` | `debezium` | `Geometry` |
 | `geography` | `debezium` | `Geography` |
+| `sparse_vector` | `debezium` | `SparseVector` |
 
 ## Mappings (`*/mappings.yaml`)
 
@@ -99,7 +100,7 @@ rules:
     avro_ref: decimal
 
   - source_types: [XMLTYPE]
-    supported: false
+    avro_ref: xml
 ```
 
 ### Cột input (column metadata)
@@ -244,8 +245,8 @@ CI validate: `groupId` ∈ `groups/spec.yaml`, target artifact/version tồn t�
 
 ## Nguồn Debezium
 
-- [Oracle data type mappings](https://debezium.io/documentation/reference/stable/connectors/oracle.html#oracle-data-type-mappings)
-- [PostgreSQL data type mappings](https://debezium.io/documentation/reference/stable/connectors/postgresql.html#postgresql-data-types)
-- [MySQL data type mappings](https://debezium.io/documentation/reference/stable/connectors/mysql.html#mysql-data-types)
-- [SQL Server data type mappings](https://debezium.io/documentation/reference/stable/connectors/sqlserver.html#sqlserver-data-types)
-- [Avro serialization](https://debezium.io/documentation/reference/stable/configuration/avro.html)
+- [Oracle data type mappings](https://debezium.io/documentation/reference/3.6/connectors/oracle.html#oracle-data-type-mappings)
+- [PostgreSQL data type mappings](https://debezium.io/documentation/reference/3.6/connectors/postgresql.html#postgresql-data-types)
+- [MySQL data type mappings](https://debezium.io/documentation/reference/3.6/connectors/mysql.html#mysql-data-types)
+- [SQL Server data type mappings](https://debezium.io/documentation/reference/3.6/connectors/sqlserver.html#sqlserver-data-types)
+- [Avro serialization](https://debezium.io/documentation/reference/3.6/configuration/avro.html)
