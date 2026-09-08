@@ -268,11 +268,11 @@ def debezium_artifact_ids(topic: str) -> tuple[str, str, str]:
 
 
 def plan_heartbeat_empty_artifacts(topic: str) -> list[tuple[str, str, str | None]]:
-    key_id, record_id, envelope_id = debezium_artifact_ids(topic)
+    key_id = f"{topic}-key"
+    value_id = f"{topic}-value"
     return [
         (key_id, key_id, f"Debezium Heartbeat Key for {topic}"),
-        (record_id, record_id, f"Debezium Heartbeat Value for {topic}"),
-        (envelope_id, envelope_id, f"Debezium Heartbeat Envelope for {topic}"),
+        (value_id, value_id, f"Debezium Heartbeat Value for {topic}"),
     ]
 
 

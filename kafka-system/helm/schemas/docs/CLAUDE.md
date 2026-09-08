@@ -158,7 +158,8 @@ Per table (same group as `groupId`):
 Heartbeat (only if `source.type=debezium` **and** `heartbeat: true` **and** non-empty `heartbeatPrefix`):
 
 - Topic: `{heartbeatPrefix}.{topicPrefix}` e.g. `__heartbeat.uat.cdc.group1`
-- Same three artifact suffixes; Key field `serverName`; Value field `ts_ms`
+- Artifacts: `{topic}-key` (`ServerNameKey`) + `{topic}-value` (`Heartbeat` / `ts_ms`)
+- **No** `{topic}.Value` and no Envelope
 - Deduped per group + heartbeat topic
 
 Envelope fields: `before`, `after`, `source`, `transaction`, `op`, `ts_ms`, `ts_us`, `ts_ns`.  
@@ -167,8 +168,6 @@ Envelope fields: `before`, `after`, `source`, `transaction`, `op`, `ts_ms`, `ts_
 1. `{topic}.Value` @ same version, same group
 2. `debezium` / `io.debezium.connector.{oracle\|postgresql\|mysql\|sqlserver}.Source` @ `"1"`
 3. `debezium` / `event.block` @ `"1"`
-
-Heartbeat envelope also refs `io.debezium.connector.common.Heartbeat`.
 
 Named catalog types (`register: true`) add Apicurio refs on Key/Value fields
 (e.g. `VariableScaleDecimal`, `Geometry`, `SparseVector`).

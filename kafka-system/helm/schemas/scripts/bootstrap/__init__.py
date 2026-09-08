@@ -6,6 +6,8 @@ from .bootstrap import (
     canonical_db,
     connector_namespace,
     connector_source_artifact_id,
+    heartbeat_key_schema,
+    heartbeat_value_schema,
     sync_bootstrap,
 )
 
@@ -17,5 +19,7 @@ __all__ = [
     "canonical_db",
     "connector_namespace",
     "connector_source_artifact_id",
+    "heartbeat_key_schema",
+    "heartbeat_value_schema",
     "sync_bootstrap",
 ]

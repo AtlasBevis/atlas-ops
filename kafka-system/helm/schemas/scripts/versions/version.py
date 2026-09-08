@@ -11,9 +11,9 @@ from typing import Any
 from bootstrap import (
     BOOTSTRAP_VERSION,
     DEBEZIUM_GROUP,
-    HEARTBEAT_KEY_ID,
-    HEARTBEAT_VALUE_ID,
     connector_source_artifact_id,
+    heartbeat_key_schema,
+    heartbeat_value_schema,
 )
 from common import content_payload, get_json, load_yaml, path_seg, post_json, require
 from references import ArtifactReference, merge_references, parse_references, references_payload
@@ -299,48 +299,32 @@ def plan_heartbeat_versions(
     connector: str,
     version: str = BOOTSTRAP_VERSION,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
-    """Debezium heartbeat: ServerNameKey + Heartbeat, wrapped as -key / .Value / Envelope."""
-    source_type = connector_source_artifact_id(connector)
-    key_id = f"{topic}-key"
-    record_id = f"{topic}.Value"
-    envelope_id = f"{topic}-value"
-    value_fqn = f"{topic}.Value"
-    heartbeat_ref = bootstrap_reference(HEARTBEAT_VALUE_ID)
+    """Debezium heartbeat: `{topic}-key` = ServerNameKey, `{topic}-value` = Heartbeat.
 
+    No `.Value` and no Envelope — the message value is Heartbeat (`ts_ms`).
+    """
+    del group_id, connector
+    key_id = f"{topic}-key"
+    value_id = f"{topic}-value"
     value_jobs = [
         {
-            "artifact_id": record_id,
+            "artifact_id": value_id,
             "version": version,
-            "content": value_record_schema(topic, [{"name": "ts_ms", "type": "long"}]),
+            "content": heartbeat_value_schema(),
             "description": f"Debezium Heartbeat Value for {topic}",
-            "references": [heartbeat_ref],
+            "references": None,
         }
     ]
     key_jobs = [
         {
             "artifact_id": key_id,
             "version": version,
-            "content": key_schema(topic, [{"name": "serverName", "type": "string"}]),
+            "content": heartbeat_key_schema(),
             "description": f"Debezium Heartbeat Key for {topic}",
-            "references": [bootstrap_reference(HEARTBEAT_KEY_ID)],
+            "references": None,
         }
     ]
-    envelope_jobs = [
-        {
-            "artifact_id": envelope_id,
-            "version": version,
-            "content": envelope_schema(topic, source_type, value_fqn),
-            "description": f"Debezium Heartbeat Envelope for {topic}",
-            "references": envelope_references(
-                group_id,
-                topic,
-                version,
-                connector,
-                extra=[heartbeat_ref],
-            ),
-        }
-    ]
-    return value_jobs, key_jobs, envelope_jobs
+    return value_jobs, key_jobs, []
 
 
 def list_versions(base: str, group_id: str, artifact_id: str) -> set[str]:
