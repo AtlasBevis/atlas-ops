@@ -1,0 +1,24 @@
+groupId: group1
+schema: MAIN
+topicPrefix: cdc.group1
+source:
+  type: debezium
+  database: oracle
+  signal: true
+  heartbeat: true
+  heartbeatPrefix: __heartbeat.uat
+table:
+  name: TABLE1
+  description: CDC for MAIN.TABLE1
+  key:
+    description: CDC Key for MAIN.TABLE1
+    versions:
+      - version: "1"
+        state: ENABLED
+        description: CDC Key for MAIN.TABLE1 v1
+  value:
+    description: CDC Value for MAIN.TABLE1
+    versions:
+      - version: "1"
+        state: ENABLED
+        description: CDC Value for MAIN.TABLE1 v1

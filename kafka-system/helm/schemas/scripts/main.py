@@ -34,7 +34,7 @@ def main() -> int:
     # Sync bootstrap
     sync_bootstrap(url)
 
-    # Sync groups (catalog + groups/*/spec.yaml)
+    # Sync groups
     groups = sync_groups(url)
 
     # Sync table Key / Value versions (with references)

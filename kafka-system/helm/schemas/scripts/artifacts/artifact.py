@@ -1,15 +1,7 @@
 #!/usr/bin/env python3
-"""Artifacts: validate domain specs against known groups + reference graph.
-
-Hierarchy (Apicurio Registry v3):
-  Group
-    └── Artifact (artifactId, artifactType)
-          └── Version (version, content, state)
-                └── references[] → (name, groupId, artifactId, version)
-
-Groups stay in groups/spec.yaml. Artifacts live as separate YAML files under
-domain/ (and optionally schemas-gitops-style *.registry.yaml with
-$type: artifact-v0). Do NOT nest artifacts inside the groups file.
+"""
+Manifest artifact definitions
+https://www.apicur.io/registry/docs/apicurio-registry/3.0.x/assets-attachments/registry-rest-api.htm#tag/Artifacts
 """
 
 from __future__ import annotations
@@ -37,15 +29,15 @@ ARTIFACT_TYPES = frozenset({
 })
 
 # Same length rule as Apicurio ArtifactId.
-_ID_LEN = range(1, 513)
+_ID_LEN = range(1, 512)
 
 
 @dataclass(frozen=True, slots=True)
 class Artifact:
     group_id: str
     artifact_id: str
-    artifact_type: str
     versions: tuple[Version, ...]
+    artifact_type: str = "AVRO"
     name: str | None = None
     description: str | None = None
     source: Path | None = None
@@ -61,16 +53,19 @@ class Artifact:
                 raise ValueError(f"{field_name} '{value}' must be 1–512 characters")
 
         if self.artifact_type not in ARTIFACT_TYPES:
-            allowed = ", ".join(sorted(ARTIFACT_TYPES))
+            allowed = ", ".join(ARTIFACT_TYPES)
             raise ValueError(
                 f"Invalid artifactType '{self.artifact_type}'. Allowed: {allowed}"
             )
+        
         if not self.versions:
             raise ValueError(
                 f"artifact '{self.group_id}/{self.artifact_id}' needs ≥1 version"
             )
+        
         if self.name is not None and not isinstance(self.name, str):
             raise ValueError("name must be a string or omitted")
+        
         if self.description is not None and not isinstance(self.description, str):
             raise ValueError("description must be a string or omitted")
 
@@ -80,18 +75,6 @@ class Artifact:
 
     def version_ids(self) -> set[str]:
         return {v.version for v in self.versions}
-
-
-def _is_artifact_doc(data: dict) -> bool:
-    type_ = data.get("$type")
-    if type_ in ("artifact-v0", "artifact"):
-        return True
-    return (
-        "artifactId" in data
-        and "groupId" in data
-        and "artifactType" in data
-        and "versions" in data
-    )
 
 
 def discover_artifact_files() -> list[Path]:
@@ -107,15 +90,11 @@ def discover_artifact_files() -> list[Path]:
             data = load_yaml(path)
         except ValueError:
             continue
-        if _is_artifact_doc(data):
-            found.append(path)
     return found
 
 
 def load_artifact_file(path: Path) -> Artifact:
     data = load_yaml(path)
-    if not _is_artifact_doc(data):
-        raise ValueError(f"Not an artifact document: {path}")
 
     group_id = require(data, "groupId", path)
     artifact_id = require(data, "artifactId", path)
@@ -243,6 +222,7 @@ def topo_order(artifacts: list[Artifact]) -> list[Artifact]:
 
 
 def list_artifacts(base: str, group_id: str) -> set[str]:
+    """List artifact IDs in a group: GET /groups/{groupId}/artifacts"""
     ids: set[str] = set()
     offset = 0
     limit = 100

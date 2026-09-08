@@ -12,6 +12,7 @@ CONFIG_FILE = ROOT / "core" / "configs" / "global_rules.yaml"
 
 # Groups
 GROUPS_ROOT = ROOT / "groups"
+GROUPS_FILE = GROUPS_ROOT / "index.yaml"
 
 # Shared Avro/Connect catalog + per-connector type indexes
 TYPES_ROOT = ROOT / "core" / "types"

@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-"""Groups 
+"""
+Manifest group definitions
+
 reference: https://www.apicur.io/registry/docs/apicurio-registry/3.0.x/assets-attachments/registry-rest-api.htm#tag/Groups
 """
 
@@ -11,6 +13,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from common import (
+    GROUPS_FILE,
     GROUPS_ROOT,
     get_json,
     load_yaml,
@@ -68,46 +71,56 @@ def create_group(base: str, group_id: str, description: str | None = None) -> bo
     return post_json(f"{base}/groups", body) == 200
 
 
-def discover_group_specs() -> list[Path]:
-    """Find nested groups/*/index.yaml """
+def discover_table_indexes() -> list[Path]:
+    """Find groups/<groupId>/<table>/index.yaml."""
     if not GROUPS_ROOT.is_dir():
         return []
-    return sorted(
-        p
-        for p in GROUPS_ROOT.glob("*/index.yaml")
-        if p.is_file() and p.parent.name != "index.yaml"
-    )
-    
+    return sorted(p for p in GROUPS_ROOT.glob("*/*/index.yaml") if p.is_file())
+
 
 def load_groups() -> list[Group]:
-    """Load groups from groups/index.yaml"""
-    if not GROUPS_ROOT.is_file():
-        raise FileNotFoundError(f"Groups file not found: {GROUPS_ROOT}")
+    """Load groups from groups/index.yaml, plus groupId from table indexes."""
+    if not GROUPS_FILE.is_file():
+        raise FileNotFoundError(f"Groups file not found: {GROUPS_FILE}")
 
-    data = load_yaml(GROUPS_ROOT)
-    rows = require(data, "groups", GROUPS_ROOT)
+    data = load_yaml(GROUPS_FILE)
+    rows = require(data, "groups", GROUPS_FILE)
     if not isinstance(rows, list):
-        raise ValueError(f"'groups' must be a list in {GROUPS_ROOT}")
+        raise ValueError(f"'groups' must be a list in {GROUPS_FILE}")
 
     groups: list[Group] = []
     seen: set[str] = set()
     for i, entry in enumerate(rows):
         if not isinstance(entry, dict):
-            raise ValueError(f"groups[{i}] must be an object in {GROUPS_ROOT}")
+            raise ValueError(f"groups[{i}] must be an object in {GROUPS_FILE}")
 
-        group_id = require(entry, "groupId", GROUPS_ROOT)
+        group_id = require(entry, "groupId", GROUPS_FILE)
         description = entry.get("description")
         group = Group(
-            group_id=group_id, 
+            group_id=group_id,
             description=description,
         )
 
         if group.group_id in seen:
             raise ValueError(
-                f"Duplicate groupId '{group.group_id}' in {GROUPS_ROOT}"
+                f"Duplicate groupId '{group.group_id}' in {GROUPS_FILE}"
             )
         seen.add(group.group_id)
         groups.append(group)
+
+    for spec_path in discover_table_indexes():
+        folder_data = load_yaml(spec_path)
+        group_id = require(folder_data, "groupId", spec_path)
+        group_folder = spec_path.parent.parent.name
+        if group_id != group_folder:
+            raise ValueError(
+                f"groupId '{group_id}' must match folder '{group_folder}' in {spec_path}"
+            )
+        if group_id in seen:
+            continue
+        description = folder_data.get("description") or folder_data.get("topicPrefix")
+        groups.append(Group(group_id=group_id, description=description))
+        seen.add(group_id)
 
     return groups
 

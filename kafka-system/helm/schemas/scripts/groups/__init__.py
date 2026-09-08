@@ -1,7 +1,7 @@
-from .group import discover_group_specs, load_groups, sync_groups
+from .group import discover_table_indexes, load_groups, sync_groups
 
 __all__ = [
-    "discover_group_specs",
+    "discover_table_indexes",
     "load_groups",
     "sync_groups",
 ]

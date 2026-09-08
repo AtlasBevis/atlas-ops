@@ -23,7 +23,7 @@ from common import (
     require,
 )
 
-SKIP_CONFIG_SYNC = "SKIP_CONFIG_SYNC"
+_SKIP_CONFIG_SYNC = "SKIP_CONFIG_SYNC"
 
 class RuleType(str, Enum):
     VALIDITY = "VALIDITY"
@@ -71,6 +71,11 @@ class RuleConfig:
             )
 
 def list_global_rule(base: str) -> dict[RuleType, str]:
+    """
+    list all global rules: GET /admin/rules
+    
+    list all their config: GET /admin/rules/{ruleType}
+    """
     types = get_json_list(f"{base}/admin/rules")
     rules: dict[RuleType, str] = {}
     for raw in types:
@@ -83,6 +88,7 @@ def list_global_rule(base: str) -> dict[RuleType, str]:
     return rules
 
 def create_global_rule(base: str, rule: RuleConfig) -> None:
+    """create a new global rule: POST /admin/rules"""
     post_json(
         f"{base}/admin/rules",
         {
@@ -92,6 +98,7 @@ def create_global_rule(base: str, rule: RuleConfig) -> None:
     )
 
 def update_global_rule(base: str, rule: RuleConfig) -> None:
+    """update an existing global rule: PUT /admin/rules/{ruleType}"""
     put_json(
         f"{base}/admin/rules/{path_seg(rule.rule_type.value)}",
         {"config": rule.config},
@@ -122,7 +129,7 @@ def load_config() -> list[RuleConfig]:
     return rule_configs
 
 def sync_config(base: str) -> None:
-    if os.environ.get(SKIP_CONFIG_SYNC):
+    if os.environ.get(_SKIP_CONFIG_SYNC):
         print("[config] skipped config sync")
         return
     

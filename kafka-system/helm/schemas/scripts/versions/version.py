@@ -13,7 +13,6 @@ from references import ArtifactReference, parse_references, references_payload
 
 VERSION_STATES = frozenset({"ENABLED", "DISABLED", "DEPRECATED", "DRAFT"})
 
-
 @dataclass(frozen=True, slots=True)
 class Version:
     """One artifact version: content file + optional outbound references."""
@@ -29,7 +28,7 @@ class Version:
             raise ValueError("version must be a non-empty string")
         
         if self.state not in VERSION_STATES:
-            allowed = ", ".join(sorted(VERSION_STATES))
+            allowed = ", ".join(VERSION_STATES)
             raise ValueError(
                 f"Invalid version state '{self.state}'. Allowed: {allowed}"
             )

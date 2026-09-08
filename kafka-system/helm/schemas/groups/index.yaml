@@ -7,4 +7,6 @@ groups:
     description: group for domain3 (MySQL)
   - groupId: domain4
     description: group for domain4 (PostgreSQL)
+  - groupId: group1
+    description: group for group1 (Oracle)
 
