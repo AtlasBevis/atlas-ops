@@ -10,12 +10,13 @@ from __future__ import annotations
 import os
 import sys
 
-from artifacts import load_artifacts, sync_table_artifacts
+from artifacts import sync_artifacts
 from bootstrap import sync_bootstrap
 from config import sync_config
 from groups import sync_groups
 
 REGISTRY_URL = "REGISTRY_URL"
+
 
 def get_registry_url() -> str:
     url = (os.environ.get(REGISTRY_URL) or "").strip()
@@ -28,20 +29,10 @@ def main() -> int:
     url = get_registry_url()
     print(f">>> Registry: {url}")
 
-    # Sync config
     sync_config(url)
-
-    # Sync bootstrap
     sync_bootstrap(url)
-
-    # Sync groups
     groups = sync_groups(url)
-
-    # Sync table Key / Value versions (with references)
-    sync_table_artifacts(url)
-
-    # Optional domain/ artifact YAML
-    load_artifacts(groups)
+    sync_artifacts(url, groups)
 
     print("Done.")
     return 0

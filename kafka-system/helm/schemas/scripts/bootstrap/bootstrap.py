@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import Any
 
-from artifacts.artifact import create_artifact, list_artifacts
 from groups.group import create_group, list_groups
 
 DEBEZIUM_GROUP = "debezium"
@@ -408,6 +407,8 @@ def bootstrap_artifacts() -> list[tuple[str, str, dict[str, Any]]]:
 
 def sync_bootstrap(base: str) -> None:
     """Create group `debezium` if missing, then create missing shared artifacts."""
+    from artifacts.artifact import create_artifact, list_artifacts
+
     existing_groups = list_groups(base)
     created_group = 0
     if DEBEZIUM_GROUP not in existing_groups:

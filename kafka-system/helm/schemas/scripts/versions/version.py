@@ -8,10 +8,19 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from common import content_payload, get_json, path_seg, post_json, require
+from bootstrap import (
+    BOOTSTRAP_VERSION,
+    DEBEZIUM_GROUP,
+    connector_source_artifact_id,
+)
+from common import content_payload, get_json, load_yaml, path_seg, post_json, require
 from references import ArtifactReference, parse_references, references_payload
 
 VERSION_STATES = frozenset({"ENABLED", "DISABLED", "DEPRECATED", "DRAFT"})
+AVRO_PRIMITIVES = frozenset(
+    {"null", "boolean", "int", "long", "float", "double", "bytes", "string"}
+)
+
 
 @dataclass(frozen=True, slots=True)
 class Version:
@@ -26,29 +35,42 @@ class Version:
     def __post_init__(self) -> None:
         if not isinstance(self.version, str) or not self.version.strip():
             raise ValueError("version must be a non-empty string")
-        
+
         if self.state not in VERSION_STATES:
             allowed = ", ".join(VERSION_STATES)
             raise ValueError(
                 f"Invalid version state '{self.state}'. Allowed: {allowed}"
             )
-        
+
         if self.description is not None and not isinstance(self.description, str):
             raise ValueError("version description must be a string or omitted")
-        
+
         if not isinstance(self.content_path, Path):
             raise ValueError("content_path must be a Path")
 
 
-def parse_version(entry: dict, *, path: Path, loc: str) -> Version:
-    version = str(require(entry, "version", path))
-    content = require(entry, "content", path)
-    if not isinstance(content, str) or not content.strip():
-        raise ValueError(f"{loc}.content must be a non-empty relative path in {path}")
+def version_filename(version: str) -> str:
+    v = version.strip()
+    if v.lower().startswith("v"):
+        return f"{v}.yaml"
+    return f"v{v}.yaml"
 
-    content_path = (path.parent / content).resolve()
+
+def parse_version(
+    entry: dict,
+    *,
+    path: Path,
+    loc: str,
+    content_path: Path | None = None,
+) -> Version:
+    version = str(require(entry, "version", path))
+    if content_path is None:
+        content = require(entry, "content", path)
+        if not isinstance(content, str) or not content.strip():
+            raise ValueError(f"{loc}.content must be a non-empty relative path in {path}")
+        content_path = (path.parent / content).resolve()
     if not content_path.is_file():
-        raise ValueError(f"{loc}.content file not found: {content_path}")
+        raise ValueError(f"{loc} content file not found: {content_path}")
 
     description = entry.get("description")
     state = entry.get("state", "ENABLED")
@@ -63,9 +85,219 @@ def parse_version(entry: dict, *, path: Path, loc: str) -> Version:
     )
 
 
+def parse_versions(
+    raw: object,
+    *,
+    path: Path,
+    loc: str,
+    content_dir: Path | None = None,
+) -> tuple[Version, ...]:
+    if not isinstance(raw, list) or not raw:
+        raise ValueError(f"{loc} must be a non-empty list in {path}")
+    specs: list[Version] = []
+    seen: set[str] = set()
+    for i, entry in enumerate(raw):
+        if not isinstance(entry, dict):
+            raise ValueError(f"{loc}[{i}] must be an object in {path}")
+        version = str(require(entry, "version", path))
+        if version in seen:
+            raise ValueError(f"Duplicate version '{version}' in {loc} of {path}")
+        seen.add(version)
+        resolved = None
+        if content_dir is not None:
+            resolved = (content_dir / version_filename(version)).resolve()
+        specs.append(
+            parse_version(
+                entry,
+                path=path,
+                loc=f"{loc}[{i}]",
+                content_path=resolved,
+            )
+        )
+    return tuple(specs)
+
+
+def _avro_field(entry: dict[str, Any], *, path: Path, default_nullable: bool) -> dict[str, Any]:
+    name = require(entry, "name", path)
+    avro_type = require(entry, "type", path)
+    if not isinstance(avro_type, str) or avro_type not in AVRO_PRIMITIVES:
+        allowed = ", ".join(sorted(AVRO_PRIMITIVES - {"null"}))
+        raise ValueError(
+            f"Unsupported Avro type '{avro_type}' for '{name}' in {path}. Allowed: {allowed}"
+        )
+    nullable = entry.get("nullable", default_nullable)
+    field: dict[str, Any] = {"name": name}
+    if nullable:
+        field["type"] = ["null", avro_type]
+        field["default"] = None if "default" not in entry else entry.get("default")
+    else:
+        field["type"] = avro_type
+        if "default" in entry:
+            field["default"] = entry["default"]
+    return field
+
+
+def load_fields(path: Path, kind: str) -> list[dict[str, Any]]:
+    data = load_yaml(path)
+    key = "keys" if kind == "key" else "values"
+    rows = require(data, key, path)
+    if not isinstance(rows, list) or not rows:
+        raise ValueError(f"'{key}' must be a non-empty list in {path}")
+    default_nullable = kind != "key"
+    fields: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for i, entry in enumerate(rows):
+        if not isinstance(entry, dict):
+            raise ValueError(f"{key}[{i}] must be an object in {path}")
+        field = _avro_field(entry, path=path, default_nullable=default_nullable)
+        if field["name"] in seen:
+            raise ValueError(f"Duplicate field '{field['name']}' in {path}")
+        seen.add(field["name"])
+        fields.append(field)
+    return fields
+
+
+def key_schema(ns: str, fields: list[dict[str, Any]]) -> dict[str, Any]:
+    return {
+        "type": "record",
+        "name": "Key",
+        "namespace": ns,
+        "fields": fields,
+        "connect.name": f"{ns}.Key",
+    }
+
+
+def value_record_schema(ns: str, fields: list[dict[str, Any]]) -> dict[str, Any]:
+    return {
+        "type": "record",
+        "name": "Value",
+        "namespace": ns,
+        "fields": fields,
+        "connect.name": f"{ns}.Value",
+    }
+
+
+def envelope_schema(ns: str, source_type: str, value_fqn: str) -> dict[str, Any]:
+    return {
+        "type": "record",
+        "name": "Envelope",
+        "namespace": ns,
+        "fields": [
+            {"name": "before", "type": ["null", value_fqn], "default": None},
+            {"name": "after", "type": ["null", value_fqn], "default": None},
+            {"name": "source", "type": source_type},
+            {"name": "transaction", "type": ["null", "event.block"], "default": None},
+            {"name": "op", "type": "string"},
+            {"name": "ts_ms", "type": ["null", "long"], "default": None},
+            {"name": "ts_us", "type": ["null", "long"], "default": None},
+            {"name": "ts_ns", "type": ["null", "long"], "default": None},
+        ],
+        "connect.version": 2,
+        "connect.name": f"{ns}.Envelope",
+    }
+
+
+def debezium_shared_references(connector: str) -> list[dict[str, str]]:
+    source_id = connector_source_artifact_id(connector)
+    return [
+        {
+            "name": source_id,
+            "groupId": DEBEZIUM_GROUP,
+            "artifactId": source_id,
+            "version": BOOTSTRAP_VERSION,
+        },
+        {
+            "name": "event.block",
+            "groupId": DEBEZIUM_GROUP,
+            "artifactId": "event.block",
+            "version": BOOTSTRAP_VERSION,
+        },
+    ]
+
+
+def envelope_references(
+    group_id: str,
+    ns: str,
+    value_version: str,
+    connector: str,
+) -> list[dict[str, str]]:
+    value_id = f"{ns}.Value"
+    return [
+        {
+            "name": value_id,
+            "groupId": group_id,
+            "artifactId": value_id,
+            "version": value_version,
+        },
+        *debezium_shared_references(connector),
+    ]
+
+
+def plan_versions(
+    *,
+    group_id: str,
+    topic: str,
+    connector: str,
+    key_versions: tuple[Version, ...],
+    value_versions: tuple[Version, ...],
+    key_description: str | None = None,
+    value_description: str | None = None,
+    envelope_description: str | None = None,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
+    """Value records, then keys, then envelopes (envelope references .Value)."""
+    source_type = connector_source_artifact_id(connector)
+    key_id = f"{topic}-key"
+    record_id = f"{topic}.Value"
+    envelope_id = f"{topic}-value"
+    value_fqn = f"{topic}.Value"
+
+    value_jobs: list[dict[str, Any]] = []
+    key_jobs: list[dict[str, Any]] = []
+    envelope_jobs: list[dict[str, Any]] = []
+
+    for ver in value_versions:
+        fields = load_fields(ver.content_path, "value")
+        value_jobs.append(
+            {
+                "artifact_id": record_id,
+                "version": ver.version,
+                "content": value_record_schema(topic, fields),
+                "description": ver.description or value_description,
+                "references": None,
+            }
+        )
+        envelope_jobs.append(
+            {
+                "artifact_id": envelope_id,
+                "version": ver.version,
+                "content": envelope_schema(topic, source_type, value_fqn),
+                "description": ver.description or envelope_description,
+                "references": envelope_references(
+                    group_id,
+                    topic,
+                    ver.version,
+                    connector,
+                ),
+            }
+        )
+
+    for ver in key_versions:
+        fields = load_fields(ver.content_path, "key")
+        key_jobs.append(
+            {
+                "artifact_id": key_id,
+                "version": ver.version,
+                "content": key_schema(topic, fields),
+                "description": ver.description or key_description,
+                "references": None,
+            }
+        )
+
+    return value_jobs, key_jobs, envelope_jobs
+
+
 def list_versions(base: str, group_id: str, artifact_id: str) -> set[str]:
     """GET /groups/{groupId}/artifacts/{artifactId}/versions."""
-    
     ids: set[str] = set()
     offset = 0
     limit = 100
@@ -118,3 +350,54 @@ def create_version(
         f"{base}/groups/{path_seg(group_id)}/artifacts/{path_seg(artifact_id)}/versions"
     )
     return post_json(url, body) in (200, 204)
+
+
+def ensure_version(
+    base: str,
+    group_id: str,
+    artifact_id: str,
+    content: str | dict[str, Any],
+    *,
+    version: str,
+    description: str | None = None,
+    references: list[dict[str, Any]] | tuple[ArtifactReference, ...] | None = None,
+) -> str:
+    """Create a version if missing. Returns version | exists."""
+    versions = list_versions(base, group_id, artifact_id)
+    if version in versions:
+        return "exists"
+    create_version(
+        base,
+        group_id,
+        artifact_id,
+        content,
+        version=version,
+        description=description,
+        references=references,
+    )
+    return "version"
+
+
+def sync_versions(
+    base: str,
+    group_id: str,
+    jobs: list[dict[str, Any]],
+) -> tuple[int, int]:
+    """Create missing versions. Returns (created, skipped)."""
+    created = 0
+    skipped = 0
+    for job in jobs:
+        result = ensure_version(
+            base,
+            group_id,
+            job["artifact_id"],
+            job["content"],
+            version=job["version"],
+            description=job["description"],
+            references=job["references"],
+        )
+        if result == "version":
+            created += 1
+        else:
+            skipped += 1
+    return created, skipped

@@ -11,214 +11,30 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from common import DOMAIN_ROOT, content_payload, get_json, load_yaml, path_seg, post_json, require
+from common import GROUPS_ROOT, content_payload, get_json, load_yaml, path_seg, post_json, require
 from references import references_payload
-from versions import Version, create_version, list_versions, parse_version
-
-ARTIFACT_TYPES = frozenset({
-    "AVRO",
-    "PROTOBUF",
-    "JSON",
-    "OPENAPI",
-    "ASYNCAPI",
-    "GRAPHQL",
-    "KCONNECT",
-    "WSDL",
-    "XSD",
-    "XML",
-})
-
-# Same length rule as Apicurio ArtifactId.
-_ID_LEN = range(1, 512)
+from versions import Version, parse_versions, plan_versions, sync_versions
 
 
 @dataclass(frozen=True, slots=True)
-class Artifact:
+class TableSpec:
+    name: str
+    description: str | None
+    key_description: str | None
+    value_description: str | None
+    key_versions: tuple[Version, ...]
+    value_versions: tuple[Version, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class TableIndex:
+    path: Path
     group_id: str
-    artifact_id: str
-    versions: tuple[Version, ...]
-    artifact_type: str = "AVRO"
-    name: str | None = None
-    description: str | None = None
-    source: Path | None = None
-
-    def __post_init__(self) -> None:
-        for field_name, value in (
-            ("groupId", self.group_id),
-            ("artifactId", self.artifact_id),
-        ):
-            if not isinstance(value, str) or not value.strip():
-                raise ValueError(f"{field_name} must be a non-empty string")
-            if len(value) not in _ID_LEN:
-                raise ValueError(f"{field_name} '{value}' must be 1–512 characters")
-
-        if self.artifact_type not in ARTIFACT_TYPES:
-            allowed = ", ".join(ARTIFACT_TYPES)
-            raise ValueError(
-                f"Invalid artifactType '{self.artifact_type}'. Allowed: {allowed}"
-            )
-        
-        if not self.versions:
-            raise ValueError(
-                f"artifact '{self.group_id}/{self.artifact_id}' needs ≥1 version"
-            )
-        
-        if self.name is not None and not isinstance(self.name, str):
-            raise ValueError("name must be a string or omitted")
-        
-        if self.description is not None and not isinstance(self.description, str):
-            raise ValueError("description must be a string or omitted")
-
-    @property
-    def key(self) -> tuple[str, str]:
-        return (self.group_id, self.artifact_id)
-
-    def version_ids(self) -> set[str]:
-        return {v.version for v in self.versions}
-
-
-def discover_artifact_files() -> list[Path]:
-    """Find artifact YAML under domain/."""
-    if not DOMAIN_ROOT.is_dir():
-        return []
-
-    found: list[Path] = []
-    for path in sorted(DOMAIN_ROOT.rglob("*.yaml")):
-        if path.name in ("spec.yaml", "mappings.yaml", "catalog.yaml"):
-            continue
-        try:
-            data = load_yaml(path)
-        except ValueError:
-            continue
-    return found
-
-
-def load_artifact_file(path: Path) -> Artifact:
-    data = load_yaml(path)
-
-    group_id = require(data, "groupId", path)
-    artifact_id = require(data, "artifactId", path)
-    artifact_type = require(data, "artifactType", path)
-    raw_versions = require(data, "versions", path)
-    if not isinstance(raw_versions, list):
-        raise ValueError(f"'versions' must be a list in {path}")
-
-    versions: list[Version] = []
-    seen: set[str] = set()
-    for i, entry in enumerate(raw_versions):
-        if not isinstance(entry, dict):
-            raise ValueError(f"versions[{i}] must be an object in {path}")
-        ver = parse_version(entry, path=path, loc=f"versions[{i}]")
-        if ver.version in seen:
-            raise ValueError(
-                f"Duplicate version '{ver.version}' for "
-                f"{group_id}/{artifact_id} in {path}"
-            )
-        seen.add(ver.version)
-        versions.append(ver)
-
-    return Artifact(
-        group_id=group_id,
-        artifact_id=artifact_id,
-        artifact_type=str(artifact_type).upper(),
-        versions=tuple(versions),
-        name=data.get("name"),
-        description=data.get("description"),
-        source=path,
-    )
-
-
-def validate_artifact_graph(
-    artifacts: list[Artifact],
-    known_groups: set[str],
-) -> None:
-    """Cross-check group membership + reference targets exist in the desired set."""
-    by_key: dict[tuple[str, str], Artifact] = {}
-    for art in artifacts:
-        if art.group_id not in known_groups:
-            raise ValueError(
-                f"artifact '{art.group_id}/{art.artifact_id}' references unknown "
-                f"groupId '{art.group_id}' (not in groups/spec.yaml)"
-            )
-        if art.key in by_key:
-            other = by_key[art.key].source
-            raise ValueError(
-                f"Duplicate artifact {art.group_id}/{art.artifact_id}: "
-                f"{art.source} and {other}"
-            )
-        by_key[art.key] = art
-
-    # All version coordinates available in the desired graph.
-    coords: set[tuple[str, str, str]] = set()
-    for art in artifacts:
-        for ver in art.versions:
-            coords.add((art.group_id, art.artifact_id, ver.version))
-
-    for art in artifacts:
-        for ver in art.versions:
-            for ref in ver.references:
-                if ref.group_id not in known_groups:
-                    raise ValueError(
-                        f"reference '{ref.name}' in "
-                        f"{art.group_id}/{art.artifact_id}@{ver.version} "
-                        f"points to unknown groupId '{ref.group_id}'"
-                    )
-                if ref.coord not in coords:
-                    raise ValueError(
-                        f"reference '{ref.name}' in "
-                        f"{art.group_id}/{art.artifact_id}@{ver.version} "
-                        f"→ {ref.group_id}/{ref.artifact_id}@{ref.version} "
-                        f"not found in desired artifacts"
-                    )
-
-
-def load_artifacts(known_groups: set[str]) -> list[Artifact]:
-    """Load + validate all domain artifacts. Empty domain → empty list (OK)."""
-    files = discover_artifact_files()
-    artifacts = [load_artifact_file(p) for p in files]
-    validate_artifact_graph(artifacts, known_groups)
-    return artifacts
-
-
-def topo_order(artifacts: list[Artifact]) -> list[Artifact]:
-    """Order artifacts so referenced targets come before dependents.
-
-    Used later by sync: create missing only, debezium/shared → record → key → envelope.
-    """
-    by_key = {a.key: a for a in artifacts}
-    # Edge: artifact → depends on target artifact (ignore version for ordering)
-    deps: dict[tuple[str, str], set[tuple[str, str]]] = {a.key: set() for a in artifacts}
-    for art in artifacts:
-        for ver in art.versions:
-            for ref in ver.references:
-                target = (ref.group_id, ref.artifact_id)
-                if target == art.key:
-                    raise ValueError(
-                        f"Self-reference not allowed: "
-                        f"{art.group_id}/{art.artifact_id} via '{ref.name}'"
-                    )
-                if target in by_key:
-                    deps[art.key].add(target)
-
-    ordered: list[Artifact] = []
-    seen: set[tuple[str, str]] = set()
-    stack: set[tuple[str, str]] = set()
-
-    def visit(key: tuple[str, str]) -> None:
-        if key in seen:
-            return
-        if key in stack:
-            raise ValueError(f"Cyclic artifact references involving {key[0]}/{key[1]}")
-        stack.add(key)
-        for dep in sorted(deps[key]):
-            visit(dep)
-        stack.remove(key)
-        seen.add(key)
-        ordered.append(by_key[key])
-
-    for key in sorted(by_key):
-        visit(key)
-    return ordered
+    db_schema: str
+    topic_prefix: str
+    source_type: str
+    connector: str
+    table: TableSpec
 
 
 def list_artifacts(base: str, group_id: str) -> set[str]:
@@ -249,7 +65,7 @@ def create_artifact(
     base: str,
     group_id: str,
     artifact_id: str,
-    content: str | dict[str, Any],
+    content: str | dict[str, Any] | None = None,
     *,
     artifact_type: str = "AVRO",
     version: str = "1",
@@ -257,66 +73,247 @@ def create_artifact(
     description: str | None = None,
     references: list[dict[str, Any]] | None = None,
 ) -> bool:
-    """POST /groups/{groupId}/artifacts (Apicurio Registry v3). 409 = already exists."""
-    if isinstance(content, dict):
-        content = json.dumps(content, ensure_ascii=False)
-    payload = content_payload(content)
-    refs = references_payload(references)
-    if refs:
-        payload["references"] = refs
+    """POST /groups/{groupId}/artifacts.
+
+    Omit content to create an empty artifact (no firstVersion).
+    409 = already exists.
+    """
     body: dict[str, Any] = {
         "artifactId": artifact_id,
         "artifactType": artifact_type,
         "name": name or artifact_id,
-        "firstVersion": {
-            "version": version,
-            "content": payload,
-        },
     }
     if description:
         body["description"] = description
+    if content is not None:
+        if isinstance(content, dict):
+            content = json.dumps(content, ensure_ascii=False)
+        payload = content_payload(content)
+        refs = references_payload(references)
+        if refs:
+            payload["references"] = refs
+        body["firstVersion"] = {
+            "version": version,
+            "content": payload,
+        }
     return post_json(f"{base}/groups/{path_seg(group_id)}/artifacts", body) in (200, 204)
 
 
-def ensure_artifact_version(
+def ensure_empty_artifact(
     base: str,
     group_id: str,
     artifact_id: str,
-    content: str | dict[str, Any],
     *,
-    version: str,
     existing_artifacts: set[str],
     artifact_type: str = "AVRO",
     name: str | None = None,
     description: str | None = None,
-    references: list[dict[str, Any]] | None = None,
 ) -> str:
-    """Create artifact or a new version. Returns created | version | exists."""
-    if artifact_id not in existing_artifacts:
-        create_artifact(
-            base,
-            group_id,
-            artifact_id,
-            content,
-            artifact_type=artifact_type,
-            version=version,
-            name=name,
-            description=description,
-            references=references,
-        )
-        existing_artifacts.add(artifact_id)
-        return "created"
-
-    versions = list_versions(base, group_id, artifact_id)
-    if version in versions:
+    """Create an empty artifact if missing. Returns created | exists."""
+    if artifact_id in existing_artifacts:
         return "exists"
-    create_version(
+    create_artifact(
         base,
         group_id,
         artifact_id,
-        content,
-        version=version,
+        content=None,
+        artifact_type=artifact_type,
+        name=name,
         description=description,
-        references=references,
     )
-    return "version"
+    existing_artifacts.add(artifact_id)
+    return "created"
+
+
+def discover_table_indexes() -> list[Path]:
+    if not GROUPS_ROOT.is_dir():
+        return []
+    return sorted(GROUPS_ROOT.glob("*/*/index.yaml"))
+
+
+def _parse_side(
+    raw: object,
+    *,
+    path: Path,
+    loc: str,
+    content_dir: Path,
+) -> tuple[str | None, tuple[Version, ...]]:
+    if not isinstance(raw, dict):
+        raise ValueError(f"{loc} must be an object in {path}")
+    versions = parse_versions(
+        require(raw, "versions", path),
+        path=path,
+        loc=f"{loc}.versions",
+        content_dir=content_dir,
+    )
+    description = raw.get("description")
+    return description, versions
+
+
+def load_table_index(spec_path: Path) -> TableIndex:
+    data = load_yaml(spec_path)
+    group_id = require(data, "groupId", spec_path)
+    group_folder = spec_path.parent.parent.name
+    if group_id != group_folder:
+        raise ValueError(
+            f"groupId '{group_id}' must match folder '{group_folder}' in {spec_path}"
+        )
+
+    source = require(data, "source", spec_path)
+    if not isinstance(source, dict):
+        raise ValueError(f"'source' must be an object in {spec_path}")
+    source_type = source.get("type")
+    if source_type != "debezium":
+        raise ValueError(f"'source.type' must be 'debezium' in {spec_path}")
+    connector = source.get("database")
+    if not isinstance(connector, str) or not connector.strip():
+        raise ValueError(f"'source.database' is required in {spec_path}")
+
+    entry = require(data, "table", spec_path)
+    if not isinstance(entry, dict):
+        raise ValueError(f"'table' must be an object in {spec_path}")
+    name = require(entry, "name", spec_path)
+    folder_name = spec_path.parent.name
+    if name.lower() != folder_name.lower():
+        raise ValueError(
+            f"table.name '{name}' must match folder '{folder_name}' in {spec_path}"
+        )
+
+    key_desc, key_versions = _parse_side(
+        require(entry, "key", spec_path),
+        path=spec_path,
+        loc="table.key",
+        content_dir=spec_path.parent / "keys",
+    )
+    value_desc, value_versions = _parse_side(
+        require(entry, "value", spec_path),
+        path=spec_path,
+        loc="table.value",
+        content_dir=spec_path.parent / "values",
+    )
+    table = TableSpec(
+        name=name,
+        description=entry.get("description"),
+        key_description=key_desc,
+        value_description=value_desc,
+        key_versions=key_versions,
+        value_versions=value_versions,
+    )
+    return TableIndex(
+        path=spec_path,
+        group_id=group_id,
+        db_schema=require(data, "schema", spec_path),
+        topic_prefix=require(data, "topicPrefix", spec_path),
+        source_type=str(source_type),
+        connector=str(connector),
+        table=table,
+    )
+
+
+def load_table_indexes() -> list[TableIndex]:
+    result: list[TableIndex] = []
+    for spec_path in discover_table_indexes():
+        try:
+            result.append(load_table_index(spec_path))
+        except Exception as exc:  # noqa: BLE001
+            raise ValueError(f"Failed to load table index {spec_path}: {exc}") from exc
+    return result
+
+
+def validate_table_indexes(
+    indexes: list[TableIndex],
+    known_groups: set[str],
+) -> None:
+    for spec in indexes:
+        if spec.group_id not in known_groups:
+            raise ValueError(
+                f"table index '{spec.path}' has unknown groupId '{spec.group_id}' "
+                f"(not in synced groups)"
+            )
+        if spec.source_type != "debezium":
+            raise ValueError(
+                f"Unsupported source.type '{spec.source_type}' in {spec.path}"
+            )
+
+
+def kafka_topic(spec: TableIndex) -> str:
+    return f"{spec.topic_prefix}.{spec.db_schema}.{spec.table.name}"
+
+
+def debezium_artifact_ids(topic: str) -> tuple[str, str, str]:
+    return f"{topic}-key", f"{topic}.Value", f"{topic}-value"
+
+
+def plan_empty_artifacts(spec: TableIndex) -> list[tuple[str, str, str | None]]:
+    table = spec.table
+    topic = kafka_topic(spec)
+    key_id, record_id, envelope_id = debezium_artifact_ids(topic)
+    return [
+        (key_id, key_id, table.key_description or f"CDC Key for {topic}"),
+        (record_id, record_id, table.value_description or f"CDC Value for {topic}"),
+        (envelope_id, envelope_id, table.description or f"CDC Envelope for {topic}"),
+    ]
+
+
+def sync_artifacts(base: str, known_groups: set[str]) -> None:
+    """Create empty artifacts per group, then versions for those artifactIds."""
+    indexes = load_table_indexes()
+    validate_table_indexes(indexes, known_groups)
+
+    by_group: dict[str, list[TableIndex]] = {}
+    for spec in indexes:
+        by_group.setdefault(spec.group_id, []).append(spec)
+
+    created = 0
+    versioned = 0
+    skipped = 0
+
+    for group_id in sorted(by_group):
+        existing = list_artifacts(base, group_id)
+        empties: list[tuple[str, str, str | None]] = []
+        value_jobs: list[dict[str, Any]] = []
+        key_jobs: list[dict[str, Any]] = []
+        envelope_jobs: list[dict[str, Any]] = []
+
+        for spec in by_group[group_id]:
+            empties.extend(plan_empty_artifacts(spec))
+            values, keys, envelopes = plan_versions(
+                group_id=spec.group_id,
+                topic=kafka_topic(spec),
+                connector=spec.connector,
+                key_versions=spec.table.key_versions,
+                value_versions=spec.table.value_versions,
+                key_description=spec.table.key_description,
+                value_description=spec.table.value_description,
+                envelope_description=spec.table.description,
+            )
+            value_jobs.extend(values)
+            key_jobs.extend(keys)
+            envelope_jobs.extend(envelopes)
+
+        for artifact_id, name, description in empties:
+            result = ensure_empty_artifact(
+                base,
+                group_id,
+                artifact_id,
+                existing_artifacts=existing,
+                name=name,
+                description=description,
+            )
+            if result == "created":
+                created += 1
+            else:
+                skipped += 1
+
+        added, missed = sync_versions(
+            base,
+            group_id,
+            value_jobs + key_jobs + envelope_jobs,
+        )
+        versioned += added
+        skipped += missed
+
+    print(
+        f"[artifacts] groups={len(by_group)} indexes={len(indexes)} "
+        f"created={created} versions={versioned} skipped={skipped}"
+    )

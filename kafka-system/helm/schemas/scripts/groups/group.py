@@ -10,11 +10,8 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
-from pathlib import Path
-
 from common import (
     GROUPS_FILE,
-    GROUPS_ROOT,
     get_json,
     load_yaml,
     post_json,
@@ -70,14 +67,6 @@ def create_group(base: str, group_id: str, description: str | None = None) -> bo
         body["description"] = description
     return post_json(f"{base}/groups", body) == 200
 
-
-def discover_table_indexes() -> list[Path]:
-    """Find groups/<groupId>/<table>/index.yaml."""
-    if not GROUPS_ROOT.is_dir():
-        return []
-    return sorted(p for p in GROUPS_ROOT.glob("*/*/index.yaml") if p.is_file())
-
-
 def load_groups() -> list[Group]:
     """Load groups from groups/index.yaml, plus groupId from table indexes."""
     if not GROUPS_FILE.is_file():
@@ -107,20 +96,6 @@ def load_groups() -> list[Group]:
             )
         seen.add(group.group_id)
         groups.append(group)
-
-    for spec_path in discover_table_indexes():
-        folder_data = load_yaml(spec_path)
-        group_id = require(folder_data, "groupId", spec_path)
-        group_folder = spec_path.parent.parent.name
-        if group_id != group_folder:
-            raise ValueError(
-                f"groupId '{group_id}' must match folder '{group_folder}' in {spec_path}"
-            )
-        if group_id in seen:
-            continue
-        description = folder_data.get("description") or folder_data.get("topicPrefix")
-        groups.append(Group(group_id=group_id, description=description))
-        seen.add(group_id)
 
     return groups
 

@@ -11,7 +11,6 @@ from .common import (
 )
 from files import (
     CONFIG_FILE,
-    DOMAIN_ROOT,
     GROUPS_FILE,
     GROUPS_ROOT,
     MSSQL_MAPPINGS,
@@ -29,7 +28,6 @@ from files import (
 
 __all__ = [
     "CONFIG_FILE",
-    "DOMAIN_ROOT",
     "GROUPS_FILE",
     "GROUPS_ROOT",
     "MSSQL_MAPPINGS",
