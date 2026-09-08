@@ -10,10 +10,10 @@ from __future__ import annotations
 import os
 import sys
 
-from artifacts import load_artifacts, topo_order
-from bootstrap import DEBEZIUM_GROUP, sync_bootstrap
+from artifacts import load_artifacts, sync_table_artifacts
+from bootstrap import sync_bootstrap
 from config import sync_config
-from groups import load_groups, sync_groups
+from groups import sync_groups
 
 REGISTRY_URL = "REGISTRY_URL"
 
@@ -34,13 +34,14 @@ def main() -> int:
     # Sync bootstrap
     sync_bootstrap(url)
 
-    # Sync groups
+    # Sync groups (catalog + groups/*/spec.yaml)
     groups = sync_groups(url)
 
-    # Sync artifacts
-    artifacts = load_artifacts(groups)
+    # Sync table Key / Value versions (with references)
+    sync_table_artifacts(url)
 
-    # ordered = topo_order(artifacts)
+    # Optional domain/ artifact YAML
+    load_artifacts(groups)
 
     print("Done.")
     return 0

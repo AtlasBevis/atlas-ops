@@ -20,7 +20,8 @@ from pathlib import Path
 from typing import Any
 
 from common import DOMAIN_ROOT, content_payload, get_json, load_yaml, path_seg, post_json, require
-from artifacts.versions.version import Version, parse_version
+from references import references_payload
+from versions import Version, create_version, list_versions, parse_version
 
 ARTIFACT_TYPES = frozenset({
     "AVRO",
@@ -280,8 +281,9 @@ def create_artifact(
     if isinstance(content, dict):
         content = json.dumps(content, ensure_ascii=False)
     payload = content_payload(content)
-    if references:
-        payload["references"] = references
+    refs = references_payload(references)
+    if refs:
+        payload["references"] = refs
     body: dict[str, Any] = {
         "artifactId": artifact_id,
         "artifactType": artifact_type,
@@ -294,3 +296,47 @@ def create_artifact(
     if description:
         body["description"] = description
     return post_json(f"{base}/groups/{path_seg(group_id)}/artifacts", body) in (200, 204)
+
+
+def ensure_artifact_version(
+    base: str,
+    group_id: str,
+    artifact_id: str,
+    content: str | dict[str, Any],
+    *,
+    version: str,
+    existing_artifacts: set[str],
+    artifact_type: str = "AVRO",
+    name: str | None = None,
+    description: str | None = None,
+    references: list[dict[str, Any]] | None = None,
+) -> str:
+    """Create artifact or a new version. Returns created | version | exists."""
+    if artifact_id not in existing_artifacts:
+        create_artifact(
+            base,
+            group_id,
+            artifact_id,
+            content,
+            artifact_type=artifact_type,
+            version=version,
+            name=name,
+            description=description,
+            references=references,
+        )
+        existing_artifacts.add(artifact_id)
+        return "created"
+
+    versions = list_versions(base, group_id, artifact_id)
+    if version in versions:
+        return "exists"
+    create_version(
+        base,
+        group_id,
+        artifact_id,
+        content,
+        version=version,
+        description=description,
+        references=references,
+    )
+    return "version"

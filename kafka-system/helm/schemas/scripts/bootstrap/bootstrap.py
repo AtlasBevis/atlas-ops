@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from artifacts import create_artifact, list_artifacts
+from artifacts.artifact import create_artifact, list_artifacts
 from groups.group import create_group, list_groups
 
 DEBEZIUM_GROUP = "debezium"
@@ -31,6 +31,14 @@ _CONNECTOR_NS = {
     "mysql": "io.debezium.connector.mysql",
     "mssql": "io.debezium.connector.sqlserver",
 }
+
+
+def connector_namespace(connector: str) -> str:
+    return _CONNECTOR_NS[_resolve_db(connector)]
+
+
+def connector_source_artifact_id(connector: str) -> str:
+    return f"{connector_namespace(connector)}.Source"
 
 
 def _resolve_db(db: str) -> str:

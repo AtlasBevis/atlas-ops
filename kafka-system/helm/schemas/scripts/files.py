@@ -5,12 +5,13 @@ from __future__ import annotations
 
 from pathlib import Path
 
-# schemas/scripts/common/files.py → schemas/
-ROOT = Path(__file__).resolve().parents[2]
+# schemas/scripts/files.py → schemas/
+ROOT = Path(__file__).resolve().parents[1]
 
 CONFIG_FILE = ROOT / "core" / "configs" / "global_rules.yaml"
-GROUPS_FILE = ROOT / "groups" / "spec.yaml"
-DOMAIN_ROOT = ROOT / "domain"
+
+# Groups
+GROUPS_ROOT = ROOT / "groups"
 
 # Shared Avro/Connect catalog + per-connector type indexes
 TYPES_ROOT = ROOT / "core" / "types"

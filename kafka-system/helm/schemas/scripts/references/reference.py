@@ -1,17 +1,14 @@
 #!/usr/bin/env python3
-"""Artifact version + Apicurio content references."""
+"""Apicurio content references: model + parse + list API."""
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
+from typing import Any, Iterable
 
-from common import require
+from common import get_json, path_seg, require
 
-# Apicurio version states commonly used by the registry.
-VERSION_STATES = frozenset({"ENABLED", "DISABLED", "DEPRECATED", "DRAFT"})
-
-# Same pattern as GroupId / ArtifactId in Apicurio Registry REST API.
 _ID_LEN = range(1, 513)
 
 
@@ -46,29 +43,13 @@ class ArtifactReference:
     def coord(self) -> tuple[str, str, str]:
         return (self.group_id, self.artifact_id, self.version)
 
-
-@dataclass(frozen=True, slots=True)
-class Version:
-    """One artifact version: content file + optional outbound references."""
-
-    version: str
-    content_path: Path
-    state: str = "ENABLED"
-    description: str | None = None
-    references: tuple[ArtifactReference, ...] = field(default_factory=tuple)
-
-    def __post_init__(self) -> None:
-        if not isinstance(self.version, str) or not self.version.strip():
-            raise ValueError("version must be a non-empty string")
-        if self.state not in VERSION_STATES:
-            allowed = ", ".join(sorted(VERSION_STATES))
-            raise ValueError(
-                f"Invalid version state '{self.state}'. Allowed: {allowed}"
-            )
-        if self.description is not None and not isinstance(self.description, str):
-            raise ValueError("version description must be a string or omitted")
-        if not isinstance(self.content_path, Path):
-            raise ValueError("content_path must be a Path")
+    def as_dict(self) -> dict[str, str]:
+        return {
+            "name": self.name,
+            "groupId": self.group_id,
+            "artifactId": self.artifact_id,
+            "version": self.version,
+        }
 
 
 def parse_references(
@@ -102,24 +83,45 @@ def parse_references(
     return tuple(refs)
 
 
-def parse_version(entry: dict, *, path: Path, loc: str) -> Version:
-    version = str(require(entry, "version", path))
-    content = require(entry, "content", path)
-    if not isinstance(content, str) or not content.strip():
-        raise ValueError(f"{loc}.content must be a non-empty relative path in {path}")
+def references_payload(
+    refs: Iterable[ArtifactReference | dict[str, Any]] | None,
+) -> list[dict[str, str]] | None:
+    if not refs:
+        return None
+    out: list[dict[str, str]] = []
+    for ref in refs:
+        if isinstance(ref, ArtifactReference):
+            out.append(ref.as_dict())
+        else:
+            out.append(ref)
+    return out
 
-    content_path = (path.parent / content).resolve()
-    if not content_path.is_file():
-        raise ValueError(f"{loc}.content file not found: {content_path}")
 
-    description = entry.get("description")
-    state = entry.get("state", "ENABLED")
-    refs = parse_references(entry.get("references"), path=path, loc=loc)
+def merge_references(
+    *groups: tuple[dict[str, str], ...] | list[dict[str, str]],
+) -> list[dict[str, str]]:
+    merged: dict[str, dict[str, str]] = {}
+    for refs in groups:
+        for ref in refs:
+            merged[ref["name"]] = ref
+    return list(merged.values())
 
-    return Version(
-        version=version,
-        content_path=content_path,
-        state=str(state),
-        description=description,
-        references=refs,
+
+def list_references(
+    base: str,
+    group_id: str,
+    artifact_id: str,
+    version: str,
+) -> list[dict[str, Any]]:
+    """GET /groups/{groupId}/artifacts/{artifactId}/versions/{version}/references."""
+    url = (
+        f"{base}/groups/{path_seg(group_id)}/artifacts/{path_seg(artifact_id)}"
+        f"/versions/{path_seg(version)}/references"
     )
+    data = get_json(url, allow_404=True)
+    if isinstance(data, list):
+        return [row for row in data if isinstance(row, dict)]
+    if isinstance(data, dict):
+        rows = data.get("references") or []
+        return [row for row in rows if isinstance(row, dict)]
+    return []

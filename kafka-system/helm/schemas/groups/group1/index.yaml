@@ -3,7 +3,7 @@ schema: MAIN
 topicPrefix: cdc.group1
 source:
   type: debezium
-  connector: oracle
+  database: oracle
   signal: true
   heartbeat: true
   heartbeatPrefix: __heartbeat.uat
@@ -22,7 +22,7 @@ tables:
         - version: "1"
           state: ENABLED
           description: CDC Value for MAIN.TABLE1 v1
-  
+
   - name: TABLE2
     description: CDC for MAIN.TABLE2
     key:

@@ -9,10 +9,11 @@ from .common import (
     put_json,
     require,
 )
-from .files import (
+from files import (
     CONFIG_FILE,
     DOMAIN_ROOT,
     GROUPS_FILE,
+    GROUPS_ROOT,
     MSSQL_MAPPINGS,
     MSSQL_TYPES,
     MYSQL_MAPPINGS,
@@ -30,6 +31,7 @@ __all__ = [
     "CONFIG_FILE",
     "DOMAIN_ROOT",
     "GROUPS_FILE",
+    "GROUPS_ROOT",
     "MSSQL_MAPPINGS",
     "MSSQL_TYPES",
     "MYSQL_MAPPINGS",
