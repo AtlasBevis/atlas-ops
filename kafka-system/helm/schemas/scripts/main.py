@@ -11,6 +11,7 @@ import os
 import sys
 
 from artifacts import load_artifacts, topo_order
+from bootstrap import DEBEZIUM_GROUP, sync_bootstrap
 from config import sync_config
 from groups import load_groups, sync_groups
 
@@ -30,16 +31,17 @@ def main() -> int:
     # Sync config
     sync_config(url)
 
-    # Sync groups, then validate artifacts/versions/references against them
-    sync_groups(url)
-    known_groups = {g.group_id for g in load_groups()}
-    artifacts = load_artifacts(known_groups)
-    ordered = topo_order(artifacts)
-    print(
-        f"[artifacts] validated={len(artifacts)} "
-        f"ordered={', '.join(f'{a.group_id}/{a.artifact_id}' for a in ordered) or '-'}"
-    )
+    # Sync bootstrap
+    sync_bootstrap(url)
 
+    # Sync groups
+    groups = sync_groups(url)
+
+    # Sync artifacts
+    artifacts = load_artifacts(groups)
+
+    # ordered = topo_order(artifacts)
+  
     print("Done.")
     return 0
 

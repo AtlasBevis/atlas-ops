@@ -2,6 +2,15 @@ from __future__ import annotations
 
 from typing import Any
 
+from artifacts import create_artifact, list_artifacts
+from groups.group import create_group, list_groups
+
+DEBEZIUM_GROUP = "debezium"
+DEBEZIUM_GROUP_DESCRIPTION = "Shared Debezium types"
+BOOTSTRAP_VERSION = "1"
+
+_DBS = ("oracle", "postgres", "mysql", "mssql")
+
 # Debezium 3.6.2 — SnapshotRecord + SchemaFactory.sourceInfoSchemaBuilder()
 # https://debezium.io/documentation/reference/stable/connectors/oracle.html#oracle-schema-history-topic
 _SNAPSHOT_ALLOWED = (
@@ -340,3 +349,81 @@ def schema_change_value_schema(db: str) -> dict[str, Any]:
         "connect.version": 1,
         "connect.name": f"{ns}.SchemaChangeValue",
     }
+
+def bootstrap_artifacts() -> list[tuple[str, str, dict[str, Any]]]:
+    """(artifactId, description, avro schema) registered into group debezium."""
+    items: list[tuple[str, str, dict[str, Any]]] = [
+        ("event.block", "Debezium transaction block", event_block_schema()),
+        (
+            "io.debezium.connector.common.ServerNameKey",
+            "Heartbeat key",
+            heartbeat_key_schema(),
+        ),
+        (
+            "io.debezium.connector.common.Heartbeat",
+            "Heartbeat value",
+            heartbeat_value_schema(),
+        ),
+        ("io.debezium.signal.Key", "Signal key", signal_key_schema()),
+        ("io.debezium.signal.Signal", "Signal value", signal_value_schema()),
+        (
+            "io.debezium.connector.schema.Column",
+            "Schema history column",
+            schema_history_column_schema(),
+        ),
+        (
+            "io.debezium.connector.schema.Table",
+            "Schema history table",
+            schema_history_table_schema(),
+        ),
+        (
+            "io.debezium.connector.schema.Change",
+            "Schema history table change",
+            schema_history_change_schema(),
+        ),
+    ]
+    for db in _DBS:
+        ns = _CONNECTOR_NS[db]
+        items.append((f"{ns}.Source", f"{db} source", db_source_schema(db)))
+        items.append(
+            (f"{ns}.SchemaChangeKey", f"{db} schema-change key", schema_change_key_schema(db))
+        )
+        items.append(
+            (
+                f"{ns}.SchemaChangeValue",
+                f"{db} schema-change value",
+                schema_change_value_schema(db),
+            )
+        )
+    return items
+
+
+def sync_bootstrap(base: str) -> None:
+    """Create group `debezium` if missing, then create missing shared artifacts."""
+    existing_groups = list_groups(base)
+    created_group = 0
+    if DEBEZIUM_GROUP not in existing_groups:
+        if create_group(base, DEBEZIUM_GROUP, DEBEZIUM_GROUP_DESCRIPTION):
+            created_group = 1
+
+    desired = bootstrap_artifacts()
+    existing = list_artifacts(base, DEBEZIUM_GROUP)
+    created = 0
+    for artifact_id, description, schema in desired:
+        if artifact_id in existing:
+            continue
+        if create_artifact(
+            base,
+            DEBEZIUM_GROUP,
+            artifact_id,
+            schema,
+            version=BOOTSTRAP_VERSION,
+            description=description,
+        ):
+            created += 1
+        existing.add(artifact_id)
+
+    print(
+        f"[bootstrap] created_group={created_group} "
+        f"created_artifacts={created}"
+    )

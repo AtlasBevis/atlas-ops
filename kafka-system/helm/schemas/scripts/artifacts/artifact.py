@@ -14,10 +14,12 @@ $type: artifact-v0). Do NOT nest artifacts inside the groups file.
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
-from common import DOMAIN_ROOT, load_yaml, require
+from common import DOMAIN_ROOT, content_payload, get_json, load_yaml, path_seg, post_json, require
 from artifacts.versions.version import Version, parse_version
 
 ARTIFACT_TYPES = frozenset({
@@ -237,3 +239,58 @@ def topo_order(artifacts: list[Artifact]) -> list[Artifact]:
     for key in sorted(by_key):
         visit(key)
     return ordered
+
+
+def list_artifacts(base: str, group_id: str) -> set[str]:
+    ids: set[str] = set()
+    offset = 0
+    limit = 100
+    while True:
+        url = (
+            f"{base}/groups/{path_seg(group_id)}/artifacts"
+            f"?limit={limit}&offset={offset}"
+        )
+        data = get_json(url, allow_404=True)
+        rows = data.get("artifacts") if isinstance(data, dict) else data
+        if not rows:
+            break
+        for row in rows:
+            aid = row.get("artifactId") if isinstance(row, dict) else None
+            if aid:
+                ids.add(aid)
+        if len(rows) < limit:
+            break
+        offset += limit
+    return ids
+
+
+def create_artifact(
+    base: str,
+    group_id: str,
+    artifact_id: str,
+    content: str | dict[str, Any],
+    *,
+    artifact_type: str = "AVRO",
+    version: str = "1",
+    name: str | None = None,
+    description: str | None = None,
+    references: list[dict[str, Any]] | None = None,
+) -> bool:
+    """POST /groups/{groupId}/artifacts (Apicurio Registry v3). 409 = already exists."""
+    if isinstance(content, dict):
+        content = json.dumps(content, ensure_ascii=False)
+    payload = content_payload(content)
+    if references:
+        payload["references"] = references
+    body: dict[str, Any] = {
+        "artifactId": artifact_id,
+        "artifactType": artifact_type,
+        "name": name or artifact_id,
+        "firstVersion": {
+            "version": version,
+            "content": payload,
+        },
+    }
+    if description:
+        body["description"] = description
+    return post_json(f"{base}/groups/{path_seg(group_id)}/artifacts", body) in (200, 204)
