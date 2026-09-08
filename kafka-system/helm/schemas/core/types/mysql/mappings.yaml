@@ -1,0 +1,102 @@
+# First matching rule wins.
+# Column input: { type, precision, scale, fractional_seconds, length, unsigned, nullable }
+# Defaults assume time.precision.mode=adaptive_time_microseconds,
+# decimal.handling.mode=precise.
+#
+# avro_ref → shared/catalog.yaml
+
+rules:
+  # --- boolean / bits ---
+  - source_types: [BOOLEAN, BOOL]
+    avro_ref: boolean
+  - source_types: [BIT]
+    when: { length: { lte: 1 } }
+    avro_ref: boolean
+  - source_types: [BIT]
+    avro_ref: bits
+
+  # --- integers ---
+  - source_types: [TINYINT]
+    avro_ref: int
+    notes: Snapshot may expose BOOLEAN as TINYINT(1). Prefer TinyIntOneToBooleanConverter when needed.
+  - source_types: [SMALLINT]
+    avro_ref: int
+  - source_types: [MEDIUMINT]
+    avro_ref: int
+  - source_types: [INT, INTEGER]
+    avro_ref: int
+  - source_types: [BIGINT]
+    avro_ref: long
+
+  # --- floating ---
+  - source_types: [FLOAT]
+    when: { precision: { lte: 23 } }
+    avro_ref: float
+  - source_types: [FLOAT]
+    avro_ref: double
+  - source_types: [REAL]
+    avro_ref: float
+  - source_types: [DOUBLE, "DOUBLE PRECISION"]
+    avro_ref: double
+
+  # --- decimal / numeric ---
+  - source_types: [DECIMAL, NUMERIC, DEC, FIXED]
+    avro_ref: decimal
+
+  # --- character / text ---
+  - source_types: [CHAR, VARCHAR, TINYTEXT, TEXT, MEDIUMTEXT, LONGTEXT]
+    avro_ref: string
+
+  # --- binary / blob ---
+  - source_types:
+      - BINARY
+      - VARBINARY
+      - TINYBLOB
+      - BLOB
+      - MEDIUMBLOB
+      - LONGBLOB
+    avro_ref: bytes
+
+  # --- json / enum / set / year ---
+  - source_types: [JSON]
+    avro_ref: json
+  - source_types: [ENUM]
+    avro_ref: enum
+  - source_types: [SET]
+    avro_ref: enum_set
+  - source_types: [YEAR]
+    avro_ref: year
+
+  # --- temporal ---
+  # TIMESTAMP is always zoned (server TZ → UTC string)
+  - source_types: [TIMESTAMP]
+    avro_ref: zoned_timestamp
+
+  - source_types: [DATE]
+    avro_ref: date_days
+
+  - source_types: [TIME]
+    avro_ref: micro_time
+
+  - source_types: [DATETIME]
+    when: { fractional_seconds: { lte: 3 } }
+    avro_ref: timestamp_ms
+  - source_types: [DATETIME]
+    avro_ref: timestamp_us
+
+  # --- spatial ---
+  - source_types:
+      - GEOMETRY
+      - POINT
+      - LINESTRING
+      - POLYGON
+      - MULTIPOINT
+      - MULTILINESTRING
+      - MULTIPOLYGON
+      - GEOMETRYCOLLECTION
+    avro_ref: geometry
+
+  # --- vector (optional) ---
+  - source_types: [VECTOR]
+    supported: false
+    notes: Map to FloatVector only when consumers support io.debezium.data.FloatVector.

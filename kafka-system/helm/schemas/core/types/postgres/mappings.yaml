@@ -1,0 +1,113 @@
+# First matching rule wins.
+# Column input: { type, precision, scale, fractional_seconds, length, nullable }
+# Defaults assume time.precision.mode=adaptive, decimal.handling.mode=precise.
+#
+# avro_ref → shared/catalog.yaml
+
+rules:
+  # --- boolean / bits ---
+  - source_types: [BOOLEAN, BOOL]
+    avro_ref: boolean
+  - source_types: [BIT]
+    when: { length: { lte: 1 } }
+    avro_ref: boolean
+  - source_types: [BIT, "BIT VARYING", VARBIT]
+    avro_ref: bits
+
+  # --- integers ---
+  - source_types: [SMALLINT, INT2, SMALLSERIAL]
+    avro_ref: int
+  - source_types: [INTEGER, INT, INT4, SERIAL]
+    avro_ref: int
+  - source_types: [BIGINT, INT8, BIGSERIAL, OID]
+    avro_ref: long
+
+  # --- floating ---
+  - source_types: [REAL, FLOAT4]
+    avro_ref: float
+  - source_types: ["DOUBLE PRECISION", FLOAT8]
+    avro_ref: double
+
+  # --- numeric / money (precise) ---
+  - source_types: [NUMERIC, DECIMAL]
+    when: { scale: { defined: true } }
+    avro_ref: decimal
+  - source_types: [NUMERIC, DECIMAL]
+    avro_ref: variable_scale_decimal
+  - source_types: [MONEY]
+    avro_ref: decimal
+
+  # --- character / text ---
+  - source_types:
+      - CHAR
+      - CHARACTER
+      - VARCHAR
+      - "CHARACTER VARYING"
+      - BPCHAR
+      - TEXT
+      - CITEXT
+    avro_ref: string
+
+  # --- binary ---
+  - source_types: [BYTEA]
+    avro_ref: bytes
+
+  # --- json / xml / uuid ---
+  - source_types: [JSON, JSONB]
+    avro_ref: json
+  - source_types: [XML]
+    avro_ref: xml
+  - source_types: [UUID]
+    avro_ref: uuid
+  - source_types: [ENUM]
+    avro_ref: enum
+  - source_types: [LTREE]
+    avro_ref: ltree
+  - source_types: [TSVECTOR]
+    avro_ref: tsvector
+  - source_types: [HSTORE]
+    avro_ref: json
+    notes: Default hstore.handling.mode=json. Use map mode only with JSON converter consumers.
+
+  # --- network / ranges (stringified) ---
+  - source_types: [INET, CIDR, MACADDR, MACADDR8]
+    avro_ref: string
+  - source_types: [INT4RANGE, INT8RANGE, NUMRANGE, TSRANGE, TSTZRANGE, DATERANGE]
+    avro_ref: string
+
+  # --- temporal with timezone (mode-independent) ---
+  - source_types: [TIMESTAMPTZ, "TIMESTAMP WITH TIME ZONE"]
+    avro_ref: zoned_timestamp
+  - source_types: [TIMETZ, "TIME WITH TIME ZONE"]
+    avro_ref: zoned_time
+  - source_types: [INTERVAL]
+    avro_ref: micro_duration
+
+  # --- temporal adaptive ---
+  - source_types: [DATE]
+    avro_ref: date_days
+
+  - source_types: [TIME]
+    when: { fractional_seconds: { lte: 3 } }
+    avro_ref: time_ms
+  - source_types: [TIME]
+    avro_ref: micro_time
+
+  - source_types: [TIMESTAMP]
+    when: { fractional_seconds: { lte: 3 } }
+    avro_ref: timestamp_ms
+  - source_types: [TIMESTAMP]
+    avro_ref: timestamp_us
+
+  # --- geometry ---
+  - source_types: [POINT]
+    avro_ref: point
+  - source_types: [GEOMETRY]
+    avro_ref: geometry
+  - source_types: [GEOGRAPHY]
+    avro_ref: geography
+
+  # --- not mapped by default (require explicit converter / extension support) ---
+  - source_types: [VECTOR, HALFVEC, SPARSEVEC, ARRAY, COMPOSITE]
+    supported: false
+    notes: Enable explicitly when consumers understand Debezium vector/array schemas.
