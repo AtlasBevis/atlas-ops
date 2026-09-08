@@ -1,0 +1,20 @@
+# SQL Server (MSSQL) → Debezium → Avro (Schema Registry)
+# Doc: https://debezium.io/documentation/reference/stable/connectors/sqlserver.html#sqlserver-data-types
+#
+# Generator:
+#   1. Load this file
+#   2. Match column against mappings.yaml (first rule wins)
+#   3. Resolve avro_ref from shared/catalog.yaml
+#   4. If column.nullable: wrap ["null", <type>] with default null
+
+connector: mssql
+documentation: https://debezium.io/documentation/reference/stable/connectors/sqlserver.html#sqlserver-data-types
+
+defaults:
+  decimal.handling.mode: precise
+  time.precision.mode: adaptive
+  binary.handling.mode: bytes
+
+files:
+  catalog: types/shared/catalog.yaml
+  mappings: types/mssql/mappings.yaml

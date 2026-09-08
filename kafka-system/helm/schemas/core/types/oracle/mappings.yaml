@@ -1,95 +1,95 @@
 # First matching rule wins.
 # Column input: { type, precision, scale, fractional_seconds, nullable }
 #
-# when: omit = match oracle_types only
+# when: omit = match source_types only
 #   scale.lte / scale.gt
 #   p_minus_s.lt / p_minus_s.gte     (precision - scale)
 #   fractional_seconds.lte / gte     (TIMESTAMP(n))
 #
-# avro_ref → catalog.yaml
+# avro_ref → shared/catalog.yaml
 # extra: merged onto the field (e.g. decimal precision/scale)
 
 rules:
   # --- character ---
-  - oracle_types: [CHAR, NCHAR, NVARCHAR2, VARCHAR, VARCHAR2]
+  - source_types: [CHAR, NCHAR, NVARCHAR2, VARCHAR, VARCHAR2]
     avro_ref: string
 
   # --- LOB (incubating; lob.enabled=true) ---
-  - oracle_types: [CLOB, NCLOB]
+  - source_types: [CLOB, NCLOB]
     avro_ref: string
-  - oracle_types: [BLOB]
+  - source_types: [BLOB]
     avro_ref: bytes
 
-  - oracle_types: [BFILE, LONG, RAW, UROWID]
+  - source_types: [BFILE, LONG, RAW, UROWID]
     supported: false
-  - oracle_types: ["LONG RAW"]
+  - source_types: ["LONG RAW"]
     supported: false
 
   # --- numeric: BINARY_* ---
-  - oracle_types: [BINARY_FLOAT]
+  - source_types: [BINARY_FLOAT]
     avro_ref: float
-  - oracle_types: [BINARY_DOUBLE]
+  - source_types: [BINARY_DOUBLE]
     avro_ref: double
 
   # NUMBER / DECIMAL / NUMERIC with scale > 0 → Decimal
-  - oracle_types: [NUMBER, DECIMAL, NUMERIC]
+  - source_types: [NUMBER, DECIMAL, NUMERIC]
     when: { scale: { gt: 0 } }
     avro_ref: decimal
 
   # NUMBER(P, S<=0) integer width from (P - S)
-  - oracle_types: [NUMBER]
+  - source_types: [NUMBER]
     when: { scale: { lte: 0 }, p_minus_s: { lt: 3 } }
     avro_ref: int
-  - oracle_types: [NUMBER]
+  - source_types: [NUMBER]
     when: { scale: { lte: 0 }, p_minus_s: { lt: 5 } }
     avro_ref: int
-  - oracle_types: [NUMBER]
+  - source_types: [NUMBER]
     when: { scale: { lte: 0 }, p_minus_s: { lt: 10 } }
     avro_ref: int
-  - oracle_types: [NUMBER]
+  - source_types: [NUMBER]
     when: { scale: { lte: 0 }, p_minus_s: { lt: 19 } }
     avro_ref: long
-  - oracle_types: [NUMBER]
+  - source_types: [NUMBER]
     when: { scale: { lte: 0 }, p_minus_s: { gte: 19 } }
     avro_ref: decimal
 
   # NUMBER / DECIMAL / NUMERIC with unspecified scale
-  - oracle_types: [NUMBER, DECIMAL, NUMERIC]
+  - source_types: [NUMBER, DECIMAL, NUMERIC]
     avro_ref: variable_scale_decimal
 
   # INTEGER / INT / SMALLINT = NUMBER(38,0)
-  - oracle_types: [INTEGER, INT, SMALLINT]
+  - source_types: [INTEGER, INT, SMALLINT]
     avro_ref: decimal
 
-  - oracle_types: ["DOUBLE PRECISION", FLOAT, REAL]
+  - source_types: ["DOUBLE PRECISION", FLOAT, REAL]
     avro_ref: variable_scale_decimal
 
   # --- temporal (time.precision.mode=adaptive) ---
-  - oracle_types: [DATE]
+  - source_types: [DATE]
     avro_ref: timestamp_ms
 
-  - oracle_types: [TIMESTAMP]
+  - source_types: [TIMESTAMP]
     when: { fractional_seconds: { lte: 3 } }
     avro_ref: timestamp_ms
-  - oracle_types: [TIMESTAMP]
+  - source_types: [TIMESTAMP]
     when: { fractional_seconds: { lte: 6 } }
     avro_ref: timestamp_us
-  - oracle_types: [TIMESTAMP]
+  - source_types: [TIMESTAMP]
     avro_ref: timestamp_ns
 
-  - oracle_types: ["TIMESTAMP WITH TIME ZONE", "TIMESTAMP WITH LOCAL TIME ZONE"]
+  - source_types: ["TIMESTAMP WITH TIME ZONE", "TIMESTAMP WITH LOCAL TIME ZONE"]
     avro_ref: zoned_timestamp
 
-  - oracle_types: ["INTERVAL DAY TO SECOND", "INTERVAL YEAR TO MONTH"]
+  - source_types: ["INTERVAL DAY TO SECOND", "INTERVAL YEAR TO MONTH"]
     avro_ref: micro_duration
 
   # --- rowid ---
-  - oracle_types: [ROWID]
+  - source_types: [ROWID]
     avro_ref: string
     notes: Not supported with Oracle XStream.
 
   # --- not supported ---
-  - oracle_types:
+  - source_types:
       - XMLTYPE
       - SDO_GEOMETRY
       - ANYDATA
