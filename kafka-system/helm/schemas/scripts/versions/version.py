@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -21,6 +22,16 @@ from references import ArtifactReference, merge_references, parse_references, re
 from .mapping import map_column
 
 VERSION_STATES = frozenset({"ENABLED", "DISABLED", "DEPRECATED", "DRAFT"})
+
+# Avro Names — https://avro.apache.org/docs/++version++/specification/#names
+# name: start [A-Za-z_], then only [A-Za-z0-9_]  →  [A-Za-z_][A-Za-z0-9_]*
+# namespace: empty | name ('.' name)*
+AVRO_NAME_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+AVRO_NAMESPACE_RE = re.compile(
+    r"^([A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)*)?$"
+)
+# Characters illegal inside a name segment (hyphen, $, space, …)
+_AVRO_ILLEGAL_IN_NAME = re.compile(r"[^A-Za-z0-9_]+")
 
 
 @dataclass(frozen=True, slots=True)
@@ -153,6 +164,45 @@ def load_fields(
     return fields, merge_references(refs)
 
 
+def avro_name_segment(part: str) -> str:
+    """Sanitize one dot-separated segment to a legal Avro name.
+
+    Spec: start with ``[A-Za-z_]``, then only ``[A-Za-z0-9_]``.
+    Illegal runs (``-``, ``$``, space, …) become ``_``; leading digit → prefix ``_``.
+    """
+    cleaned = _AVRO_ILLEGAL_IN_NAME.sub("_", part)
+    if not cleaned:
+        cleaned = "_"
+    if cleaned[0].isdigit():
+        cleaned = f"_{cleaned}"
+    if not AVRO_NAME_RE.fullmatch(cleaned):
+        raise ValueError(f"Cannot form Avro name from segment {part!r} → {cleaned!r}")
+    return cleaned
+
+
+def avro_namespace(topic: str) -> str:
+    """Derive a legal Avro namespace from a Kafka topic / topicPrefix path.
+
+    Spec (Names): namespace = empty | name ('.' name)* where each name matches
+    ``[A-Za-z_][A-Za-z0-9_]*``.
+
+    https://avro.apache.org/docs/++version++/specification/#names
+
+    Kafka topics may contain ``-`` (e.g. ``card-bo``); those characters are
+    illegal in Avro and are replaced via :func:`avro_name_segment`.
+    """
+    text = topic.strip().strip(".")
+    if not text:
+        return ""
+    segments = [avro_name_segment(p) for p in text.split(".") if p != ""]
+    ns = ".".join(segments)
+    if not AVRO_NAMESPACE_RE.fullmatch(ns):
+        raise ValueError(
+            f"Invalid Avro namespace derived from topic {topic!r}: {ns!r}"
+        )
+    return ns
+
+
 def key_schema(ns: str, fields: list[dict[str, Any]]) -> dict[str, Any]:
     return {
         "type": "record",
@@ -211,12 +261,12 @@ def debezium_shared_references(connector: str) -> list[dict[str, str]]:
 
 def envelope_references(
     group_id: str,
-    ns: str,
+    value_ns: str,
     value_version: str,
     connector: str,
     extra: list[dict[str, str]] | None = None,
 ) -> list[dict[str, str]]:
-    value_id = f"{ns}.Value"
+    value_id = f"{value_ns}.Value"
     return [
         {
             "name": value_id,
@@ -240,12 +290,17 @@ def plan_versions(
     value_description: str | None = None,
     envelope_description: str | None = None,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
-    """Value records, then keys, then envelopes (envelope references .Value)."""
+    """Value records, then keys, then envelopes (envelope references .Value).
+
+    Kafka ``topic`` may contain ``-`` (legal). Avro namespace / ``.Value``
+    artifactId use ``avro_namespace(topic)`` (illegal chars → ``_``).
+    """
     source_type = connector_source_artifact_id(connector)
+    ns = avro_namespace(topic)
     key_id = f"{topic}-key"
-    record_id = f"{topic}.Value"
+    record_id = f"{ns}.Value"
     envelope_id = f"{topic}-value"
-    value_fqn = f"{topic}.Value"
+    value_fqn = f"{ns}.Value"
 
     value_jobs: list[dict[str, Any]] = []
     key_jobs: list[dict[str, Any]] = []
@@ -257,7 +312,7 @@ def plan_versions(
             {
                 "artifact_id": record_id,
                 "version": ver.version,
-                "content": value_record_schema(topic, fields),
+                "content": value_record_schema(ns, fields),
                 "description": ver.description or value_description,
                 "references": field_refs or None,
             }
@@ -266,11 +321,11 @@ def plan_versions(
             {
                 "artifact_id": envelope_id,
                 "version": ver.version,
-                "content": envelope_schema(topic, source_type, value_fqn),
+                "content": envelope_schema(ns, source_type, value_fqn),
                 "description": ver.description or envelope_description,
                 "references": envelope_references(
                     group_id,
-                    topic,
+                    ns,
                     ver.version,
                     connector,
                 ),
@@ -283,7 +338,7 @@ def plan_versions(
             {
                 "artifact_id": key_id,
                 "version": ver.version,
-                "content": key_schema(topic, fields),
+                "content": key_schema(ns, fields),
                 "description": ver.description or key_description,
                 "references": field_refs or None,
             }

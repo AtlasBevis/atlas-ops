@@ -7,6 +7,7 @@ CI creates missing groups / artifacts / versions. It does not overwrite existing
 | --- | --- |
 | Agent handoff | [docs/CLAUDE.md](docs/CLAUDE.md) |
 | Pointer | [CLAUDE.md](CLAUDE.md) |
+| Avro naming / auto-transform | [docs/avro-naming.md](docs/avro-naming.md) |
 | DB type → Avro | [core/types/README.md](core/types/README.md) |
 | Global rules | [core/configs/README.md](core/configs/README.md) |
 
@@ -29,7 +30,8 @@ Folder names need not match `groupId` or `table.name`. Discovery is `groups/*/*/
 1. Sync global rules (`VALIDITY=FULL`, `COMPATIBILITY=BACKWARD`)
 2. Bootstrap group `debezium` (Source, `event.block`, named catalog types, …)
 3. Create missing groups from `groups/index.yaml`
-4. Per table: empty `{topic}-key` / `{topic}.Value` / `{topic}-value`, then versions `.Value` → `-key` → `-value`
+4. Per table: empty `{topic}-key` / `{namespace}.Value` / `{topic}-value`, then versions `.Value` → `-key` → `-value`
+   (`namespace` = `avro_namespace(topic)`; see [docs/avro-naming.md](docs/avro-naming.md))
 
 Job: `.gitlab-ci.yaml` (`cd scripts && python main.py`, env `REGISTRY_URL`).
 

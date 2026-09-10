@@ -145,27 +145,36 @@ Uppercase `FLOAT` / `BOOLEAN` / `INT` are **DB** types, not Avro.
 ## Artifact naming
 
 Topic: `{topicPrefix}.{schema}.{table.name}`  
-Example: `cdc.group1.MAIN.TABLE1`
+Example: `cdc.prod.card-bo.MAIN.ACC_ACCOUNT`
 
-Per table (same group as `groupId`):
+Avro **namespace** (và artifact `.Value`) sanitize theo Spec Names — xem
+[avro-naming.md](avro-naming.md).
 
 | ArtifactId | Avro record | Role |
 | --- | --- | --- |
 | `{topic}-key` | `Key` | PK |
-| `{topic}.Value` | `Value` | row payload (`before`/`after`) |
+| `{namespace}.Value` | `Value` | row payload (`before`/`after`) |
 | `{topic}-value` | `Envelope` | Debezium envelope |
+
+Example with `topicPrefix: cdc.prod.card-bo`:
+
+```text
+cdc.prod.card-bo.MAIN.ACC_ACCOUNT-key
+cdc.prod.card_bo.MAIN.ACC_ACCOUNT.Value
+cdc.prod.card-bo.MAIN.ACC_ACCOUNT-value
+```
 
 Heartbeat (only if `source.type=debezium` **and** `heartbeat: true` **and** non-empty `heartbeatPrefix`):
 
-- Topic: `{heartbeatPrefix}.{topicPrefix}` e.g. `__heartbeat.uat.cdc.group1`
+- Topic: `{heartbeatPrefix}.{topicPrefix}` e.g. `__heartbeat.prod.cdc.prod.card-bo`
 - Artifacts: `{topic}-key` (`ServerNameKey`) + `{topic}-value` (`Heartbeat` / `ts_ms`)
-- **No** `{topic}.Value` and no Envelope
+- **No** `.Value` and no Envelope
 - Deduped per group + heartbeat topic
 
 Envelope fields: `before`, `after`, `source`, `transaction`, `op`, `ts_ms`, `ts_us`, `ts_ns`.  
 `connect.version: 2`. Refs:
 
-1. `{topic}.Value` @ same version, same group
+1. `{namespace}.Value` @ same version, same group
 2. `debezium` / `io.debezium.connector.{oracle\|postgresql\|mysql\|sqlserver}.Source` @ `"1"`
 3. `debezium` / `event.block` @ `"1"`
 

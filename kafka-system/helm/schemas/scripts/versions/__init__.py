@@ -1,5 +1,9 @@
 from .version import (
+    AVRO_NAME_RE,
+    AVRO_NAMESPACE_RE,
     Version,
+    avro_name_segment,
+    avro_namespace,
     create_version,
     ensure_version,
     list_versions,
@@ -11,7 +15,11 @@ from .version import (
 )
 
 __all__ = [
+    "AVRO_NAME_RE",
+    "AVRO_NAMESPACE_RE",
     "Version",
+    "avro_name_segment",
+    "avro_namespace",
     "create_version",
     "ensure_version",
     "list_versions",

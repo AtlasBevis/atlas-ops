@@ -13,7 +13,14 @@ from typing import Any
 
 from common import GROUPS_ROOT, content_payload, get_json, load_yaml, path_seg, post_json, require
 from references import references_payload
-from versions import Version, parse_versions, plan_heartbeat_versions, plan_versions, sync_versions
+from versions import (
+    Version,
+    avro_namespace,
+    parse_versions,
+    plan_heartbeat_versions,
+    plan_versions,
+    sync_versions,
+)
 
 SOURCE_DEBEZIUM = "debezium"
 SOURCE_LOG = "log"
@@ -264,7 +271,13 @@ def heartbeat_topic(spec: TableIndex) -> str:
 
 
 def debezium_artifact_ids(topic: str) -> tuple[str, str, str]:
-    return f"{topic}-key", f"{topic}.Value", f"{topic}-value"
+    """Return (key, Value, envelope) artifactIds for a Kafka topic.
+
+    ``-key`` / ``-value`` keep the topic (hyphens OK). ``.Value`` uses the
+    Avro namespace form (illegal chars → ``_``) so artifactId matches connect.name.
+    """
+    ns = avro_namespace(topic)
+    return f"{topic}-key", f"{ns}.Value", f"{topic}-value"
 
 
 def plan_heartbeat_empty_artifacts(topic: str) -> list[tuple[str, str, str | None]]:
