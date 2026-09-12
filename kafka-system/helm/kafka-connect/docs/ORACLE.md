@@ -63,6 +63,8 @@ ALTER DATABASE ADD SUPPLEMENTAL LOG DATA;
 SELECT SUPPLEMENTAL_LOG_DATA_MIN FROM V$DATABASE;
 ```
 
+> Note: Topics matches like <prefix>.<schema>.<table> (schema and table must be UPPER)
+
 ### Refereces
 
 - [Create User](https://debezium.io/documentation/reference/3.5/connectors/oracle.html?utm_source=chatgpt.com#creating-users-for-the-connector)

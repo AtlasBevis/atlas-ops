@@ -18,7 +18,7 @@ SELECT is_cdc_enabled FROM sys.databases WHERE name = DB_NAME()
 EXEC sys.sp_cdc_enable_table
     @source_schema    = N'dbo',
     @source_name      = N'Loan',
-    @role_name        = NULL,
+    @role_name        = NULL
 GO
 
 -- create user debezium
@@ -53,3 +53,4 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON etl.Debezium_signal TO [etl_user];
 GO
 ```
 
+> Note: Topics matches like <prefix>.<database>.<schema>.dbo.<table>
