@@ -48,5 +48,8 @@ CREATE TABLE etl.Debezium_signal (
 );
 GO
 
+-- grant permissions
+GRANT SELECT, INSERT, UPDATE, DELETE ON etl.Debezium_signal TO [etl_user];
+GO
 ```
 
