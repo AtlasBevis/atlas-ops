@@ -263,7 +263,6 @@ topologyInjector:
   annotations: {}
 
 # Data-plane defaults for Gateways using class "eg".
-# MetalLB VIP (autoAssign=false) — free 172.27.7.22 before sync (delete echo-lb if still holding it).
 gatewayClass:
   create: true
   name: eg
