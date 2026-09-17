@@ -2,7 +2,8 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
-imagePullSecrets: []
+imagePullSecrets:
+  - name: dockerhub-regcred
 nameOverride: ""
 fullnameOverride: ""
 loadBalancerClass: ""
@@ -373,7 +374,7 @@ crds:
 # applied by MetalLB.
 frrk8s:
   # -- If set, enables frrk8s as a backend. This is mutually exclusive to frr mode.
-  enabled: true
+  enabled: false
   # -- If true, uses an external frr-k8s installation instead of the bundled subchart.
   external: false
   # -- Namespace where external frr-k8s is installed (only used when external=true).
@@ -409,3 +410,15 @@ networkpolicies:
   defaultDeny: false
   # to override internal k8s api targetPort
   apiPort: 6443
+
+# Replace 172.168.100.22 if this cluster's LAN VIP is different.
+ipAddressPools:
+  - name: lan-pool
+    addresses:
+      - 172.168.100.22/32
+    autoAssign: false
+
+l2Advertisements:
+  - name: lan-l2
+    ipAddressPools:
+      - lan-pool

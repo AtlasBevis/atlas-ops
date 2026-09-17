@@ -403,3 +403,15 @@ networkpolicies:
   defaultDeny: false
   # to override internal k8s api targetPort
   apiPort: 6443
+
+# Layer-2 VIP pools. Templates ipaddresspool.yaml / l2advertisement.yaml create these CRs.
+ipAddressPools: []
+  # - name: lan-pool
+  #   addresses:
+  #     - 172.168.100.22/32
+  #   autoAssign: false
+
+l2Advertisements: []
+  # - name: lan-l2
+  #   ipAddressPools:
+  #     - lan-pool
