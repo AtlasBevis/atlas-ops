@@ -11,6 +11,7 @@ metadata:
     {{ $key }}: {{ $value | quote }}
     {{- end }}
 spec:
+  replicas: {{ .Values.controller.replicas | default 1 }}
   {{- if .Values.controller.strategy }}
   strategy: {{- toYaml .Values.controller.strategy | nindent 4 }}
   {{- end }}

@@ -193,6 +193,7 @@ controller:
   logLevel: info
   # command: /controller
   webhookMode: enabled
+  replicas: 1
   image:
     repository: quay.io/metallb/controller
     tag:

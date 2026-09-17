@@ -1,0 +1,24 @@
+{{- if .Values.envoyProxy.create }}
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: EnvoyProxy
+metadata:
+  name: {{ .Values.envoyProxy.name }}
+  namespace: {{ include "eg.namespace" . }}
+  labels:
+    {{- include "eg.labels" . | nindent 4 }}
+spec:
+  provider:
+    type: Kubernetes
+    kubernetes:
+      {{- with .Values.envoyProxy.imagePullSecrets }}
+      envoyDeployment:
+        pod:
+          imagePullSecrets:
+            {{- toYaml . | nindent 12 }}
+      {{- end }}
+      envoyService:
+        type: {{ .Values.envoyProxy.serviceType | default "LoadBalancer" }}
+        {{- if .Values.envoyProxy.loadBalancerIP }}
+        loadBalancerIP: {{ .Values.envoyProxy.loadBalancerIP | quote }}
+        {{- end }}
+{{- end }}

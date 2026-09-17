@@ -228,3 +228,15 @@ certgen:
 topologyInjector:
   enabled: true
   annotations: {}
+
+gatewayClass:
+  create: false
+  name: eg
+  envoyProxyName: eg-proxy-config
+
+envoyProxy:
+  create: false
+  name: eg-proxy-config
+  loadBalancerIP: ""
+  serviceType: LoadBalancer
+  imagePullSecrets: []

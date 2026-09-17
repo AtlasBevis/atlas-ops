@@ -1,0 +1,77 @@
+# Smoke test after Envoy Gateway controller is Ready.
+# Free MetalLB VIP first: kubectl delete svc echo-lb --ignore-not-found
+#
+# Apply:
+#   kubectl apply -f examples/smoke-gateway.yaml
+# Test:
+#   curl -H "Host: echo.eg.local" http://172.27.7.22/
+# Cleanup:
+#   kubectl delete -f examples/smoke-gateway.yaml
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: eg-echo
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: eg-echo
+  template:
+    metadata:
+      labels:
+        app: eg-echo
+    spec:
+      containers:
+        - name: echo
+          image: hashicorp/http-echo:1.0
+          args: ["-text=envoy-gateway-ok"]
+          ports:
+            - containerPort: 5678
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: eg-echo
+  namespace: default
+spec:
+  selector:
+    app: eg-echo
+  ports:
+    - port: 80
+      targetPort: 5678
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: eg-smoke
+  namespace: default
+spec:
+  gatewayClassName: eg
+  listeners:
+    - name: http
+      protocol: HTTP
+      port: 80
+      allowedRoutes:
+        namespaces:
+          from: Same
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: eg-echo
+  namespace: default
+spec:
+  parentRefs:
+    - name: eg-smoke
+  hostnames:
+    - echo.eg.local
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: eg-echo
+          port: 80

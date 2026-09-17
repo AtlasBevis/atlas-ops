@@ -194,6 +194,7 @@ controller:
   logLevel: info
   # command: /controller
   webhookMode: enabled
+  replicas: 2
   image:
     repository: quay.io/metallb/controller
     tag: v0.16.1
@@ -232,7 +233,16 @@ controller:
   tolerations: []
   priorityClassName: "system-cluster-critical"
   runtimeClassName: ""
-  affinity: {}
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchLabels:
+                app.kubernetes.io/name: metallb
+                app.kubernetes.io/component: controller
+            topologyKey: kubernetes.io/hostname
   podAnnotations: {}
   labels: {}
   livenessProbe:
@@ -411,11 +421,11 @@ networkpolicies:
   # to override internal k8s api targetPort
   apiPort: 6443
 
-# Replace 172.168.100.22 if this cluster's LAN VIP is different.
+# Replace 172.27.7.22 if this cluster's LAN VIP is different.
 ipAddressPools:
   - name: lan-pool
     addresses:
-      - 172.168.100.22/32
+      - 172.27.7.22/32
     autoAssign: false
 
 l2Advertisements:

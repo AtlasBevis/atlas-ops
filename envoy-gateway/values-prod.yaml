@@ -31,7 +31,7 @@ global:
       # This updates the generated `envoyProxy` config and does not change the `envoy-gateway`
       # control plane Deployment image. If not specified, the default image built into
       # `envoy-gateway` is used.
-      image: "docker.io/envoyproxy/envoy:distroless-v1.39.0"
+      image: ""
       # -- Image pull policy for the managed Envoy Proxy data plane.
       # Default behavior: IfNotPresent.
       pullPolicy: "IfNotPresent"
@@ -41,7 +41,7 @@ global:
 # Values for CRDs dependency
 crds:
   # -- Install Envoy Gateway CRDs, Gateway API CRDs, and Gateway API safe upgrade policy resources. Set to false when these resources are managed separately.
-  enabled: false
+  enabled: true
 
 # -- Labels to apply to all resources
 commonLabels: {}
@@ -91,7 +91,7 @@ deployment:
       rollingUpdate:
         maxUnavailable: 0
         maxSurge: 1
-        
+
     wasmCacheVolume: {}
     # Kubernetes best practice for controllers: use a startupProbe with a generous
     # failure threshold to avoid premature liveness/readiness failures during initialization.
@@ -149,8 +149,8 @@ deployment:
     labels: {}
     topologySpreadConstraints:
       - maxSkew: 1
-        topologyKey: topology.kubernetes.io/zone
-        whenUnsatisfiable: DoNotSchedule
+        topologyKey: kubernetes.io/hostname
+        whenUnsatisfiable: ScheduleAnyway
         labelSelector:
           matchLabels:
             app.kubernetes.io/name: gateway-helm
@@ -261,3 +261,18 @@ certgen:
 topologyInjector:
   enabled: true
   annotations: {}
+
+# Data-plane defaults for Gateways using class "eg".
+# MetalLB VIP (autoAssign=false) — free 172.27.7.22 before sync (delete echo-lb if still holding it).
+gatewayClass:
+  create: true
+  name: eg
+  envoyProxyName: eg-proxy-config
+
+envoyProxy:
+  create: true
+  name: eg-proxy-config
+  loadBalancerIP: 172.168.27.100
+  serviceType: LoadBalancer
+  imagePullSecrets:
+    - name: dockerhub-regcred
