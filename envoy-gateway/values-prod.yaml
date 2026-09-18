@@ -262,15 +262,14 @@ topologyInjector:
   enabled: true
   annotations: {}
 
-# Data-plane defaults for Gateways using class "eg".
 gatewayClass:
   create: true
-  name: eg
-  envoyProxyName: eg-proxy-config
+  name: data-gateway
+  envoyProxyName: data-proxy
 
 envoyProxy:
   create: true
-  name: eg-proxy-config
+  name: data-proxy
   loadBalancerIP: 172.168.27.100
   serviceType: LoadBalancer
   imagePullSecrets:
