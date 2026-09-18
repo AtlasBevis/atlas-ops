@@ -86,7 +86,7 @@ httpRoutes:
         port: 80
     sessionAffinity:
       cookieName: example-app-affinity
-      ttl: 172800s   # Max-Age cookie, ví dụ 2 ngày
+      ttl: 48h   # Max-Age cookie, ví dụ 2 ngày
 ```
 
 Chart sẽ render một `BackendTrafficPolicy` (`gateway.envoyproxy.io/v1alpha1`,
@@ -96,6 +96,11 @@ tự sinh cookie + trả về `Set-Cookie` (TTL = `ttl`), các request sau cùng
 cookie sẽ luôn được route về đúng 1 pod backend — hành vi tương đương nginx.
 
 Bỏ qua field này với backend stateless (không cần sticky routing).
+
+> ⚠️ `ttl` phải đúng format Duration mà CRD validate:
+> `^([0-9]{1,5}(h|m|s|ms)){1,4}$` — tối đa **5 chữ số** mỗi đơn vị. Ví dụ
+> 2 ngày phải viết `48h`, viết `172800s` (6 chữ số) sẽ bị API server
+> reject.
 
 ## Cài / test local
 
