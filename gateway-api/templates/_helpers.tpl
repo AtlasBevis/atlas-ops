@@ -25,7 +25,40 @@ those fields in on the stored object.
 */}}
 {{- define "gw.httpRouteRules" -}}
 {{- if .rules }}
-{{ toYaml .rules }}
+{{- range .rules }}
+- {{- with .name }}
+  name: {{ . }}
+  {{- end }}
+  {{- with .matches }}
+  matches:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with .filters }}
+  filters:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with .backendRefs }}
+  backendRefs:
+    {{- range . }}
+    - group: {{ .group | default "" | quote }}
+      kind: {{ .kind | default "Service" }}
+      name: {{ .name }}
+      port: {{ .port }}
+      weight: {{ .weight | default 1 }}
+      {{- with .namespace }}
+      namespace: {{ . }}
+      {{- end }}
+    {{- end }}
+  {{- end }}
+  {{- with .timeouts }}
+  timeouts:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with .sessionPersistence }}
+  sessionPersistence:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+{{- end }}
 {{- else }}
 - matches:
     - path:
@@ -59,7 +92,36 @@ same reason (avoid a permanent Argo CD diff against server-defaulted fields).
 */}}
 {{- define "gw.grpcRouteRules" -}}
 {{- if .rules }}
-{{ toYaml .rules }}
+{{- range .rules }}
+- {{- with .name }}
+  name: {{ . }}
+  {{- end }}
+  {{- with .matches }}
+  matches:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with .filters }}
+  filters:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with .backendRefs }}
+  backendRefs:
+    {{- range . }}
+    - group: {{ .group | default "" | quote }}
+      kind: {{ .kind | default "Service" }}
+      name: {{ .name }}
+      port: {{ .port }}
+      weight: {{ .weight | default 1 }}
+      {{- with .namespace }}
+      namespace: {{ . }}
+      {{- end }}
+    {{- end }}
+  {{- end }}
+  {{- with .sessionPersistence }}
+  sessionPersistence:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+{{- end }}
 {{- else }}
 - backendRefs:
     {{- range .backendRefs }}
