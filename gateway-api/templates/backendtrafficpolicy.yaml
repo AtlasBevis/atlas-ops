@@ -8,6 +8,10 @@ sets `sessionAffinity`. Uses Envoy Gateway's BackendTrafficPolicy CRD
     backend pod for the cookie's lifetime.
   - needed whenever a backend has >1 replica and holds per-connection /
     per-session state (in-memory auth session, SSE/long-poll, etc).
+
+`ttl` must match the Kubernetes Duration format the CRD validates against:
+`^([0-9]{1,5}(h|m|s|ms)){1,4}$` — max 5 digits per unit, so e.g. 2 days is
+"48h", NOT "172800s" (6 digits -> rejected by the API server).
 */}}
 {{- range .Values.httpRoutes }}
 {{- $route := . }}

@@ -83,7 +83,9 @@ httpRoutes: []
 #     # backend has >1 replica and keeps per-session state.
 #     # sessionAffinity:
 #     #   cookieName: example-app-affinity
-#     #   ttl: 172800s   # Max-Age of the generated cookie, e.g. 2 days
+#     #   ttl: 48h   # Max-Age of the generated cookie, e.g. 2 days.
+#     #              # Must match ^([0-9]{1,5}(h|m|s|ms)){1,4}$ — max 5
+#     #              # digits per unit, so use "48h" not "172800s".
 #
 #   # Advanced example using full `rules` passthrough (weighted split,
 #   # header match, path rewrite filter, ...):
