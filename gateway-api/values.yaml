@@ -22,44 +22,56 @@
 # examples below as needed.
 
 # -- Step 1: GatewayClass every Gateway/route uses unless it sets its own.
-gatewayClassName: ""
+gatewayClassName: "data-gateway"
 # gatewayClassName: eg
 
 # -- Step 3: parentRefs every HTTPRoute/GRPCRoute uses unless it sets its
 # own `parentRefs` list. Point this at the shared Gateway from step 2.
-defaultParentRefs: []
-# defaultParentRefs:
-#   - name: shared-gw
-#     namespace: gateway-system
+defaultParentRefs:
+  - name: data-gw
+    namespace: gateway-api
 
 # -- Step 2: Gateways to create. Usually exactly one per VIP/environment —
 # the EnvoyProxy (or equivalent) behind `gatewayClassName` pins the
 # LoadBalancer IP; this Gateway is what actually opens listeners and claims
 # that Service.
-gateways: []
-# gateways:
-#   - name: shared-gw
-#     namespace: gateway-system
-#     # gatewayClassName: ""   # falls back to top-level gatewayClassName
-#     listeners:
-#       - name: http
-#         protocol: HTTP
-#         port: 80
-#         allowedRoutes:
-#           namespaces:
-#             from: All
-#       # Add once a TLS secret exists in the Gateway's namespace (or grant
-#       # cross-namespace access via referenceGrants below):
-#       # - name: https
-#       #   protocol: HTTPS
-#       #   port: 443
-#       #   tls:
-#       #     mode: Terminate
-#       #     certificateRefs:
-#       #       - name: example-tls
-#       #   allowedRoutes:
-#       #     namespaces:
-#       #       from: All
+gateways:
+  - name: data-gw
+    namespace: gateway-api
+    listeners:
+      - name: http
+        protocol: HTTP
+        port: 80
+        allowedRoutes:
+          namespaces:
+            from: All
+      # TLS passthrough listener for non-HTTP TCP+TLS traffic that still needs
+      # SNI-based multi-hostname routing on the SAME VIP (e.g. Kafka via
+      # Strimzi `type: tlsroute` listeners — see cdc/kafka/values.yaml).
+      # Envoy never decrypts here; it reads the ClientHello SNI and forwards
+      # the raw TLS bytes to whichever backend Service the TLSRoute selects.
+      - name: kafka-tls
+        protocol: TLS
+        port: 9094
+        tls:
+          mode: Passthrough
+        allowedRoutes:
+          namespaces:
+            from: All
+          kinds:
+            - kind: TLSRoute
+      # Add once a TLS secret exists in gateway-api (or grant
+      # cross-namespace access via referenceGrants below):
+      # - name: https
+      #   protocol: HTTPS
+      #   port: 443
+      #   tls:
+      #     mode: Terminate
+      #     certificateRefs:
+      #       - name: wildcard-vietcredit-tls
+      #   allowedRoutes:
+      #     namespaces:
+      #       from: All
 
 # -- Step 4: HTTPRoutes. Each entry becomes one HTTPRoute object.
 #
