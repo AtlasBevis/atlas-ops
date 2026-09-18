@@ -13,7 +13,10 @@
 #      services). Copy the example block, change name/hostnames/backendRefs.
 #   5. Only add a `referenceGrants` entry if the backend Service lives in a
 #      different namespace than its HTTPRoute/GRPCRoute.
-#   6. helm lint . && helm template . | less   # sanity check before apply/sync
+#   6. Add `sessionAffinity` on a route only if its backend has >1 replica
+#      AND holds per-connection/session state (in-memory auth session,
+#      SSE/long-poll, sticky cache, ...). Skip it for stateless backends.
+#   7. helm lint . && helm template . | less   # sanity check before apply/sync
 #
 # Nothing is created if you leave the lists empty — uncomment/copy the
 # examples below as needed.
@@ -75,6 +78,12 @@ httpRoutes: []
 #     backendRefs:
 #       - name: example-app-svc
 #         port: 80
+#     # Optional: cookie-based session affinity (renders a
+#     # BackendTrafficPolicy targeting this route). Only needed when the
+#     # backend has >1 replica and keeps per-session state.
+#     # sessionAffinity:
+#     #   cookieName: example-app-affinity
+#     #   ttl: 172800s   # Max-Age of the generated cookie, e.g. 2 days
 #
 #   # Advanced example using full `rules` passthrough (weighted split,
 #   # header match, path rewrite filter, ...):

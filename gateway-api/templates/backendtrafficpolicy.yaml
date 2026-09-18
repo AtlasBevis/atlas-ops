@@ -1,0 +1,73 @@
+{{/*
+Optional cookie-based session affinity, equivalent to nginx-ingress's
+`nginx.ingress.kubernetes.io/affinity: cookie`. Only rendered when a route
+sets `sessionAffinity`. Uses Envoy Gateway's BackendTrafficPolicy CRD
+(gateway.envoyproxy.io/v1alpha1) with ConsistentHash/Cookie load balancing:
+  - if the request has no cookie yet, Envoy generates one and sets it via
+    Set-Cookie (TTL = `ttl`), then keeps routing that client to the same
+    backend pod for the cookie's lifetime.
+  - needed whenever a backend has >1 replica and holds per-connection /
+    per-session state (in-memory auth session, SSE/long-poll, etc).
+*/}}
+{{- range .Values.httpRoutes }}
+{{- $route := . }}
+{{- with .sessionAffinity }}
+---
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: BackendTrafficPolicy
+metadata:
+  name: {{ $route.name }}-affinity
+  namespace: {{ $route.namespace | default $.Release.Namespace }}
+  labels:
+    {{- include "gw.labels" $ | nindent 4 }}
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: {{ $route.name }}
+  loadBalancer:
+    type: ConsistentHash
+    consistentHash:
+      type: Cookie
+      cookie:
+        name: {{ .cookieName }}
+        {{- with .ttl }}
+        ttl: {{ . }}
+        {{- end }}
+        {{- with .attributes }}
+        attributes:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+{{- end }}
+{{- end }}
+{{- range .Values.grpcRoutes }}
+{{- $route := . }}
+{{- with .sessionAffinity }}
+---
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: BackendTrafficPolicy
+metadata:
+  name: {{ $route.name }}-affinity
+  namespace: {{ $route.namespace | default $.Release.Namespace }}
+  labels:
+    {{- include "gw.labels" $ | nindent 4 }}
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: GRPCRoute
+      name: {{ $route.name }}
+  loadBalancer:
+    type: ConsistentHash
+    consistentHash:
+      type: Cookie
+      cookie:
+        name: {{ .cookieName }}
+        {{- with .ttl }}
+        ttl: {{ . }}
+        {{- end }}
+        {{- with .attributes }}
+        attributes:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+{{- end }}
+{{- end }}

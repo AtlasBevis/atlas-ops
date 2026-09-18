@@ -25,7 +25,10 @@ vào `httpRoutes` (hoặc `grpcRoutes`).
 3. `defaultParentRefs` trỏ vào Gateway ở bước 2, để route không phải khai lại `parentRefs`.
 4. Thêm route: mỗi host/app một entry trong `httpRoutes` (hoặc `grpcRoutes` cho gRPC).
 5. Chỉ thêm `referenceGrants` khi backend Service nằm namespace khác route.
-6. `helm lint . && helm template . | less` trước khi apply/sync.
+6. Chỉ thêm `sessionAffinity` khi backend có >1 replica **và** giữ state
+   theo session (login/OAuth trong memory, SSE/long-poll, cache dính
+   session, ...). Backend stateless thì bỏ qua, không cần cookie affinity.
+7. `helm lint . && helm template . | less` trước khi apply/sync.
 
 ### Case thường gặp
 
@@ -64,6 +67,35 @@ qua gateway:
 Chỉ cần khi `backendRefs`/`certificateRefs` trỏ sang **namespace khác**
 với route/Gateway đang tham chiếu. Khai trong namespace **bị tham chiếu
 tới** (namespace Service/Secret), không phải namespace route.
+
+## Session affinity (cookie) — thay thế nginx `affinity: cookie`
+
+Khi migrate một app từ nginx-ingress sang chart này, nếu Ingress cũ có
+annotation `nginx.ingress.kubernetes.io/affinity: cookie` (thường vì backend
+chạy nhiều replica và giữ state trong memory — session login, SSE...), phải
+khai lại tương đương bằng `sessionAffinity` trên route đó:
+
+```yaml
+httpRoutes:
+  - name: example-app
+    namespace: example-app
+    hostnames:
+      - example-app.example.local
+    backendRefs:
+      - name: example-app-svc
+        port: 80
+    sessionAffinity:
+      cookieName: example-app-affinity
+      ttl: 172800s   # Max-Age cookie, ví dụ 2 ngày
+```
+
+Chart sẽ render một `BackendTrafficPolicy` (`gateway.envoyproxy.io/v1alpha1`,
+CRD của Envoy Gateway) `targetRefs` vào đúng `HTTPRoute`/`GRPCRoute` đó, dùng
+`loadBalancer.consistentHash.type: Cookie`. Nếu request chưa có cookie, Envoy
+tự sinh cookie + trả về `Set-Cookie` (TTL = `ttl`), các request sau cùng
+cookie sẽ luôn được route về đúng 1 pod backend — hành vi tương đương nginx.
+
+Bỏ qua field này với backend stateless (không cần sticky routing).
 
 ## Cài / test local
 
