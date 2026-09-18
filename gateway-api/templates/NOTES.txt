@@ -1,0 +1,22 @@
+gateway-api resources applied.
+
+Gateways:
+{{- range .Values.gateways }}
+  - {{ .name }}.{{ .namespace | default $.Release.Namespace }} (class: {{ .gatewayClassName | default $.Values.gatewayClassName }})
+{{- end }}
+
+HTTPRoutes:
+{{- range .Values.httpRoutes }}
+  - {{ .name }}.{{ .namespace | default $.Release.Namespace }}{{ with .hostnames }} -> {{ join ", " . }}{{ end }}
+{{- end }}
+
+GRPCRoutes:
+{{- range .Values.grpcRoutes }}
+  - {{ .name }}.{{ .namespace | default $.Release.Namespace }}{{ with .hostnames }} -> {{ join ", " . }}{{ end }}
+{{- end }}
+
+Check status:
+  kubectl get gateway -A
+  kubectl get httproute -A -o wide
+  kubectl get grpcroute -A -o wide
+  kubectl describe gateway <name> -n <namespace>   # look at .status.listeners / .status.addresses

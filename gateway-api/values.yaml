@@ -1,0 +1,146 @@
+# gateway-api — declarative Gateway / HTTPRoute / GRPCRoute for apps behind
+# a shared Envoy Gateway (or any Gateway API implementation).
+#
+# Standard steps to onboard a new cluster / new host:
+#   1. Set `gatewayClassName` to the GatewayClass your controller created
+#      (e.g. Envoy Gateway chart's `gatewayClass.name`).
+#   2. Fill in exactly one entry under `gateways` — this is the single
+#      shared Gateway that claims the LoadBalancer VIP. One Gateway is
+#      enough for many hosts; don't create a second one per app.
+#   3. Point `defaultParentRefs` at that Gateway so routes below don't
+#      need to repeat parentRefs every time.
+#   4. Add one entry per host under `httpRoutes` (or `grpcRoutes` for gRPC
+#      services). Copy the example block, change name/hostnames/backendRefs.
+#   5. Only add a `referenceGrants` entry if the backend Service lives in a
+#      different namespace than its HTTPRoute/GRPCRoute.
+#   6. helm lint . && helm template . | less   # sanity check before apply/sync
+#
+# Nothing is created if you leave the lists empty — uncomment/copy the
+# examples below as needed.
+
+# -- Step 1: GatewayClass every Gateway/route uses unless it sets its own.
+gatewayClassName: ""
+# gatewayClassName: eg
+
+# -- Step 3: parentRefs every HTTPRoute/GRPCRoute uses unless it sets its
+# own `parentRefs` list. Point this at the shared Gateway from step 2.
+defaultParentRefs: []
+# defaultParentRefs:
+#   - name: shared-gw
+#     namespace: gateway-system
+
+# -- Step 2: Gateways to create. Usually exactly one per VIP/environment —
+# the EnvoyProxy (or equivalent) behind `gatewayClassName` pins the
+# LoadBalancer IP; this Gateway is what actually opens listeners and claims
+# that Service.
+gateways: []
+# gateways:
+#   - name: shared-gw
+#     namespace: gateway-system
+#     # gatewayClassName: ""   # falls back to top-level gatewayClassName
+#     listeners:
+#       - name: http
+#         protocol: HTTP
+#         port: 80
+#         allowedRoutes:
+#           namespaces:
+#             from: All
+#       # Add once a TLS secret exists in the Gateway's namespace (or grant
+#       # cross-namespace access via referenceGrants below):
+#       # - name: https
+#       #   protocol: HTTPS
+#       #   port: 443
+#       #   tls:
+#       #     mode: Terminate
+#       #     certificateRefs:
+#       #       - name: example-tls
+#       #   allowedRoutes:
+#       #     namespaces:
+#       #       from: All
+
+# -- Step 4: HTTPRoutes. Each entry becomes one HTTPRoute object.
+#
+# Shorthand (most apps): set `path`/`pathType`/`backendRefs`, a single rule
+# is generated. Full control: set `rules` (raw Gateway API HTTPRouteRule
+# list) and it's used as-is instead.
+httpRoutes: []
+# httpRoutes:
+#   - name: example-app
+#     namespace: example-app
+#     hostnames:
+#       - example-app.example.local
+#     # parentRefs: []           # optional override of defaultParentRefs
+#     # path: "/"                # default
+#     # pathType: PathPrefix     # default
+#     backendRefs:
+#       - name: example-app-svc
+#         port: 80
+#
+#   # Advanced example using full `rules` passthrough (weighted split,
+#   # header match, path rewrite filter, ...):
+#   - name: example-app-canary
+#     namespace: example-app
+#     hostnames:
+#       - example-app.example.local
+#     rules:
+#       - matches:
+#           - path:
+#               type: PathPrefix
+#               value: /
+#         backendRefs:
+#           - name: example-app-stable
+#             port: 80
+#             weight: 90
+#           - name: example-app-canary
+#             port: 80
+#             weight: 10
+
+# -- Step 4 (gRPC): GRPCRoutes. Same shape as httpRoutes but for gRPC
+# services.
+#
+# Requirements on the backend Service for gRPC to work through the
+# gateway:
+#   - Service port must set `appProtocol: kubernetes.io/h2c` (plaintext
+#     HTTP/2) so the proxy talks upstream over HTTP/2, not HTTP/1.1.
+#   - The Gateway listener the route attaches to must be HTTP (h2c) or
+#     HTTPS (h2) — gRPC always rides over HTTP/2.
+grpcRoutes: []
+# grpcRoutes:
+#   - name: example-grpc-svc
+#     namespace: example-app
+#     hostnames:
+#       - grpc.example.local
+#     backendRefs:
+#       - name: example-grpc-svc
+#         port: 50051
+#
+#   # Advanced: match by gRPC service/method instead of routing all traffic.
+#   - name: example-grpc-svc-methods
+#     namespace: example-app
+#     hostnames:
+#       - grpc.example.local
+#     rules:
+#       - matches:
+#           - method:
+#               type: Exact
+#               service: example.package.ExampleService
+#               method: ExampleMethod
+#         backendRefs:
+#           - name: example-grpc-svc
+#             port: 50051
+
+# -- Step 5: ReferenceGrants. Only needed when a route's backendRefs (or a
+# listener's certificateRefs) point at an object in a *different*
+# namespace. Lives in the namespace being referenced *into*.
+referenceGrants: []
+# referenceGrants:
+#   - name: allow-cross-ns-routes
+#     namespace: example-app                # namespace of the backend Service
+#     from:
+#       - group: gateway.networking.k8s.io
+#         kind: HTTPRoute
+#         namespace: some-other-namespace     # namespace of the HTTPRoute
+#     to:
+#       - group: ""
+#         kind: Service
+#         name: example-app-svc               # omit to allow any Service in this ns

@@ -1,0 +1,13 @@
+apiVersion: v2
+name: gateway-api
+description: >-
+  Declarative Gateway API resources (Gateway, HTTPRoute, GRPCRoute,
+  ReferenceGrant) for apps behind a shared Envoy Gateway controller.
+type: application
+version: 0.1.0
+appVersion: "v1.6.1"
+keywords:
+  - gateway-api
+  - envoy-gateway
+  - httproute
+  - grpcroute
