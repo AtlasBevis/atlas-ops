@@ -1,0 +1,24 @@
+values:
+  - name: ID
+    type: NUMBER(12)
+    nullable: false
+  - name: SPLIT_HASH
+    type: NUMBER(4)
+  - name: ACCOUNT_TYPE
+    type: VARCHAR2(8)
+  - name: ACCOUNT_NUMBER
+    type: VARCHAR2(32)
+  - name: CURRENCY
+    type: VARCHAR2(3)
+  - name: INST_ID
+    type: NUMBER(4)
+  - name: AGENT_ID
+    type: VARCHAR2(12)
+  - name: CUSTOMER_ID
+    type: NUMBER(12)
+  - name: CONTRACT_ID
+    type: NUMBER(12)
+  - name: STATUS
+    type: VARCHAR2(8)
+  - name: SCHEME_ID
+    type: NUMBER(4)

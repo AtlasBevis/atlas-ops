@@ -28,26 +28,36 @@ Schema được generate từ metadata cột, commit vào Git, rồi CI sync lê
 
 ## Layout
 
+Thư mục này chỉ chứa kiểu dữ liệu nguồn và mapping của từng connector.
+`source.format` / Apicurio `artifactType` thuộc
+`core/artifacts/artifact_types.py`.
+
 ```text
 core/types/
   README.md                 ← file này
   shared/
     catalog.yaml            ← thư viện Avro/Connect dùng chung
-  oracle.yaml               ← index connector Oracle
-  oracle/mappings.yaml
-  postgres.yaml
-  postgres/mappings.yaml
-  mysql.yaml
-  mysql/mappings.yaml
-  mssql.yaml
-  mssql/mappings.yaml
+  oracle/
+    index.yaml              ← metadata connector Oracle
+    mappings.yaml
+  postgres/
+    index.yaml
+    mappings.yaml
+  mysql/
+    index.yaml
+    mappings.yaml
+  sqlserver/
+    index.yaml
+    mappings.yaml
 ```
 
-Mỗi connector có **một file index** (`{connector}.yaml`) trỏ tới:
+## Connector (`oracle/`, `postgres/`, `mysql/`, `sqlserver/`)
+
+Mỗi connector có **một thư mục riêng** với `index.yaml` và `mappings.yaml`:
 
 | Key | Ý nghĩa |
 | --- | --- |
-| `connector` | `oracle` \| `postgres` \| `mysql` \| `mssql` |
+| `connector` | `oracle` \| `postgres` \| `mysql` \| `sqlserver` |
 | `defaults` | Giá trị Debezium giả định khi generate (`decimal.handling.mode`, `time.precision.mode`, …) |
 | `files.catalog` | Catalog Avro/Connect (thường là `shared/catalog.yaml`) |
 | `files.mappings` | Rule map kiểu nguồn → `avro_ref` |
@@ -151,7 +161,7 @@ schema Debezium emit lúc runtime.
 Input bảng:
 
 ```yaml
-# domain/domain1/customers/table.yaml
+# domain/domain1/customers/values/v1.yaml
 connector: oracle
 groupId: domain1
 table:
@@ -231,12 +241,19 @@ versions:
         version: "1"
 ```
 
-CI validate: `groupId` ∈ `groups/spec.yaml`, target artifact/version tồn tại,
+CI validate: `groupId` ∈ `domain/index.yaml`, target artifact/version tồn tại,
 `topo_order()` đăng ký shared trước dependents.
+
+## Thêm format mới
+
+1. Thêm member vào `ArtifactType` và `_ARTIFACT_TYPE_BY_FORMAT` trong
+   `core/artifacts/artifact_types.py`.
+2. Viết planner empty-artifact + version cho artifactType đó
+   (`core/artifacts/plan.py`, `core/versions/plan.py`).
 
 ## Thêm connector / type mới
 
-1. Tạo `{connector}.yaml` + `{connector}/mappings.yaml`.
+1. Tạo `{connector}/index.yaml` + `{connector}/mappings.yaml`.
 2. Thêm `avro_ref` mới vào `shared/catalog.yaml` nếu chưa có.
 3. Ghi `defaults` **khớp** config Debezium production.
 4. Cập nhật bảng trong README này + thêm test case cột mẫu.

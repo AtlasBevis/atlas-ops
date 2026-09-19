@@ -1,0 +1,9 @@
+globalRules:
+  - ruleType: VALIDITY
+    config: FULL
+  - ruleType: COMPATIBILITY
+    # BACKWARD_TRANSITIVE (not just BACKWARD): validates each new version
+    # against ALL previous versions, not only the latest. Recommended for
+    # production where consumers may lag producers by more than one version.
+    # https://www.apicur.io/registry/docs/apicurio-registry/3.3.x/getting-started/assembly-schema-lifecycle-best-practices.html
+    config: BACKWARD_TRANSITIVE

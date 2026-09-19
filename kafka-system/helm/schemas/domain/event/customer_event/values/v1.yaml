@@ -1,0 +1,78 @@
+$schema: "http://json-schema.org/draft-07/schema#"
+title: EventLogger
+type: object
+additionalProperties: false
+required:
+  - "@timestamp"
+  - time
+  - thread
+  - level
+  - logger
+  - phone
+  - log
+properties:
+  "@timestamp":
+    type: number
+    description: Unix epoch seconds (may include a fractional part)
+  time:
+    type: string
+    description: Event time as YYYY-MM-DD HH:MM:SS
+  thread:
+    type: string
+  level:
+    type: string
+  logger:
+    type: string
+  phone:
+    type: string
+    description: Customer phone number
+  log:
+    type: object
+    additionalProperties: false
+    required:
+      - device_id
+      - device_type
+      - device_name
+      - os_name
+      - os_version
+      - app_version
+      - customer_id
+      - customer_code
+      - screen_name
+      - destination
+      - deeplink
+      - name
+      - created_at
+      - updated_at
+    properties:
+      device_id:
+        type: string
+      device_type:
+        type: string
+      device_name:
+        type: string
+      os_name:
+        type: string
+      os_version:
+        type: string
+      app_version:
+        type: string
+      customer_id:
+        type: integer
+      customer_code:
+        type: string
+      screen_name:
+        type: string
+      destination:
+        type: string
+      deeplink:
+        type: string
+      name:
+        type: string
+        description: Event name (for example home_featured_icon_tapped)
+      created_at:
+        type: string
+        description: Created at as YYYY-MM-DD HH:MM:SS
+      updated_at:
+        type: string
+        description: Updated at as YYYY-MM-DD HH:MM:SS

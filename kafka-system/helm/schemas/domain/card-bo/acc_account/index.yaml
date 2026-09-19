@@ -1,0 +1,25 @@
+groupId: card-bo
+schema: MAIN
+topicPrefix: cdc.prod.card-bo
+source:
+  type: debezium
+  format: avro
+  database: oracle
+  signal: true
+  heartbeat: true
+  heartbeatPrefix: __heartbeat.prod
+table:
+  name: ACC_ACCOUNT
+  description: CDC for MAIN.ACC_ACCOUNT
+  key:
+    description: CDC Key for MAIN.ACC_ACCOUNT
+    versions:
+      - version: "1"
+        state: ENABLED
+        description: CDC Key for MAIN.ACC_ACCOUNT v1
+  value:
+    description: CDC Value for MAIN.ACC_ACCOUNT
+    versions:
+      - version: "1"
+        state: ENABLED
+        description: CDC Value for MAIN.ACC_ACCOUNT v1

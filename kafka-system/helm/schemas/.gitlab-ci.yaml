@@ -2,8 +2,9 @@ stages:
   - register
 
 variables:
-  REGISTRY_URL: "https://domain.com.vn/apis/registry/v3"
+  REGISTRY_URL: "https://schema-registry.example.com/apis/registry/v3"
   PIP_DISABLE_PIP_VERSION_CHECK: "1"
+  SKIP_CONFIG_SYNC: "1"
 
 register_schemas:
   stage: register
@@ -12,8 +13,7 @@ register_schemas:
   before_script:
     - pip install --quiet pyyaml
   script:
-    - cd scripts
     - python main.py
-  rules:
-    - if: $CI_COMMIT_BRANCH == "master"
-    - if: $CI_COMMIT_BRANCH == "main"
+  when: manual
+  only:
+    - master

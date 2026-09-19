@@ -1,6 +1,6 @@
 # Avro auto-transform rules
 
-Generator (`scripts/versions/`, `scripts/artifacts/`) áp dụng các quy tắc dưới đây
+Generator (`core/versions/`, `core/artifacts/`) áp dụng các quy tắc dưới đây
 khi biến YAML cột / topic thành Avro + artifact Apicurio. **Không** sửa tay
 `.avsc` — chỉ sửa YAML nguồn hoặc mapping.
 
@@ -28,7 +28,7 @@ Regex một name (spec / apache-avro):
 Equality case-sensitive. Null namespace không được nằm giữa các đoạn có dấu chấm.
 
 Code: `AVRO_NAME_RE`, `AVRO_NAMESPACE_RE`, `avro_name_segment`, `avro_namespace`
-trong `scripts/versions/version.py`.
+trong `core/versions/avro_names.py`.
 
 ---
 
@@ -160,6 +160,6 @@ Không đổi tên record theo tên bảng — bảng nằm trong **namespace**.
 | | |
 | --- | --- |
 | Spec | https://avro.apache.org/docs/++version++/specification/#names |
-| `avro_namespace` / regex | `scripts/versions/version.py` |
-| empty artifactIds | `scripts/artifacts/artifact.py` → `debezium_artifact_ids` |
-| DB → Avro | `scripts/versions/mapping.py` |
+| `avro_namespace` / regex | `core/versions/avro_names.py` |
+| empty artifactIds | `core/artifacts/plan.py` → `debezium_artifact_ids` |
+| DB → Avro | `core/versions/mapping.py` |

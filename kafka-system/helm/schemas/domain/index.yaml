@@ -1,0 +1,5 @@
+groups:
+  - groupId: card-bo
+    description: CARD-BO (example CDC group — trim/replace with your own tables)
+  - groupId: event
+    description: Application log events (example JSON Schema group)

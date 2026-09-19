@@ -1,0 +1,21 @@
+groupId: event
+schema: app
+topicPrefix: event.uat
+source:
+  type: log
+  format: json
+table:
+  name: customer_event
+  description: Customer Event JSON payload
+  key:
+    description: JSON Key for Customer Event
+    versions:
+      - version: "1"
+        state: ENABLED
+        description: Customer Event key v1
+  value:
+    description: JSON Value for Customer Event
+    versions:
+      - version: "1"
+        state: ENABLED
+        description: Customer Event value v1

@@ -1,0 +1,5 @@
+DEBEZIUM_GROUP = "debezium"
+DEBEZIUM_GROUP_DESCRIPTION = "Shared Debezium types"
+BOOTSTRAP_VERSION = "1"
+HEARTBEAT_KEY_ID = "io.debezium.connector.common.ServerNameKey"
+HEARTBEAT_VALUE_ID = "io.debezium.connector.common.Heartbeat"
