@@ -4138,7 +4138,7 @@ cleanup:
 
   resources:
     limits:
-      cpu: 820m
+      cpu: 1.2
       memory: 300Mi
     requests:
       cpu: 100m

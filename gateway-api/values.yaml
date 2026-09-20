@@ -9,8 +9,9 @@
 #      enough for many hosts; don't create a second one per app.
 #   3. Point `defaultParentRefs` at that Gateway so routes below don't
 #      need to repeat parentRefs every time.
-#   4. Add one entry per host under `httpRoutes` (or `grpcRoutes` for gRPC
-#      services). Copy the example block, change name/hostnames/backendRefs.
+#   4. Add one entry per host under `httpRoutes` (`grpcRoutes` for gRPC, or
+#      `tlsRoutes` for raw TCP+TLS backends like Kafka). Copy the example
+#      block, change name/hostnames/backendRefs.
 #   5. Only add a `referenceGrants` entry if the backend Service lives in a
 #      different namespace than its HTTPRoute/GRPCRoute.
 #   6. Add `sessionAffinity` on a route only if its backend has >1 replica
@@ -45,11 +46,19 @@ gateways:
         allowedRoutes:
           namespaces:
             from: All
-      # TLS passthrough listener for non-HTTP TCP+TLS traffic that still needs
-      # SNI-based multi-hostname routing on the SAME VIP (e.g. Kafka via
-      # Strimzi `type: tlsroute` listeners — see cdc/kafka/values.yaml).
-      # Envoy never decrypts here; it reads the ClientHello SNI and forwards
-      # the raw TLS bytes to whichever backend Service the TLSRoute selects.
+      # TLS passthrough listener for non-HTTP TCP+TLS traffic on the SAME VIP
+      # (e.g. Kafka via the Strimzi `type: cluster-ip` listener — see
+      # kafka-system/helm/kafka-cluster/values.yaml). The proxy never decrypts;
+      # it forwards raw TLS bytes to the Service its TLSRoute selects, so the
+      # backend keeps owning its certificate.
+      #
+      # Kafka clients reconnect straight to the partition leader, so every broker
+      # needs a distinct endpoint. Each one has its OWN hostname, so the TLS SNI
+      # distinguishes them and a single port is enough. Do NOT set `hostname`
+      # here: that would pin the listener to one name, while it has to serve all
+      # of them — the TLSRoutes below do the hostname matching.
+      # Only 9094 needs opening on the L4 proxy, and a new broker costs a DNS
+      # record rather than a new port.
       - name: kafka-tls
         protocol: TLS
         port: 9094
@@ -60,6 +69,34 @@ gateways:
             from: All
           kinds:
             - kind: TLSRoute
+
+      # ALTERNATIVE — ONE hostname, one port per endpoint. Replaces the listener
+      # above with four, since identical SNI forces the Gateway to tell the
+      # endpoints apart by port. Ports MUST match
+      # `configuration.brokers[].advertisedPort` in the Kafka chart, and all four
+      # must be open on the L4 proxy.
+      # - name: kafka-bootstrap
+      #   protocol: TLS
+      #   port: 9094
+      #   hostname: kafka.example.local
+      #   tls:
+      #     mode: Passthrough
+      #   allowedRoutes:
+      #     namespaces:
+      #       from: All
+      #     kinds:
+      #       - kind: TLSRoute
+      # - name: kafka-broker-3          # then -4 on 19094, -5 on 19095
+      #   protocol: TLS
+      #   port: 19093
+      #   hostname: kafka.example.local
+      #   tls:
+      #     mode: Passthrough
+      #   allowedRoutes:
+      #     namespaces:
+      #       from: All
+      #     kinds:
+      #       - kind: TLSRoute
       # Add once a TLS secret exists in gateway-api (or grant
       # cross-namespace access via referenceGrants below):
       # - name: https
@@ -151,6 +188,79 @@ grpcRoutes: []
 #         backendRefs:
 #           - name: example-grpc-svc
 #             port: 50051
+
+# -- Step 4 (TLS passthrough): TLSRoutes, for TCP+TLS backends such as Kafka.
+# Same shape as httpRoutes but without path matches — a passthrough route can
+# only pick a backend, it cannot inspect the encrypted payload.
+#
+# `parentRefs.sectionName` is REQUIRED here: without it the route attaches to
+# every listener on the Gateway, which would send broker traffic to the
+# bootstrap Service.
+#
+# Kafka below matches the `type: cluster-ip` listener in
+# kafka-system/helm/kafka-cluster/values.yaml. Strimzi creates the Services,
+# named `<clusterName>-kafka-<listenerName>-<nodeId>`, all listening on the Kafka
+# listener port (9094). Every route attaches to the SAME listener (`kafka-tls`)
+# and is selected by `hostnames`, which must match each broker's
+# `advertisedHost`. There is no bootstrap route: clients list the broker
+# hostnames as bootstrap.servers. Routes sit in the backend's own namespace, so
+# no ReferenceGrant is needed.
+tlsRoutes:
+  - name: kafka-broker-3
+    namespace: kafka-system
+    parentRefs:
+      - name: data-gw
+        namespace: gateway-api
+        sectionName: kafka-tls
+    hostnames:
+      - broker-3.kafka.example.local
+    backendRefs:
+      - name: kafka-cluster-kafka-external-3
+        port: 9094
+
+  - name: kafka-broker-4
+    namespace: kafka-system
+    parentRefs:
+      - name: data-gw
+        namespace: gateway-api
+        sectionName: kafka-tls
+    hostnames:
+      - broker-4.kafka.example.local
+    backendRefs:
+      - name: kafka-cluster-kafka-external-4
+        port: 9094
+
+  - name: kafka-broker-5
+    namespace: kafka-system
+    parentRefs:
+      - name: data-gw
+        namespace: gateway-api
+        sectionName: kafka-tls
+    hostnames:
+      - broker-5.kafka.example.local
+    backendRefs:
+      - name: kafka-cluster-kafka-external-5
+        port: 9094
+
+# ALTERNATIVE — ONE hostname, one port per endpoint. Each route attaches to its
+# own port-specific listener and they all carry the same hostname; a fourth route
+# is added for the bootstrap Service, e.g.:
+#
+#   - name: kafka-broker-3
+#     namespace: kafka-system
+#     parentRefs:
+#       - name: data-gw
+#         namespace: gateway-api
+#         sectionName: kafka-broker-3
+#     hostnames:
+#       - kafka.example.local
+#     backendRefs:
+#       - name: kafka-cluster-kafka-external-3
+#         port: 9094
+#
+# If instead you use a Strimzi `type: tlsroute` listener (>= 1.1.0), the
+# operator creates these TLSRoutes itself — leave Kafka out of this list
+# entirely, or the two will fight over the same objects.
 
 # -- Step 5: ReferenceGrants. Only needed when a route's backendRefs (or a
 # listener's certificateRefs) point at an object in a *different*

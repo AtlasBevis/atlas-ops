@@ -138,6 +138,47 @@ same reason (avoid a permanent Argo CD diff against server-defaulted fields).
 {{- end }}
 
 {{/*
+TLSRoute rules (passthrough TCP+TLS). No path/method matches — a TLS
+passthrough route can only pick a backend, it cannot inspect the payload.
+- If `.rules` is set, full passthrough.
+- Otherwise a single rule pointing at `backendRefs`.
+*/}}
+{{- define "gw.tlsRouteRules" -}}
+{{- if .rules }}
+{{- range .rules }}
+- {{- with .name }}
+  name: {{ . }}
+  {{- end }}
+  {{- with .backendRefs }}
+  backendRefs:
+    {{- range . }}
+    - group: {{ .group | default "" | quote }}
+      kind: {{ .kind | default "Service" }}
+      name: {{ .name }}
+      port: {{ .port }}
+      weight: {{ .weight | default 1 }}
+      {{- with .namespace }}
+      namespace: {{ . }}
+      {{- end }}
+    {{- end }}
+  {{- end }}
+{{- end }}
+{{- else }}
+- backendRefs:
+    {{- range .backendRefs }}
+    - group: {{ .group | default "" | quote }}
+      kind: {{ .kind | default "Service" }}
+      name: {{ .name }}
+      port: {{ .port }}
+      weight: {{ .weight | default 1 }}
+      {{- with .namespace }}
+      namespace: {{ . }}
+      {{- end }}
+    {{- end }}
+{{- end }}
+{{- end }}
+
+{{/*
 parentRefs for a route entry, falling back to Values.defaultParentRefs when
 the entry doesn't set its own. `group`/`kind` are set explicitly (defaults:
 "gateway.networking.k8s.io" / "Gateway") for the same reason as above.

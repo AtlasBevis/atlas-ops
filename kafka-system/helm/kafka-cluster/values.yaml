@@ -34,6 +34,115 @@ kafka:
       authentication:
         type: scram-sha-512
 
+    # External clients (apps / Fluent Bit outside the cluster). Path:
+    # DNS -> L4 proxy (TCP 9094 passthrough) -> Gateway VIP -> per-broker
+    # ClusterIP. Kafka is a binary TCP protocol, so HTTPRoute does not apply;
+    # the Gateway forwards raw TLS bytes without decrypting (mode: Passthrough).
+    #
+    # One hostname PER BROKER, a SINGLE port, and NO bootstrap hostname.
+    # Clients reconnect straight to the partition leader, so every broker needs
+    # its own endpoint; the TLS SNI is what tells them apart, so one port is
+    # enough. All names resolve to the SAME VIP — adding a broker costs a DNS
+    # record, never a new proxy port, and ports are the scarcer resource.
+    #
+    # There is no bootstrap address: clients list all three broker hostnames as
+    # bootstrap.servers. Kafka has no special bootstrap broker — any broker
+    # answers metadata requests. That also rules out `type: tlsroute`, which
+    # requires `bootstrap.host` and would mean one extra DNS record.
+    #
+    # `cluster-ip` is the type Strimzi documents for custom access mechanisms
+    # such as the Gateway API: it creates a ClusterIP Service per broker pod and
+    # no route object. The matching Gateway listener (one, without `hostname`)
+    # and the three TLSRoutes live in gateway-api/values.yaml.
+    # doc: https://strimzi.io/docs/operators/latest/configuring.html#type-GenericKafkaListener-reference
+    - name: external
+      port: 9094
+      type: cluster-ip
+      tls: true
+      authentication:
+        type: scram-sha-512
+      configuration:
+        # advertisedHost is what a broker tells the client to reconnect to, so
+        # it must be the PUBLIC name, not the in-cluster one. Strimzi adds it to
+        # the broker certificates as well, so TLS hostname verification works.
+        # advertisedPort is omitted on purpose: it defaults to the listener port
+        # (9094), which every broker shares.
+        # Listed per node ID rather than via advertisedHostTemplate so only the
+        # BROKER pool can ever be advertised — controllers stay internal.
+        # `broker:` is the Kafka node ID. With controllers=3 / brokers=3 the IDs
+        # are controllers 0,1,2 and brokers 3,4,5.
+        # Verify: kubectl get pods -n kafka-system -l strimzi.io/pool-name=brokers
+        brokers:
+          - broker: 3
+            advertisedHost: broker-3.kafka.example.local
+          - broker: 4
+            advertisedHost: broker-4.kafka.example.local
+          - broker: 5
+            advertisedHost: broker-5.kafka.example.local
+
+    # ---------------------------------------------------------------------
+    # ALTERNATIVE 1 — ONE hostname, one port per endpoint
+    #
+    # Pick this when DNS is the bottleneck instead of ports. Sharing a hostname
+    # makes SNI identical on every connection, so the Gateway must tell the
+    # endpoints apart by PORT: four listeners (9094 + 19093-19095), each with
+    # its own TLSRoute, and all four ports opened on the L4 proxy. Adding a
+    # broker then needs a new port everywhere, which is usually the harder ask.
+    # Listener ports MUST match the advertisedPort values below. The single
+    # hostname doubles as the bootstrap address, so clients need only one entry
+    # in bootstrap.servers.
+    #
+    # - name: external
+    #   port: 9094
+    #   type: cluster-ip
+    #   tls: true
+    #   authentication:
+    #     type: scram-sha-512
+    #   configuration:
+    #     bootstrap:
+    #       alternativeNames:
+    #         - kafka.example.local
+    #     brokers:
+    #       - broker: 3
+    #         advertisedHost: kafka.example.local
+    #         advertisedPort: 19093
+    #       - broker: 4
+    #         advertisedHost: kafka.example.local
+    #         advertisedPort: 19094
+    #       - broker: 5
+    #         advertisedHost: kafka.example.local
+    #         advertisedPort: 19095
+    #
+    # ALTERNATIVE 2 — hostname per endpoint like the active setup, but with a
+    # bootstrap address and operator-managed routes. Costs one extra DNS record
+    # (`bootstrap.host` is mandatory for this type) and buys two things: clients
+    # need a single bootstrap entry, and `hostTemplate` + operator-owned
+    # TLSRoutes mean a new broker needs no chart edit at all.
+    # Needs Strimzi >= 1.1.0: the `tlsroute` type is absent from the Kafka CRD
+    # shipped in helm/strimzi here, and the cluster operator ClusterRole has no
+    # `tlsroutes` RBAC. The operator OWNS those TLSRoutes — do NOT also declare
+    # them in gateway-api/values.yaml. `advertisedPortTemplate` is required
+    # because tlsroute listeners advertise 443 by default.
+    #
+    # - name: external
+    #   port: 9094
+    #   type: tlsroute
+    #   tls: true
+    #   authentication:
+    #     type: scram-sha-512
+    #   configuration:
+    #     parentRefs:
+    #       - name: data-gw
+    #         kind: Gateway
+    #         group: gateway.networking.k8s.io
+    #         namespace: gateway-api
+    #         sectionName: kafka-tls
+    #     bootstrap:
+    #       host: kafka.example.local
+    #     hostTemplate: broker-{nodeId}.kafka.example.local
+    #     advertisedPortTemplate: "9094"
+    # ---------------------------------------------------------------------
+
   # 14. KafkaAuthorizationSimple schema reference
   # https://strimzi.io/docs/operators/latest/configuring.html#type-KafkaAuthorizationSimple-reference
   authorization:
