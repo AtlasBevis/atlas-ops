@@ -37,7 +37,7 @@ CREATE SCHEMA [etl];
 GO
 
 -- grant select
-GRANT SELECT ON SCHEMA::etl TO [etl_user];
+GRANT CONTROL ON SCHEMA::etl TO [etl_user];
 GO
 
 -- create table signal
