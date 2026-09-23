@@ -225,7 +225,7 @@ persistence:
   storageClass: "longhorn"
   accessModes:
     - ReadWriteOnce
-  size: 10Gi
+  size: 50Gi
   annotations: {}
 
 extraVolumes: []
