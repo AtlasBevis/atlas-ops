@@ -76,7 +76,12 @@ PUT _data_stream/app-prod-data-api-gw
 ```sh
 GET _data_stream/app-prod-data-api-gw
 GET _cat/indices/.ds-app-prod-data-api-gw*?v
+
+# check system
 GET _cluster/health?pretty
+
+# check disk node 
+GET _cat/nodes?v&h=name,ip,node.role,master,heap.percent,disk.used_percent,disk.avail
 ```
 
 ## Document
