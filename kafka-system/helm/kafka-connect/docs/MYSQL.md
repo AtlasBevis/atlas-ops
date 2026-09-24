@@ -88,7 +88,7 @@ SHOW GLOBAL VARIABLES LIKE '%GTID%';
 +--------------------------+-------+
 ```
 
-> Enabling GTID on a live cluster is a staged DBA change (`OFF` → `OFF_PERMISSIVE` → `ON_PERMISSIVE` → `ON`). Do not flip `gtid_mode=ON` in one step on production without following MySQL docs.
+> Enabling GTID on a live cluster is a staged DBA change (`OFF` → `OFF_PERMISSIVE` → `ON_PERMISSIVE` → `ON`). Do not flip `gtid_mode=ON` in one step on production without following MySQL [docs](https://dev.mysql.com/doc/refman/8.4/en/replication-options-gtids.html#option_mysqld_gtid-mode)
 
 ## 4. Create user CDC
 
