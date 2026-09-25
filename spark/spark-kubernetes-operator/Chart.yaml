@@ -1,0 +1,19 @@
+apiVersion: v2
+appVersion: 1.0.0
+description: The official Helm chart to deploy Apache Spark, an unified engine for
+  large-scale data analytics
+home: https://apache.github.io/spark-kubernetes-operator/
+icon: https://spark.apache.org/images/spark-logo.png
+keywords:
+- apache
+- spark
+- sparkapp
+- sparkcluster
+maintainers:
+- email: dev@spark.apache.org
+  name: Apache Spark PMC
+name: spark-kubernetes-operator
+sources:
+- https://github.com/apache/spark-kubernetes-operator/
+type: application
+version: 1.8.0
