@@ -1,0 +1,16 @@
+services:
+  app:
+    image: apicurio/apicurio-registry:3.3.3
+    container_name: apicurio-app
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+
+  ui:
+    image: apicurio/apicurio-registry-ui:3.3.3
+    container_name: apicurio-ui
+    ports:
+      - "8888:8080"
+    depends_on:
+      - app
+    restart: unless-stopped
