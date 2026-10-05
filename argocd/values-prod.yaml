@@ -444,9 +444,14 @@ configs:
     # You can customize parameters by adding parameters here.
     server.insecure: true
     controller.repo.server.timeout.seconds: "180"
-    # controller.self.heal.timeout.seconds: "5"
-    # controller.status.processors: "20"
-    # controller.operation.processors: "10"
+    # Wait 30s before retrying self-heal, instead of every 5s, to avoid repeated API calls while status flaps.
+    controller.self.heal.timeout.seconds: "30"
+    # Parallel workers that reconcile app status against the cluster. Lowered from 20 to cut concurrent reads.
+    controller.status.processors: "10"
+    # How many applications sync at the same time. Lowered from 10 to cut concurrent syncs.
+    controller.operation.processors: "5"
+    # How many resources one sync applies or deletes in parallel. Lowered from 20 to cap API server writes.
+    controller.kubectl.parallelism.limit: "5"
     # applicationsetcontroller.enable.progressive.syncs: "true"
     reposerver.git.request.timeout: "60s"
     reposerver.parallelism.limit: "4"
