@@ -69,7 +69,7 @@ Now, when you check the status using Git, it will compare your local repository 
 
 ### Get the latest upstream code
 
-You will frequently need to get all the of the changes that are made to the upstream repository, and you can do this with these commands:
+You will frequently need to get all of the changes that are made to the upstream repository, and you can do this with these commands:
 
     $ git fetch upstream
     $ git pull upstream main
@@ -83,13 +83,17 @@ To build the source code locally, checkout and update the `main` branch:
     $ git checkout main
     $ git pull upstream main
 
-Then use Maven to compile everything, run all unit and integration tests, build all artifacts, and install all JAR, ZIP, and TAR files into your local Maven repository:
+Then use Maven to compile everything, run all unit and integration tests, and install all JAR files into your local Maven repository:
 
-    $ ./mvnw clean install -Passembly
+    $ ./mvnw clean install
 
 If you want to skip the integration tests (e.g., if you don't have Docker installed) or the unit tests, you can add `-DskipITs` and/or `-DskipTests` to that command:
 
-    $ ./mvnw clean install -Passembly -DskipITs -DskipTests
+    $ ./mvnw clean install -DskipITs -DskipTests
+
+The `assembly` profile (`-Passembly`) is used during release builds or when you want to produce the connector plug-in distribution archives (`.tar.gz` and `.zip`) to copy into containers. Building the whole repository with this profile requires the Oracle Instant Client `xstreams.jar` to be installed manually in your local Maven repository. See the [Oracle connector README](debezium-connector-oracle/README.md#building) for setup instructions.
+
+For more details on build profiles and Docker setup, see the [Building the code](README.md#building-the-code) section in the main README.
 
 ### Running and debugging tests
 
@@ -132,14 +136,20 @@ Your changes should include changes to existing tests or additional unit and/or 
 
     $ ./mvnw clean install
 
-Feel free to commit your changes locally as often as you'd like, though we generally prefer that each commit represent a complete and atomic change to the code. Often, this means that most issues will be addressed with a single commit in a single pull-request, but other more complex issues might be better served with a few commits that each make separate but atomic changes. (Some developers prefer to commit frequently and to ammend their first commit with additional changes. Other developers like to make multiple commits and to then squash them. How you do this is up to you. However, *never* change, squash, or ammend a commit that appears in the history of the upstream repository.) When in doubt, use a few separate atomic commits; if the Debezium reviewers think they should be squashed, they'll let you know when they review your pull request.
+Feel free to commit your changes locally as often as you'd like, though we generally prefer that each commit represent a complete and atomic change to the code. Often, this means that most issues will be addressed with a single commit in a single pull-request, but other more complex issues might be better served with a few commits that each make separate but atomic changes. (Some developers prefer to commit frequently and to amend their first commit with additional changes. Other developers like to make multiple commits and to then squash them. How you do this is up to you. However, *never* change, squash, or amend a commit that appears in the history of the upstream repository.) When in doubt, use a few separate atomic commits; if the Debezium reviewers think they should be squashed, they'll let you know when they review your pull request.
 
 Committing is as simple as:
 
     $ git commit -s .
 
 Notice the `-s` flag. The Debezium project enforces a Developer Certificate of Origin (DCO) check on all pull requests. By adding `-s` to your commit command, Git will automatically append a *Signed-off-by* line to your commit message, confirming you have the right to submit the code. If you forget this flag, the automated CI checks will fail.
-    
+
+**NOTE**: You can automate sign-off e.g. by using a local Git hook.
+In your local clone, copy `.git/hooks/commit-msg.sample` to `.git/hooks/commit-msg` and add the following sample into it:
+
+    SIGNED_BY=$(git var GIT_AUTHOR_IDENT | sed -n 's/^\(.*>\).*$/Signed-off-by: \1/p')
+    grep -Fqs "$SIGNED_BY" "$1" || printf '%s\n' "$SIGNED_BY" >>"$1"
+
 Executing the commit command will pop up an editor of your choice in which you should place a good commit message. _*We do expect that all commit messages begin with a line starting with the GitHub issue and ending with a short phrase that summarizes what changed in the commit.*_ For example:
 
     debezium/dbz#1234 Expanded the MySQL integration test and correct a unit test.
@@ -183,9 +193,13 @@ To run the build, navigate to the project's root directory and run:
 
 It might be useful to simply run a _validate_ check against the code instead of automatically applying code style changes.  If you want to simply run validation, navigate to the project's root directory and run:
 
-    $ ./mvnw clean install -Dformat.formatter.goal=validate -Dformat.imports.goal=check     
+    $ ./mvnw clean install -Dformat.formatter.goal=validate -Dformat.imports.goal=check -Dformat.names.goal=check     
 
-Please note that when running _validate_ checks, the build will stop as soon as it encounters its first violation.  This means it is necessary to run the build multiple times until no violations are detected.
+Please note that when running _validate_ checks, the build will stop as soon as it encounters its first violation.  This means it is necessary to run the build multiple times until no violations are detected.  
+
+If there are violations with `COPYRIGHT.txt`, `Aliases.txt`, or `FilteredNames.txt` because you've added your name and GitHub handle, you can resolve those automatically by having the build sort the files automatically.  Navigate to the project root directory and run:
+
+    $ ./mvnw clean install -Dformat.names.goal=sort
 
 ### Rebasing
 
@@ -208,11 +222,11 @@ Any documentation update should be part of the pull request you submit for the c
 
 ### Creating a pull request
 
-Once you're finished making your changes, your topic branch should have your commit(s) and you should have verified that your branch builds successfully. At this point, you can shared your proposed changes and create a pull request. To do this, first push your topic branch (and its commits) to your fork repository (called `origin`) on GitHub:
+Once you're finished making your changes, your topic branch should have your commit(s) and you should have verified that your branch builds successfully. At this point, you can share your proposed changes and create a pull request. To do this, first push your topic branch (and its commits) to your fork repository (called `origin`) on GitHub:
 
     $ git push origin dbz#1234
 
-Then, in a browser go to your forked repository, and you should see a small section near the top of the page with a button labeled "Contribute". GitHub recognized that you pushed a new topic branch to your fork of the upstream repository, and it knows you probably want to create a pull request with those changes. Click on the button, and a button "Open pull request" will apper. Click it and GitHub will present you the "Comparing changes" page, where you can view all changes that you are about to submit. With all revised, click in "Create pull request" and a short form will be given, that you should fill out with information about your pull request. The title should start with the GitHub issue and end with a short phrase that summarizes the changes included in the pull request. (If the pull request contains a single commit, GitHub will automatically prepopulate the title and description fields from the commit message.)
+Then, in a browser go to your forked repository, and you should see a small section near the top of the page with a button labeled "Contribute". GitHub will recognize that you have pushed a new topic branch to your fork of the upstream repository, and it knows you probably want to create a pull request with those changes. Click on the button, and a button "Open pull request" will appear. Click it and GitHub will present you the "Comparing changes" page, where you can view all changes that you are about to submit. With all reviewed, click "Create pull request", filling in the details about your pull request. The title should start with the GitHub issue and end with a short phrase that summarizes the changes included in the pull request. (If the pull request contains a single commit, GitHub will automatically prepopulate the title and description fields from the commit message.)
 
 At this point, you can switch to another issue and another topic branch. The Debezium committers will be notified of your new pull request, and will review it in short order. They may ask questions or make remarks using line notes or comments on the pull request. (By default, GitHub will send you an email notification of such changes, although you can control this via your GitHub preferences.)
 
@@ -220,7 +234,7 @@ If the reviewers ask you to make additional changes, simply switch to your topic
 
     $ git checkout dbz#1234
 
-and then make the changes on that branch and either add a new commit or ammend your previous commits. When you've addressed the reviewers' concerns, push your changes to your `origin` repository:
+and then make the changes on that branch and either add a new commit or amend your previous commits. When you've addressed the reviewers' concerns, push your changes to your `origin` repository:
 
     $ git push origin dbz#1234
 
