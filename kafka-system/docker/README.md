@@ -10,17 +10,23 @@ Kafka exposes these listeners:
 
 ## Create a SCRAM user
 
-Start or recreate the broker after changing the compose file:
+After changing the compose file, run these commands from `kafka-system/docker` (the directory containing `docker-compose.yml`). `down` stops and removes the containers; the broker data is bind-mounted at `./data` and remains in place:
 
 ```powershell
+docker compose down
 docker compose up -d kafka
+docker compose ps
 ```
+
+Wait until the `kafka` service is healthy before creating the user. If you normally start Kafka UI too, use `docker compose up -d` instead of `docker compose up -d kafka`.
 
 Create a user credential in the KRaft metadata using the internal admin listener:
 
 ```powershell
 docker exec kafka kafka-configs --bootstrap-server localhost:29092 --alter --add-config "SCRAM-SHA-512=[password=ChangeThisPassword]" --entity-type users --entity-name app-user
 ```
+
+You can run that command again with a different password to update the user's SCRAM credential. The first user command is run after the broker starts; it does not need a pre-created admin user because it connects through the internal Docker-only listener.
 
 Replace the sample username and password. Run the command again with `--delete-config SCRAM-SHA-512` to remove that user's SCRAM credential:
 
