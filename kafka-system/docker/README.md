@@ -6,6 +6,8 @@ Kafka exposes these listeners:
 - `localhost:9094`: external `SASL_PLAINTEXT` with `SCRAM-SHA-512`
 - `kafka:29092`: Docker network internal `PLAINTEXT`, for Kafka UI and administration
 
+The Confluent image requires `KAFKA_OPTS` to point to a JAAS config file when an advertised listener uses SASL. Compose mounts `config/kafka_server_jaas.conf`; it defines the required `KafkaServer` SCRAM login context. SCRAM users are created in KRaft metadata with `kafka-configs` below.
+
 `SASL_PLAINTEXT` authenticates clients but does not encrypt traffic. Use it only on a trusted network. For encrypted connections, configure `SASL_SSL` and TLS certificates.
 
 ## Create a SCRAM user
