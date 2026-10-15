@@ -1,5 +1,7 @@
 FROM alpine:3.23
 
+LABEL maintainer="dev.binhtt@gmail.com"
+
 ENV TZ=Asia/Ho_Chi_Minh
 
 RUN apk add --no-cache \

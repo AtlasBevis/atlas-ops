@@ -1,7 +1,8 @@
 # Stage 1: Build Oracle
 FROM debian:bookworm-slim AS oracle
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN apt-get update && \ 
+    apt-get install -y --no-install-recommends \
     unzip \
     && rm -rf /var/lib/apt/lists/*
 

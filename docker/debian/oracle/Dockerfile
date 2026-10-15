@@ -1,5 +1,7 @@
-# build from oracle package
+# build from oracle-Dockerfile
 FROM bevisdev/oracle:12.2 AS oracle
+
+LABEL maintainer="dev.binhtt@gmail.com"
 
 FROM debian:bookworm-slim
 

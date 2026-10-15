@@ -1,5 +1,6 @@
-## build stage
 FROM maven:3.8.4-openjdk-17 as build
+
+LABEL maintainer="dev.binhtt@gmail.com"
 
 WORKDIR /build
 
@@ -7,7 +8,6 @@ COPY . .
 
 RUN mvn install -DskipTests=true
 
-## deploy stage
 FROM eclipse-temurin:17-jre-alpine
 
 RUN unlink /etc/localtime;ln -s  /usr/share/zoneinfo/Asia/Ho_Chi_Minh /etc/localtime
