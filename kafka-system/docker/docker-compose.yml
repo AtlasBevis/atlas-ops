@@ -9,6 +9,10 @@ services:
       - kafka-net
     ports:
       - "9092:9092"
+      - "9094:9094"
+    volumes:
+      - ./data:/var/lib/kafka/data
+      - ./config/kafka_server_jaas.conf:/etc/kafka/kafka_server_jaas.conf:ro
     environment:
       CLUSTER_ID: "GexnRXXwT32pPP-0JhOBjg"
       KAFKA_ENABLE_KRAFT: "true"
@@ -21,17 +25,26 @@ services:
       KAFKA_LISTENERS: >
         INTERNAL://0.0.0.0:29092,
         EXTERNAL://0.0.0.0:9092,
+        SASL_PLAINTEXT://0.0.0.0:9094,
         CONTROLLER://0.0.0.0:9093
+        
       # advertised:
       # EXTERNAL must IP
       KAFKA_ADVERTISED_LISTENERS: >
         INTERNAL://kafka:29092,
-        EXTERNAL://localhost:9092
+        EXTERNAL://localhost:9092,
+        SASL_PLAINTEXT://localhost:9094
+
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: >
         INTERNAL:PLAINTEXT,
         EXTERNAL:PLAINTEXT,
+        SASL_PLAINTEXT:SASL_PLAINTEXT,
         CONTROLLER:PLAINTEXT
+
       KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_SASL_ENABLED_MECHANISMS: SCRAM-SHA-512
+      KAFKA_LISTENER_NAME_SASL_PLAINTEXT_SASL_ENABLED_MECHANISMS: SCRAM-SHA-512
+      KAFKA_OPTS: "-Djava.security.auth.login.config=/etc/kafka/kafka_server_jaas.conf"
 
       # ====== LOGGING & Data  ======
       KAFKA_LOG_DIRS: /var/lib/kafka/data
@@ -55,8 +68,6 @@ services:
       #KAFKA_MESSAGE_MAX_BYTES: 5000000
       #KAFKA_REPLICA_FETCH_MAX_BYTES: 5000000
       #KAFKA_FETCH_MESSAGE_MAX_BYTES: 5000000
-    volumes:
-      - ./data:/var/lib/kafka/data
     restart: unless-stopped
     logging:
       driver: "json-file"
