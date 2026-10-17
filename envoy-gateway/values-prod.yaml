@@ -270,6 +270,40 @@ gatewayClass:
 envoyProxy:
   create: true
   name: data-proxy
+  # Proxy (data plane) replicas; ignored when hpa.enabled=true
+  replicas: 3
+  # Proxy autoscaling (requires metrics-server)
+  hpa:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 6
+    metrics:
+      - type: Resource
+        resource:
+          name: cpu
+          target:
+            type: Utilization
+            averageUtilization: 70
+      - type: Resource
+        resource:
+          name: memory
+          target:
+            type: Utilization
+            averageUtilization: 80
+    behavior:
+      scaleDown:
+        stabilizationWindowSeconds: 300  # wait 5m before scaling down
+  # Spread proxy pods across nodes
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            topologyKey: kubernetes.io/hostname
+            labelSelector:
+              matchLabels:
+                app.kubernetes.io/component: proxy
+                app.kubernetes.io/managed-by: envoy-gateway
   loadBalancerIP: 172.168.27.100
   serviceType: LoadBalancer
   imagePullSecrets:

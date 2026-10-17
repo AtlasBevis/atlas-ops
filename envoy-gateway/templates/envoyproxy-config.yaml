@@ -10,12 +10,35 @@ spec:
   provider:
     type: Kubernetes
     kubernetes:
-      {{- with .Values.envoyProxy.imagePullSecrets }}
+      {{- /* Proxy HPA; replaces fixed replicas when enabled */}}
+      {{- with .Values.envoyProxy.hpa }}
+      {{- if .enabled }}
+      envoyHpa:
+        minReplicas: {{ .minReplicas }}
+        maxReplicas: {{ .maxReplicas }}
+        {{- with .metrics }}
+        metrics:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        {{- with .behavior }}
+        behavior:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+      {{- end }}
+      {{- end }}
       envoyDeployment:
+        {{- if not .Values.envoyProxy.hpa.enabled }}
+        replicas: {{ .Values.envoyProxy.replicas | default 1 }}
+        {{- end }}
         pod:
+          {{- with .Values.envoyProxy.imagePullSecrets }}
           imagePullSecrets:
             {{- toYaml . | nindent 12 }}
-      {{- end }}
+          {{- end }}
+          {{- with .Values.envoyProxy.affinity }}
+          affinity:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
       envoyService:
         type: {{ .Values.envoyProxy.serviceType | default "LoadBalancer" }}
         {{- if .Values.envoyProxy.loadBalancerIP }}

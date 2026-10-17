@@ -237,6 +237,17 @@ gatewayClass:
 envoyProxy:
   create: false
   name: eg-proxy-config
+  # Proxy (data plane) replicas; ignored when hpa.enabled=true
+  replicas: 1
+  # Proxy pod affinity
+  affinity: {}
+  # Proxy autoscaling (requires metrics-server)
+  hpa:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 3
+    metrics: []
+    behavior: {}
   loadBalancerIP: ""
   serviceType: LoadBalancer
   imagePullSecrets: []
