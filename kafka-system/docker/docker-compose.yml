@@ -89,6 +89,7 @@ services:
     container_name: kafka-ui
     networks:
       - kafka-net
+    restart: unless-stopped
     ports:
       - "7200:8080"
     environment:
