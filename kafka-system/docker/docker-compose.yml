@@ -25,7 +25,7 @@ services:
         INTERNAL://0.0.0.0:29092,
         EXTERNAL://0.0.0.0:9092,
         CONTROLLER://0.0.0.0:9093
-        
+
       # advertised:
       # EXTERNAL must IP
       KAFKA_ADVERTISED_LISTENERS: >
@@ -53,7 +53,6 @@ services:
         state.change.logger=INFO,
         kafka.producer.async.DefaultEventHandler=INFO
       KAFKA_LOG4J_TOOLS_LOGLEVEL: ERROR
-      
       # ====== SINGLE NODE REPLICATION ======
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
