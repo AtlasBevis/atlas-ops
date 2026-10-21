@@ -7,7 +7,7 @@ fullnameOverride: ""
 # Upstream:  moby/buildkit:v0.30.0
 # Mirror:    dockerhub.company.com.vn/dwh/docker:v0.30.0
 image:
-  repository: moby/buildkit:v0.30.0
+  repository: moby/buildkit
   tag: v0.30.0
   pullPolicy: IfNotPresent
 
