@@ -55,6 +55,7 @@ x-airflow-common:
     - ${ENV_FILE_PATH:-.env}
   environment:
     &airflow-common-env
+    # Single VM: LocalExecutor (tasks run as subprocesses of the scheduler, no redis/celery worker)
     AIRFLOW__CORE__EXECUTOR: LocalExecutor
     AIRFLOW__CORE__PARALLELISM: ${AIRFLOW_PARALLELISM:-32}
     AIRFLOW__CORE__AUTH_MANAGER: airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager
