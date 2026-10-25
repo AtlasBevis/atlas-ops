@@ -105,7 +105,7 @@ gateways:
       #   tls:
       #     mode: Terminate
       #     certificateRefs:
-      #       - name: wildcard-vietcredit-tls
+      #       - name: wildcard-company-tls
       #   allowedRoutes:
       #     namespaces:
       #       from: All

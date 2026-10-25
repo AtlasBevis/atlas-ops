@@ -421,11 +421,11 @@ networkpolicies:
   # to override internal k8s api targetPort
   apiPort: 6443
 
-# Replace 172.27.7.22 if this cluster's LAN VIP is different.
+# Replace 192.168.0.100 if this cluster's LAN VIP is different.
 ipAddressPools:
   - name: lan-pool
     addresses:
-      - 172.27.7.22/32
+      - 192.168.0.100/32
     autoAssign: false
 
 l2Advertisements:
