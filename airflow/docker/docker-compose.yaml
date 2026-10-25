@@ -55,20 +55,16 @@ x-airflow-common:
     - ${ENV_FILE_PATH:-.env}
   environment:
     &airflow-common-env
-    # Single VM: LocalExecutor (tasks run as subprocesses of the scheduler, no redis/celery worker)
     AIRFLOW__CORE__EXECUTOR: LocalExecutor
     AIRFLOW__CORE__PARALLELISM: ${AIRFLOW_PARALLELISM:-32}
     AIRFLOW__CORE__AUTH_MANAGER: airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager
-    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: ${AIRFLOW_DB_CONN:?set AIRFLOW_DB_CONN in .env}
     AIRFLOW__CORE__FERNET_KEY: ${FERNET_KEY}
     AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'true'
     AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
-    # Mirrored from helm/values-prod.yaml `config:`
     AIRFLOW__CORE__DEFAULT_TIMEZONE: Asia/Ho_Chi_Minh
     AIRFLOW__CORE__MULTI_TEAM: 'True'
     AIRFLOW__CORE__TEST_CONNECTION: Enabled
-    AIRFLOW__CORE__MAX_ACTIVE_RUNS_PER_DAG: 16
-    AIRFLOW__CORE__MAX_ACTIVE_TASKS_PER_DAG: 32
     AIRFLOW__CORE__DEFAULT_POOL_TASK_SLOT_COUNT: 128
     AIRFLOW__CORE__DAGBAG_IMPORT_TIMEOUT: 60
     AIRFLOW__API__BASE_URL: ${AIRFLOW_BASE_URL:-http://localhost:8080}
@@ -99,27 +95,8 @@ x-airflow-common:
     - ${AIRFLOW_PROJ_DIR:-.}/config:/opt/airflow/config
     - ${AIRFLOW_PROJ_DIR:-.}/plugins:/opt/airflow/plugins
   user: "${AIRFLOW_UID:-50000}:0"
-  depends_on:
-    &airflow-common-depends-on
-    postgres:
-      condition: service_healthy
 
 services:
-  postgres:
-    image: postgres:16
-    environment:
-      POSTGRES_USER: airflow
-      POSTGRES_PASSWORD: airflow
-      POSTGRES_DB: airflow
-    volumes:
-      - postgres-db-volume:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD", "pg_isready", "-U", "airflow"]
-      interval: 10s
-      retries: 5
-      start_period: 5s
-    restart: always
-
   airflow-apiserver:
     <<: *airflow-common
     command: api-server
@@ -133,7 +110,6 @@ services:
       start_period: 30s
     restart: always
     depends_on:
-      <<: *airflow-common-depends-on
       airflow-init:
         condition: service_completed_successfully
 
@@ -148,7 +124,6 @@ services:
       start_period: 30s
     restart: always
     depends_on:
-      <<: *airflow-common-depends-on
       airflow-init:
         condition: service_completed_successfully
 
@@ -163,7 +138,6 @@ services:
       start_period: 30s
     restart: always
     depends_on:
-      <<: *airflow-common-depends-on
       airflow-init:
         condition: service_completed_successfully
 
@@ -178,7 +152,6 @@ services:
       start_period: 30s
     restart: always
     depends_on:
-      <<: *airflow-common-depends-on
       airflow-init:
         condition: service_completed_successfully
 
@@ -286,8 +259,3 @@ services:
       - bash
       - -c
       - airflow
-    depends_on:
-      <<: *airflow-common-depends-on
-
-volumes:
-  postgres-db-volume:
