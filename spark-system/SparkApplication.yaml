@@ -19,8 +19,8 @@ spec:
       '{"namespaces": ["raw.card.bo"]}',
     ] # script args (sys.argv)
   runtimeVersions: # REQUIRED, must match image
-    sparkVersion: "3.5.3"
-    scalaVersion: "2.12"
+    sparkVersion: "4.1.3"
+    scalaVersion: "2.13"
   sparkConf:
     # images
     spark.kubernetes.container.image: registry.local/dwh/iceberg-maintenance:1.0.0
