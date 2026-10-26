@@ -1,0 +1,4 @@
+pyyaml>=6.0
+siphash>=0.0.1
+pycryptodome>=3.19
+requests>=2.31
