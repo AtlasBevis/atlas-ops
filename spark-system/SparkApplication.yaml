@@ -1,0 +1,49 @@
+# SparkApplication - Apache Spark Kubernetes Operator
+# Docs: github.com/apache/spark-kubernetes-operator/blob/main/docs/spark_custom_resources.md
+#       doc.crds.dev/github.com/apache/spark-kubernetes-operator
+apiVersion: spark.apache.org/v1 # v1 = storage version (v1beta1 also served)
+kind: SparkApplication
+metadata:
+  name: lakehouse-raw-manual # unique per namespace
+  namespace: spark
+spec:
+  # driver runs as its own pod: ClusterMode | ClientMode
+  deploymentMode: ClusterMode 
+  pyFiles: local:///opt/spark/jobs/iceberg_maintenance_job.py # main file; local:// = inside image
+  driverArgs: [
+      "--catalog",
+      "lakehouse_uat",
+      "--zone",
+      "raw",
+      "--config",
+      '{"namespaces": ["raw.card.bo"]}',
+    ] # script args (sys.argv)
+  runtimeVersions: # REQUIRED, must match image
+    sparkVersion: "3.5.3"
+    scalaVersion: "2.12"
+  sparkConf:
+    # images
+    spark.kubernetes.container.image: registry.local/dwh/iceberg-maintenance:1.0.0
+    spark.kubernetes.container.image.pullPolicy: IfNotPresent
+    spark.kubernetes.container.image.pullSecrets: dockerhub-regcred
+    spark.kubernetes.authenticate.driver.serviceAccountName: spark
+    spark.kubernetes.driver.label.maintenance-run: lakehouse-raw-manual # pod label
+    spark.kubernetes.driver.secretKeyRef.LAKEKEEPER_URI: lakekeeper-spark:LAKEKEEPER_URI # env from secret
+    spark.driver.memory: 4g
+    spark.executor.memory: 8g
+    spark.dynamicAllocation.enabled: "true"
+    spark.dynamicAllocation.shuffleTracking.enabled: "true" # required on k8s
+    spark.dynamicAllocation.maxExecutors: "10"
+  applicationTolerations:
+    resourceRetainPolicy: OnFailure # Never|OnFailure|Always - keep pods after finish
+    ttlAfterStopMillis: 86400000 # auto-delete CR after 1 day (-1 = never)
+    restartConfig:
+      restartPolicy: Never # Never|OnFailure|OnInfrastructureFailure|Always
+    applicationTimeoutConfig: # ms
+      driverStartTimeoutMillis: 300000
+      executorStartTimeoutMillis: 300000
+  # driverSpec/executorSpec.podTemplateSpec   # nodeSelector, tolerations, volumes
+  # suspend: true                             # pause / stop app
+
+# States: Submitted -> DriverRequested -> DriverStarted -> RunningHealthy -> Succeeded -> ResourceReleased
+# Errors: Failed, SchedulingFailure, DriverStartTimedOut, ExecutorsStartTimedOut, DriverEvicted

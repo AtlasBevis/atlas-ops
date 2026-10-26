@@ -1,0 +1,40 @@
+# Helm chart / operator artifacts (not needed in the image)
+spark-kubernetes-operator/
+*.tgz
+
+# K8s manifests & docs
+*.yaml
+*.yml
+*.md
+
+# Docker
+Dockerfile
+.dockerignore
+
+# Git / IDE / OS
+.git
+.gitignore
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ipynb_checkpoints/
+
+# Spark / logs
+spark-warehouse/
+metastore_db/
+derby.log
+*.log
