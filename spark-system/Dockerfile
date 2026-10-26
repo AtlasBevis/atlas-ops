@@ -34,7 +34,7 @@ FROM ${SPARK_IMAGE} AS spark
 
 USER root
 
-COPY --from=loader /tmp/iceberg/*.jar /opt/spark/jars/
+COPY --from=loader /tmp/iceberg/ /opt/spark/jars/
 
 RUN chmod 644 /opt/spark/jars/*.jar
 
