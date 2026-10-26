@@ -1,4 +1,10 @@
-pyyaml>=6.0
-siphash>=0.0.1
-pycryptodome>=3.19
-requests>=2.31
+PyYAML==6.0.3
+siphash==0.0.1
+pycryptodome==4.2.0
+requests==2.34.2
+pandas=3.1.0
+pyarrow==26.0.0
+numpy==2.5.4
+pydantic==2.14.1
+python-dateutil==3.0.0
+orjson==3.13.0
