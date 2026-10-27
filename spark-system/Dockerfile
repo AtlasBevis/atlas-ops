@@ -13,6 +13,9 @@ ARG KAFKA_CLIENT_VERSION=3.9.2
 ARG CLICKHOUSE_VERSION=0.11.0
 ARG POSTGRES_VERSION=42.7.14
 ARG MYSQL_VERSION=8.4.0
+ARG ORA_VERSION=23.5.0.24.07
+ARG MSSQL_VERSION=13.6.0.jre11
+ARG COMMONS_POOL2_VERSION=2.12.1
 ARG MVN=https://repo.maven.apache.org/maven2
 
 RUN apk add --no-cache curl \
@@ -27,10 +30,10 @@ RUN apk add --no-cache curl \
     ${MVN}/org/apache/spark/spark-sql-kafka-0-10_${SCALA_VERSION}/${SPARK_VERSION}/spark-sql-kafka-0-10_${SCALA_VERSION}-${SPARK_VERSION}.jar \
     ${MVN}/org/apache/spark/spark-token-provider-kafka-0-10_${SCALA_VERSION}/${SPARK_VERSION}/spark-token-provider-kafka-0-10_${SCALA_VERSION}-${SPARK_VERSION}.jar \
     ${MVN}/org/apache/kafka/kafka-clients/${KAFKA_CLIENT_VERSION}/kafka-clients-${KAFKA_CLIENT_VERSION}.jar \
-    ${MVN}/org/apache/commons/commons-pool2/2.12.1/commons-pool2-2.12.1.jar \
-    ${MVN}/com/microsoft/sqlserver/mssql-jdbc/12.8.1.jre11/mssql-jdbc-12.8.1.jre11.jar \
+    ${MVN}/org/apache/commons/commons-pool2/${COMMONS_POOL2_VERSION}/commons-pool2-${COMMONS_POOL2_VERSION}.jar \
+    ${MVN}/com/microsoft/sqlserver/mssql-jdbc/${MSSQL_VERSION}/mssql-jdbc-${MSSQL_VERSION}.jar \
     ${MVN}/com/mysql/mysql-connector-j/${MYSQL_VERSION}}/mysql-connector-j-${MYSQL_VERSION}}.jar \
-    ${MVN}/com/oracle/database/jdbc/ojdbc11/23.5.0.24.07/ojdbc11-23.5.0.24.07.jar \
+    ${MVN}/com/oracle/database/jdbc/ojdbc11/${ORA_VERSION}/ojdbc11-${ORA_VERSION}.jar \
     ${MVN}/com/clickhouse/clickhouse-jdbc/${CLICKHOUSE_VERSION}/clickhouse-jdbc-${CLICKHOUSE_VERSION}-all.jar \
     ${MVN}/org/postgresql/postgresql/${POSTGRES_VERSION}/postgresql-${POSTGRES_VERSION}.jar \
     "; \
