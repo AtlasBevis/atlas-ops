@@ -8,7 +8,7 @@ ARG SCALA_VERSION=2.13
 ARG ICEBERG_VERSION=1.12.0
 ARG HADOOP_VERSION=3.4.2
 ARG AWS_SDK_VERSION=2.29.52
-ARG OPENLINEAGE_SPARK=1.52.0
+ARG OPENLINEAGE_SPARK=1.54.0
 ARG KAFKA_CLIENT_VERSION=3.9.2
 ARG CLICKHOUSE_VERSION=0.11.0
 ARG POSTGRES_VERSION=42.7.14
@@ -32,7 +32,7 @@ RUN apk add --no-cache curl \
     ${MVN}/org/apache/kafka/kafka-clients/${KAFKA_CLIENT_VERSION}/kafka-clients-${KAFKA_CLIENT_VERSION}.jar \
     ${MVN}/org/apache/commons/commons-pool2/${COMMONS_POOL2_VERSION}/commons-pool2-${COMMONS_POOL2_VERSION}.jar \
     ${MVN}/com/microsoft/sqlserver/mssql-jdbc/${MSSQL_VERSION}/mssql-jdbc-${MSSQL_VERSION}.jar \
-    ${MVN}/com/mysql/mysql-connector-j/${MYSQL_VERSION}}/mysql-connector-j-${MYSQL_VERSION}}.jar \
+    ${MVN}/com/mysql/mysql-connector-j/${MYSQL_VERSION}}/mysql-connector-j-${MYSQL_VERSION}.jar \
     ${MVN}/com/oracle/database/jdbc/ojdbc11/${ORA_VERSION}/ojdbc11-${ORA_VERSION}.jar \
     ${MVN}/com/clickhouse/clickhouse-jdbc/${CLICKHOUSE_VERSION}/clickhouse-jdbc-${CLICKHOUSE_VERSION}-all.jar \
     ${MVN}/org/postgresql/postgresql/${POSTGRES_VERSION}/postgresql-${POSTGRES_VERSION}.jar \
