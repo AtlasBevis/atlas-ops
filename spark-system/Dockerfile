@@ -32,7 +32,7 @@ RUN apk add --no-cache curl \
     ${MVN}/org/apache/kafka/kafka-clients/${KAFKA_CLIENT_VERSION}/kafka-clients-${KAFKA_CLIENT_VERSION}.jar \
     ${MVN}/org/apache/commons/commons-pool2/${COMMONS_POOL2_VERSION}/commons-pool2-${COMMONS_POOL2_VERSION}.jar \
     ${MVN}/com/microsoft/sqlserver/mssql-jdbc/${MSSQL_VERSION}/mssql-jdbc-${MSSQL_VERSION}.jar \
-    ${MVN}/com/mysql/mysql-connector-j/${MYSQL_VERSION}}/mysql-connector-j-${MYSQL_VERSION}.jar \
+    ${MVN}/com/mysql/mysql-connector-j/${MYSQL_VERSION}/mysql-connector-j-${MYSQL_VERSION}.jar \
     ${MVN}/com/oracle/database/jdbc/ojdbc11/${ORA_VERSION}/ojdbc11-${ORA_VERSION}.jar \
     ${MVN}/com/clickhouse/clickhouse-jdbc/${CLICKHOUSE_VERSION}/clickhouse-jdbc-${CLICKHOUSE_VERSION}-all.jar \
     ${MVN}/org/postgresql/postgresql/${POSTGRES_VERSION}/postgresql-${POSTGRES_VERSION}.jar \
