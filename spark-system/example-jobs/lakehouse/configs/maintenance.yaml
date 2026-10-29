@@ -1,0 +1,72 @@
+# Chọn table: pattern dạng glob trên "namespace.table"
+selection:
+  include: ["*"]
+  exclude: []
+
+# Số table xử lý song song trong cùng SparkSession
+parallelism: 2
+
+# Mặc định cho mọi table
+defaults:
+  rewrite_data_files:
+    enabled: true
+    strategy: binpack
+    sort_order: null
+    where: null
+    options:
+      target-file-size-bytes: "536870912" # 512MB
+      min-input-files: "2"
+      partial-progress.enabled: "true"
+      max-concurrent-file-group-rewrites: "10"
+      # Silver+ (MERGE/upsert): rewrite cả file đủ lớn nếu dính delete, để gộp
+      # delete vào data (giảm merge-on-read khi query). Raw append-only: không ảnh hưởng.
+      delete-file-threshold: "1"
+    # Silver MERGE mỗi giờ -> compaction có thể bị chen commit. Chỉ retry khi lỗi là
+    # xung đột commit (ValidationException/CommitFailedException...), lỗi khác fail ngay.
+    retry_attempts: 3
+    retry_wait_seconds: 120
+
+  rewrite_position_delete_files:
+    enabled: true
+    where: null
+    options: {}
+    retry_attempts: 3
+    retry_wait_seconds: 120
+
+  rewrite_manifests:
+    enabled: true
+
+  expire_snapshots:
+    enabled: true
+    older_than_days: 5
+    retain_last: 5
+
+  # Cần warehouse bật STS (prod: có). Warehouse chỉ remote signing (UAT) lỗi
+  # "URI does not match S3 host or path style" ở ListObjectsV2 -> tắt khi chạy UAT.
+  remove_orphan_files:
+    enabled: true
+    older_than_days: 3
+    # List file qua Iceberg S3FileIO (vended credentials)
+    prefix_listing: true
+
+# Override theo table (glob), merge đè lên defaults. Pattern sau override pattern trước.
+# has_columns (tùy chọn): override chỉ áp khi table có đủ các cột này (field lồng: a.b).
+# raw.*: CDC partition day(_cdc.ts) — chừa 2 ngày nóng (ingest đang ghi), chỉ compact cũ hơn.
+# `where` phải dùng cột nguồn (`_cdc.ts`), KHÔNG dùng tên partition field (`_cdc.ts_day`);
+# Iceberg tự chuyển predicate sang partition day().
+# where chỉ có trên rewrite_data_files + rewrite_position_delete_files (Iceberg procedure hỗ trợ).
+# Raw: chỉ insert. Silver trở đi: upsert (MERGE) -> có delete file, dùng defaults.
+overrides:
+  - match: "raw.*"
+    # Chỉ áp cho table raw có cột CDC; table raw không có _cdc.ts dùng defaults.
+    has_columns: ["_cdc.ts"]
+    rewrite_data_files:
+      where: "_cdc.ts < current_date() - INTERVAL 2 DAYS"
+    # Raw chỉ append (insert) -> không có delete file, bỏ bước này cho nhanh.
+    rewrite_position_delete_files:
+      enabled: false
+    # CDC commit liên tục (>26k snapshot) -> giữ theo giờ thay vì ngày.
+    # Đánh đổi: time travel / rollback chỉ còn ~older_than_hours.
+    expire_snapshots:
+      older_than_hours: 12
+      retain_last: 50

@@ -1,0 +1,8 @@
+catalog:
+  name: lakehouse
+  uri: http://lakekeeper.lakekeeper.svc.cluster.local:8181/catalog
+  warehouse: lakehouse
+  credential:
+  oauth2_server_uri: https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token
+  scope: "api://<app-id>/.default"
+  extra_spark_conf: {}

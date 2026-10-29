@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+*.whl
+
+# Virtual env
+.venv/
+venv/
+env/
+
+# Test / tooling cache
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Spark local runs
+spark-warehouse/
+metastore_db/
+derby.log
+*.jar
+
+# Secrets / local config (credentials go in env vars or K8s secrets)
+.env
+.env.*
+config/*.local.yaml
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
