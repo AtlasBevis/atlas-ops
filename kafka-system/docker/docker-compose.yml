@@ -2,6 +2,11 @@ networks:
   kafka-net:
 
 services:
+# ============================
+# = KAFKA (KRAFT, Single Node)
+# = INTERNAL: kafka:29092 -> PLAINTEXT      -> inside
+# = EXTERNAL: <host>:9092 -> SASL_PLAINTEXT -> SCRAM-SHA-512 (outside)
+# ============================
   kafka:
     image: confluentinc/cp-kafka:8.1.0
     container_name: kafka
