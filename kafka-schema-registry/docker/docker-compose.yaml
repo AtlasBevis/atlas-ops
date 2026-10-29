@@ -1,16 +1,18 @@
 services:
-  app:
+  registry_app:
     image: apicurio/apicurio-registry:3.3.3
     container_name: apicurio-app
     ports:
-      - "8080:8080"
+      - "8888:8080"
+    environment:
+      QUARKUS_HTTP_CORS_ORIGINS: "*"
     restart: unless-stopped
 
-  ui:
+  registry_ui:
     image: apicurio/apicurio-registry-ui:3.3.3
     container_name: apicurio-ui
     ports:
-      - "8888:8080"
-    depends_on:
-      - app
+      - "7300:8080"
+    environment:
+      REGISTRY_API_URL: http://IP:8888/apis/registry/v3
     restart: unless-stopped
