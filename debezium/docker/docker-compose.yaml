@@ -15,16 +15,15 @@ services:
       CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: 1
       KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
       VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      # load Apicurio AvroConverter bundled in the image
+      ENABLE_APICURIO_CONVERTERS: "true"
+      # allow ${env:VAR} in connector configs
+      CONNECT_CONFIG_PROVIDERS: env
+      CONNECT_CONFIG_PROVIDERS_ENV_CLASS: org.apache.kafka.common.config.provider.EnvVarConfigProvider
+      LMS_PASSWORD: ${LMS_PASSWORD}
     healthcheck:
       test:
         ["CMD-SHELL", "curl -sf http://localhost:8083/connectors > /dev/null"]
       interval: 10s
       timeout: 5s
       retries: 20
-    # depends_on:
-    #   kafka:
-    #     condition: service_healthy
-    #   mysql:
-    #     condition: service_healthy
-    #   postgres:
-    #     condition: service_healthy
