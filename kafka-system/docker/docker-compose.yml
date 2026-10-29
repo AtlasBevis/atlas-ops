@@ -99,6 +99,11 @@ services:
     environment:
       KAFKA_CLUSTERS_0_NAME: k-cluster
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
+      
+      #  add if you have schema registry
+      KAFKA_CLUSTERS_0_SCHEMAREGISTRY: http://registry-app:8080/apis/ccompat/v7
+      KAFKA_CLUSTERS_0_KAFKACONNECT_0_NAME: connect
+      KAFKA_CLUSTERS_0_KAFKACONNECT_0_ADDRESS: http://connect:8083
 
       # ================= LOGGING =================
       LOGGING_LEVEL_ROOT: WARN

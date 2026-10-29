@@ -1,0 +1,52 @@
+{
+  "name": "jdbc-oracle",
+  "config": {
+    "connector.class": "io.debezium.connector.jdbc.JdbcSinkConnector",
+    "tasks.max": "1",
+    "consumer.override.partition.assignment.strategy": "org.apache.kafka.clients.consumer.StickyAssignor",
+
+    "topics": "cdc.source.dbo.Loan",
+
+    "connection.url": "jdbc:oracle:thin:@//<host>:1521/service",
+    "connection.username": "<username>",
+    "connection.password": "<password>",
+    "connection.pool.min_size": "5",
+    "connection.pool.max_size": "16",
+    "connection.restart.on.errors": "true",
+    "hibernate.connection.driver_class": "oracle.jdbc.OracleDriver",
+
+    "insert.mode": "upsert",
+    "delete.enabled": "true",
+    "truncate.enabled": "false",
+    "primary.key.mode": "record_key",
+    "schema.evolution": "none",
+    "quote.identifiers": "false",
+    "use.time.zone": "Asia/Ho_Chi_Minh",
+    "collection.name.format": "REPLICATE_USER.SOURCE_${source.table}",
+    "batch.size": "500",
+
+    "key.converter": "io.apicurio.registry.utils.converter.AvroConverter",
+    "key.converter.schemas.enable": "false",
+    "key.converter.apicurio.registry.url": "http://registry-app:8080/apis/registry/v3",
+    "key.converter.apicurio.registry.artifact.group-id": "lms",
+    "key.converter.apicurio.registry.auto-register": "false",
+    "key.converter.apicurio.registry.find-latest": "true",
+    "key.converter.apicurio.registry.as-confluent": "true",
+    "key.converter.apicurio.registry.headers.enabled": "false",
+    "key.converter.apicurio.registry.use-id": "contentId",
+
+    "value.converter": "io.apicurio.registry.utils.converter.AvroConverter",
+    "value.converter.schemas.enable": "false",
+    "value.converter.apicurio.registry.url": "http://registry-app:8080/apis/registry/v3",
+    "value.converter.apicurio.registry.artifact.group-id": "lms",
+    "value.converter.apicurio.registry.auto-register": "false",
+    "value.converter.apicurio.registry.find-latest": "true",
+    "value.converter.apicurio.registry.as-confluent": "true",
+    "value.converter.apicurio.registry.headers.enabled": "false",
+    "value.converter.apicurio.registry.use-id": "contentId",
+
+    "errors.tolerance": "none",
+    "errors.log.enable": "true",
+    "errors.log.include.messages": "true"
+  }
+}
