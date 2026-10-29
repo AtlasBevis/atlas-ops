@@ -20,7 +20,6 @@ services:
       # allow ${env:VAR} in connector configs
       CONNECT_CONFIG_PROVIDERS: env
       CONNECT_CONFIG_PROVIDERS_ENV_CLASS: org.apache.kafka.common.config.provider.EnvVarConfigProvider
-      LMS_PASSWORD: ${LMS_PASSWORD}
     healthcheck:
       test:
         ["CMD-SHELL", "curl -sf http://localhost:8083/connectors > /dev/null"]
