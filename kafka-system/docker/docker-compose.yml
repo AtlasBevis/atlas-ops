@@ -1,17 +1,21 @@
 networks:
-  kafka-net:
+  default_net:
+    external: true
+
+volumes:
+  data:
 
 services:
-# ============================
-# = KAFKA (KRAFT, Single Node)
-# = INTERNAL: kafka:29092 -> PLAINTEXT      -> inside
-# = EXTERNAL: <host>:9092 -> SASL_PLAINTEXT -> SCRAM-SHA-512 (outside)
-# ============================
+  # ============================
+  # = KAFKA (KRAFT, Single Node)
+  # = INTERNAL: kafka:29092 -> PLAINTEXT      -> inside
+  # = EXTERNAL: <host>:9092 -> SASL_PLAINTEXT -> SCRAM-SHA-512 (outside)
+  # ============================
   kafka:
     image: confluentinc/cp-kafka:8.1.0
     container_name: kafka
     networks:
-      - kafka-net
+      - "default_net"
     ports:
       - "9092:9092"
     volumes:
@@ -65,7 +69,6 @@ services:
 
       # KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
 
-      # SIZE LIMIT
       #KAFKA_MESSAGE_MAX_BYTES: 5000000
       #KAFKA_REPLICA_FETCH_MAX_BYTES: 5000000
       #KAFKA_FETCH_MESSAGE_MAX_BYTES: 5000000
@@ -92,14 +95,14 @@ services:
     image: provectuslabs/kafka-ui:latest
     container_name: kafka-ui
     networks:
-      - kafka-net
+      - "default_net"
     restart: unless-stopped
     ports:
       - "7200:8080"
     environment:
       KAFKA_CLUSTERS_0_NAME: k-cluster
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
-      
+
       #  add if you have schema registry
       KAFKA_CLUSTERS_0_SCHEMAREGISTRY: http://registry-app:8080/apis/ccompat/v7
       KAFKA_CLUSTERS_0_KAFKACONNECT_0_NAME: connect
